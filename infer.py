@@ -1,4 +1,3 @@
-from icecream import ic
 import torch
 from torch import nn
 from config import config
@@ -13,12 +12,8 @@ bce_loss = nn.BCELoss(reduction='mean')
 kl_loss = nn.KLDivLoss(reduction='mean')
 sigmoid = nn.Sigmoid()
 
-feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config['model_name'])
-vit_model = handle_model_freezing(
-    setup_model_config(ViTForImageClassification.from_pretrained(vit_config['model_name'])))
-vit_sigmoid_model = handle_model_freezing(
-    setup_model_config(ViTSigmoidForImageClassification.from_pretrained(vit_config['model_name'])))
-
+feature_extractor = load_feature_extractor(vit_config=vit_config)
+vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
 labels = parse_gt_labels(read_gt_labels(path=images_labels_gt_path))
 
 
@@ -34,8 +29,8 @@ def objective_loss_1(output: Tensor, target: Tensor, lambda_1: float = 1, lambda
 
 
 if __name__ == '__main__':
-    print(
-        f'Number of params: {calculate_num_of_params(vit_sigmoid_model)}, Number of trainable params: {calculate_num_of_trainable_params(vit_sigmoid_model)}')
+    print_number_of_trainable_and_not_trainable_params(model=vit_model, model_name='ViT')
+    print_number_of_trainable_and_not_trainable_params(model=vit_sigmoid_model, model_name='ViT-Sigmoid')
     for (idx, image_name), label in zip(enumerate(os.listdir(images_folder_path)), labels):
         if idx < 10:
             image = get_image_from_path(os.path.join(images_folder_path, image_name))
