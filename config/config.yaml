@@ -12,7 +12,7 @@ vit:
   sample_picture_name: ILSVRC2012_val_00000001.JPEG
   num_labels: 1000
   num_steps: 5
-  print_every:
+  print_every: 1
   log: False
   verbose: True
   loss:
