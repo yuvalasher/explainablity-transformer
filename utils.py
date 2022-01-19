@@ -1,11 +1,12 @@
+import pickle
 import json
 import pandas as pd
-from typing import Dict
 
 from PIL import Image
 import os
 from pathlib import Path
-from typing import List, Union, NewType
+from typing import Any, Dict, List
+from consts import PICKLES_FOLDER_PATH
 
 def create_df_of_img_name_with_label(path: Path) -> pd.DataFrame:
     dirlist = os.listdir(path)
@@ -34,15 +35,24 @@ def read_csv(base_path: Path, file_name: str) -> pd.DataFrame:
     return df
 
 
-
 def read_gt_labels(path: Path) -> List[str]:
     with open(path, 'r') as f:
         return f.readlines()
+
 
 def parse_gt_labels(labels: List[str]) -> List[int]:
     return [int(label.replace('\n', '')) for label in labels]
 
 
-
 def get_image_from_path(path: str) -> Image:
     return Image.open(path)
+
+
+def save_obj_to_disk(obj_name: str, obj) -> None:
+    with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(obj_name: str) -> Any:
+    with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'rb') as f:
+        return pickle.load(f)
