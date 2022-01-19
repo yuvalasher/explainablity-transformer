@@ -129,7 +129,7 @@ def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_
     scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
         0].cpu().detach().numpy()
     scores_image = scores[0]
-    plt.imsave(fname=Path(image_plot_folder_path, f'{file_name}_iteration_{iteration_idx}.png'), arr=scores_image,
+    plt.imsave(fname=Path(image_plot_folder_path, f'{file_name[:48]}_iter_{iteration_idx}.png'), arr=scores_image,
                format='png')
     plt.imshow(scores_image, interpolation='nearest')
     plt.show()

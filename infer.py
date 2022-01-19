@@ -75,7 +75,7 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
         if image_name == vit_config['sample_picture_name']:
             print(image_name)
-            image_plot_folder_path = Path(PLOTS_PATH, image_name, experiment_name)
+            image_plot_folder_path = Path(PLOTS_PATH, f'{image_name.replace(".JPEG", "")}_{experiment_name}')
             os.makedirs(name=image_plot_folder_path, exist_ok=True)
             image = get_image_from_path(os.path.join(images_folder_path, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
