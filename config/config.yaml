@@ -4,10 +4,16 @@ general:
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
 
 vit:
+  small_number_for_stability: 1.0e-06
+  lr: 3.0e-01
   model_name: google/vit-base-patch16-384
   img_size: 384
-  batch_size: 16
-  lr: 2.0e-05
-  gamma: 0.7
-  n_epochs: 10
-  n_classes: 6
+  stop_prob_criterion: 0.3
+  sample_picture_name: ILSVRC2012_val_00000001.JPEG
+  num_labels: 1000
+  num_steps: 5
+  print_every:
+  log: False
+  verbose: True
+  loss:
+    prediction_loss_multiplier: 10

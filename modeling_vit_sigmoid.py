@@ -200,14 +200,11 @@ class ViTSelfAttention(nn.Module):
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         # self.attention_scores = attention_scores
 
-        attention_probs = sigmoid_gate(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        # attention_probs = sigmoid_gate(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        attention_probs = nn.functional.relu(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+
         attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
 
-        """
-        Q: is it done for each layer? yes
-        Sigmoids will be applied and their product will be multiplied element-wise by the attention_scores
-        Then, normalize with the weights (for each head, ) 
-        """
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
 
@@ -370,7 +367,7 @@ class ViTEncoder(nn.Module):
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        self.x_attention = nn.Parameter(torch.randn(num_patches + 1, requires_grad=True)) # n_patches + 1 for [CLS]
+        self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True)) # [n_patches + 1 for [CLS]]
 
     def forward(
             self,
