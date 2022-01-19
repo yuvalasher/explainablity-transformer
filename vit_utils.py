@@ -1,8 +1,12 @@
+import torch
 from torch import Tensor
+from torch import nn
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 from modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from PIL import Image
+import matplotlib.pyplot as plt
 from typing import Dict, Tuple, Union, NewType
+from pathlib import Path
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
@@ -59,6 +63,11 @@ def calculate_percentage_of_trainable_params(model) -> str:
     return f'{round(calculate_num_of_trainable_params(model) / calculate_num_of_params(model), 2) * 100}%'
 
 
+def print_number_of_trainable_and_not_trainable_params(model: VitModelForClassification, model_name: str) -> None:
+    print(
+        f'{model_name} - Number of params: {calculate_num_of_params(model)}, Number of trainable params: {calculate_num_of_trainable_params(model)}')
+
+
 def load_feature_extractor(vit_config: Dict) -> ViTFeatureExtractor:
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config['model_name'])
     return feature_extractor
@@ -67,6 +76,13 @@ def load_feature_extractor(vit_config: Dict) -> ViTFeatureExtractor:
 def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassification:
     model = vit_model_types[model_type].from_pretrained(vit_config['model_name'])
     return model
+
+
+def load_feature_extractor_and_vit_models(vit_config: Dict) -> Tuple[
+    ViTFeatureExtractor, ViTForImageClassification, ViTSigmoidForImageClassification]:
+    feature_extractor = load_feature_extractor(vit_config=vit_config)
+    vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
+    return feature_extractor, vit_model, vit_sigmoid_model
 
 
 def handle_model_for_task(model: VitModelForClassification) -> VitModelForClassification:
@@ -79,3 +95,41 @@ def load_handled_models_for_task(vit_config: Dict) -> Tuple[
     vit_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit'))
     vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
     return vit_model, vit_sigmoid_model
+
+
+def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
+                                          vit_sigmoid_model: ViTSigmoidForImageClassification,
+                                          x_attention_param_idx: int = 5):
+    for idx, (tensor_a, tensor_b) in enumerate(zip(list(vit_sigmoid_model.parameters())[:x_attention_param_idx - 1],
+                                                   list(vit_model.parameters())[:x_attention_param_idx - 1])):
+        if not torch.equal(tensor_a, tensor_b):
+            print(f'Not Equal at idx {idx}')
+            return False
+
+    for idx, (tensor_a, tensor_b) in enumerate(zip(list(vit_sigmoid_model.parameters())[x_attention_param_idx:],
+                                                   list(vit_model.parameters())[x_attention_param_idx - 1:])):
+        if not torch.equal(tensor_a, tensor_b):
+            print(f'Not Equal at idx {idx}')
+            return False
+        return True
+
+
+def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_plot_folder_path: Union[str, Path],
+                image_size: int = 384,
+                patch_size: int = 16) -> None:
+    num_patches = (image_size // patch_size) * (image_size // patch_size)
+
+    if len(scores.shape) == 1:
+        scores = scores.unsqueeze(0)
+    if scores.shape[-1] == num_patches + 1:
+        scores = scores[:, 1:]
+
+    w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
+    scores = scores.reshape(1, w_featmap, h_featmap)
+    scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
+        0].cpu().detach().numpy()
+    scores_image = scores[0]
+    plt.imsave(fname=Path(image_plot_folder_path, f'{file_name}_iteration_{iteration_idx}.png'), arr=scores_image,
+               format='png')
+    plt.imshow(scores_image, interpolation='nearest')
+    plt.show()
