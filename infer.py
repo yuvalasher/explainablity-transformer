@@ -11,6 +11,7 @@ from loss_utils import *
 from log_utils import configure_log
 from consts import *
 from pytorch_lightning import seed_everything
+from transformation import pil_to_resized_tensor_transform
 
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
@@ -64,9 +65,12 @@ def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
     l1_loss = x_attention.abs().sum() / len(x_attention)
     entropy_loss = entropy(x_attention_relu_normalized + vit_config['small_number_for_stability'])
     # l1_loss = x_attention_relu.sum() / len(x_attention_relu)
-    loss = l1_loss + entropy_loss + vit_config['loss']['prediction_loss_multiplier'] * prediction_loss
+    loss = vit_config['loss']['l1_loss_multiplier'] * l1_loss + \
+           vit_config['loss']['entropy_loss_multiplier'] * entropy_loss + \
+           vit_config['loss']['prediction_loss_multiplier'] * prediction_loss
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         output=output, target=target)
+    print(x_attention)
     return loss
 
 
@@ -98,10 +102,16 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=prev_x_attention)
                 if prev_loss and is_iteration_to_print:
-                    print(nn.functional.relu(vit_sigmoid_model.vit.encoder.x_attention))
+                    # print(nn.functional.relu(vit_sigmoid_model.vit.encoder.x_attention))
                     if vit_config['verbose']:
-                        plot_scores(scores=vit_sigmoid_model.vit.encoder.x_attention, file_name=experiment_name,
-                                    iteration_idx=iteration_idx, image_plot_folder_path=image_plot_folder_path)
+                        save_saliency_map(image=pil_to_resized_tensor_transform(image),
+                                          saliency_map=torch.tensor(get_scores(
+                                              vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
+                                          filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}').resolve(),
+                                          verbose=vit_config['verbose'])
+
+                    # plot_scores(scores=vit_sigmoid_model.vit.encoder.x_attention, file_name=experiment_name,
+                    #             iteration_idx=iteration_idx, image_plot_folder_path=image_plot_folder_path)
                     # if check_stop_criterion(x_attention=prev_x_attention):
                     #     print(f"stop_at_iteration_idx: {iteration_idx}")
                     #     break
@@ -114,7 +124,6 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
 def infer(experiment_name: str):
     """
     Load saved model and run forward
-    :return:
     """
     vit_sigmoid_model = load_model(model_name=f'{experiment_name}_vit_sigmoid_model')
     image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))

@@ -8,12 +8,15 @@ vit:
   lr: 3.0e-01
   model_name: google/vit-base-patch16-384
   img_size: 384
+  patch_size: 16
   stop_prob_criterion: 0.3
-  sample_picture_name: ILSVRC2012_val_00000001.JPEG
+  sample_picture_name: ILSVRC2012_val_00000018.JPEG
   num_labels: 1000
-  num_steps: 5
+  num_steps: 50
   print_every: 1
   log: False
   verbose: True
   loss:
-    prediction_loss_multiplier: 10
+    prediction_loss_multiplier: 7
+    entropy_loss_multiplier: 3
+    l1_loss_multiplier: 1

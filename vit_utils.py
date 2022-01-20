@@ -7,10 +7,67 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from typing import Dict, Tuple, Union, NewType
 from pathlib import Path
+import numpy as np
+import cv2
+from config import config
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
 vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification}
+
+
+def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size'],
+               patch_size: int = config['vit']['patch_size']) -> None:
+    num_patches = (image_size // patch_size) * (image_size // patch_size)
+
+    if len(scores.shape) == 1:
+        scores = scores.unsqueeze(0)
+    if scores.shape[-1] == num_patches + 1:
+        scores = scores[:, 1:]
+
+    w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
+    scores = scores.reshape(1, w_featmap, h_featmap)
+    scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
+        0].cpu().detach().numpy()
+    scores_image = scores[0]
+    #     plt.imsave(fname=Path(image_plot_folder_path, f'{file_name.replace(" ", "")[:45]}_iter_{iteration_idx}.png'), arr=scores_image,
+    #                format='png')
+    #     plt.imshow(scores_image, interpolation='nearest')
+    #     plt.show()
+    return scores_image
+
+
+def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Union[str, Path], verbose: True) -> None:
+    """
+    Save saliency map on image.
+    Args:
+        image: Tensor of size (3,H,W)
+        saliency_map: Tensor of size (1,H,W)
+        filename: string with complete path and file extension
+    """
+    image = image.data.numpy()
+    saliency_map = saliency_map
+
+    saliency_map = saliency_map - saliency_map.min()
+    saliency_map = saliency_map / saliency_map.max()
+    saliency_map = saliency_map.clip(0, 1)
+
+    saliency_map = np.uint8(saliency_map * 255).transpose(1, 2, 0)
+    saliency_map = cv2.resize(saliency_map, (224, 224))
+
+    image = np.uint8(image * 255).transpose(1, 2, 0)
+    image = cv2.resize(image, (224, 224))
+
+    # Apply JET colormap
+    color_heatmap = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
+
+    # Combine image with heatmap
+    img_with_heatmap = np.float32(color_heatmap) + np.float32(image)
+    img_with_heatmap = img_with_heatmap / np.max(img_with_heatmap)
+    if verbose:
+        plt.imshow(img_with_heatmap, interpolation='nearest')
+        plt.show()
+        cv2.imwrite(f'{filename}.png', np.uint8(255 * img_with_heatmap))
 
 
 def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClassification:
@@ -129,7 +186,8 @@ def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_
     scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
         0].cpu().detach().numpy()
     scores_image = scores[0]
-    plt.imsave(fname=Path(image_plot_folder_path, f'{file_name[:48]}_iter_{iteration_idx}.png'), arr=scores_image,
+    plt.imsave(fname=Path(image_plot_folder_path, f'{file_name.replace(" ", "")[:45]}_iter_{iteration_idx}.png'),
+               arr=scores_image,
                format='png')
     plt.imshow(scores_image, interpolation='nearest')
     plt.show()
