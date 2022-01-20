@@ -15,7 +15,7 @@ from transformation import pil_to_resized_tensor_transform
 
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
-experiment_name = f"l1_abs_x + entropy_loss + prediction_loss_multiplied_{vit_config['loss']['prediction_loss_multiplier']}"
+experiment_name = f"l1_abs_x_mul_{vit_config['loss']['l1_loss_multiplier']} + entropy_loss_mul_{vit_config['loss']['entropy_loss_multiplier']} + prediction_loss_mul_{vit_config['loss']['prediction_loss_multiplier']}"
 configure_log(vit_config=vit_config, experiment_name=experiment_name)
 feature_extractor, vit_model, vit_sigmoid_model = load_feature_extractor_and_vit_models(vit_config=vit_config)
 
@@ -73,19 +73,24 @@ def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
     print(x_attention)
     return loss
 
+def save_resized_original_picture(picture_path, dst_path)-> None:
+    Image.open(picture_path).resize((vit_config['img_size'], vit_config['img_size'])).save(Path(dst_path, f"{vit_config['img_size']}x{vit_config['img_size']}.JPEG"), "JPEG")
+
 
 def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViTSigmoidForImageClassification,
                     criterion, optimizer):
+    os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
-        if image_name == vit_config['sample_picture_name']:
+        if image_name in vit_config['sample_images']:
             print(image_name)
-            image_plot_folder_path = Path(PLOTS_PATH, f'{image_name.replace(".JPEG", "")}_{experiment_name}')
+            image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
             os.makedirs(name=image_plot_folder_path, exist_ok=True)
-            image = get_image_from_path(os.path.join(images_folder_path, image_name))
+            save_resized_original_picture(picture_path=Path(images_folder_path, image_name), dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
+            image = get_image_from_path(Path(images_folder_path, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
             prev_loss = None
-            losses = []
-            x_attention = [vit_sigmoid_model.vit.encoder.x_attention]
+            # losses = []
+            # x_attention = [vit_sigmoid_model.vit.encoder.x_attention]
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 target = vit_model(**inputs)
@@ -94,11 +99,11 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
                 #                  x_attention=vit_sigmoid_model.vit.encoder.x_attention, iteration_idx=iteration_idx)
                 loss = criterion(output=output.logits, target=target.logits,
                                  x_attention=vit_sigmoid_model.vit.encoder.x_attention)
-                losses.append(loss)
+                # losses.append(loss)
                 loss.backward()
                 prev_x_attention = vit_sigmoid_model.vit.encoder.x_attention.clone()
                 optimizer.step()
-                x_attention.append(prev_x_attention)
+                # x_attention.append(prev_x_attention)
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=prev_x_attention)
                 if prev_loss and is_iteration_to_print:
@@ -116,9 +121,9 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
                     #     print(f"stop_at_iteration_idx: {iteration_idx}")
                     #     break
                 prev_loss = loss
-            save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_x_attention', x_attention)
-            save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_losses', losses)
-            return vit_model, vit_sigmoid_model
+        # save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_x_attention', x_attention)
+        # save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_losses', losses)
+    return vit_model, vit_sigmoid_model
 
 
 def infer(experiment_name: str):

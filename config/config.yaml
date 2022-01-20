@@ -11,6 +11,11 @@ vit:
   patch_size: 16
   stop_prob_criterion: 0.3
   sample_picture_name: ILSVRC2012_val_00000018.JPEG
+  sample_images:
+    - ILSVRC2012_val_00000001.JPEG
+    - ILSVRC2012_val_00000003.JPEG
+    - ILSVRC2012_val_00000009.JPEG
+    - ILSVRC2012_val_00000018.JPEG
   num_labels: 1000
   num_steps: 50
   print_every: 1
