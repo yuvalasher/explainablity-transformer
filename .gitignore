@@ -132,3 +132,5 @@ data/
 wandb/
 plots/
 pickles/
+*.png
+*.JPEG
