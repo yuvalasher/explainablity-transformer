@@ -16,7 +16,7 @@ from transformation import pil_to_resized_tensor_transform
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
 experiment_name = f"l1_abs_x_mul_{vit_config['loss']['l1_loss_multiplier']} + entropy_loss_mul_{vit_config['loss']['entropy_loss_multiplier']} + prediction_loss_mul_{vit_config['loss']['prediction_loss_multiplier']}"
-configure_log(vit_config=vit_config, experiment_name=experiment_name)
+run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
 feature_extractor, vit_model, vit_sigmoid_model = load_feature_extractor_and_vit_models(vit_config=vit_config)
 
 
@@ -48,6 +48,8 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output)[0][torch.argmax(F.softmax(target)).item()]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
+    if is_iteration_to_print(iteration_idx=iteration_idx):
+        print(nn.functional.relu(prev_x_attention))
         # print(sigmoid(prev_x_attention))
 
 
@@ -70,11 +72,12 @@ def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
            vit_config['loss']['prediction_loss_multiplier'] * prediction_loss
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         output=output, target=target)
-    print(x_attention)
     return loss
 
-def save_resized_original_picture(picture_path, dst_path)-> None:
-    Image.open(picture_path).resize((vit_config['img_size'], vit_config['img_size'])).save(Path(dst_path, f"{vit_config['img_size']}x{vit_config['img_size']}.JPEG"), "JPEG")
+
+def save_resized_original_picture(picture_path, dst_path) -> None:
+    Image.open(picture_path).resize((vit_config['img_size'], vit_config['img_size'])).save(
+        Path(dst_path, f"{vit_config['img_size']}x{vit_config['img_size']}.JPEG"), "JPEG")
 
 
 def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViTSigmoidForImageClassification,
@@ -85,10 +88,13 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
             print(image_name)
             image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
             os.makedirs(name=image_plot_folder_path, exist_ok=True)
-            save_resized_original_picture(picture_path=Path(images_folder_path, image_name), dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
+            save_resized_original_picture(picture_path=Path(images_folder_path, image_name),
+                                          dst_path=Path(PLOTS_PATH, experiment_name,
+                                                        f'{image_name.replace(".JPEG", "")}'))
             image = get_image_from_path(Path(images_folder_path, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
-            prev_loss = None
+            original_transformed_image = pil_to_resized_tensor_transform(image)
+            # prev_loss = None
             # losses = []
             # x_attention = [vit_sigmoid_model.vit.encoder.x_attention]
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
@@ -106,23 +112,28 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
                 # x_attention.append(prev_x_attention)
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=prev_x_attention)
-                if prev_loss and is_iteration_to_print:
-                    # print(nn.functional.relu(vit_sigmoid_model.vit.encoder.x_attention))
-                    if vit_config['verbose']:
-                        save_saliency_map(image=pil_to_resized_tensor_transform(image),
-                                          saliency_map=torch.tensor(get_scores(
-                                              vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
-                                          filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}').resolve(),
-                                          verbose=vit_config['verbose'])
+                # if prev_loss and is_iteration_to_print:
+
+                # print(nn.functional.relu(vit_sigmoid_model.vit.encoder.x_attention))
+                if vit_config['verbose']:
+
+                    save_saliency_map(image=original_transformed_image,
+                                      saliency_map=torch.tensor(get_scores(
+                                          vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
+                                      filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}').resolve(),
+                                      verbose=is_iteration_to_print(iteration_idx=iteration_idx))
 
                     # plot_scores(scores=vit_sigmoid_model.vit.encoder.x_attention, file_name=experiment_name,
                     #             iteration_idx=iteration_idx, image_plot_folder_path=image_plot_folder_path)
                     # if check_stop_criterion(x_attention=prev_x_attention):
                     #     print(f"stop_at_iteration_idx: {iteration_idx}")
                     #     break
-                prev_loss = loss
+                # prev_loss = loss
         # save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_x_attention', x_attention)
         # save_obj_to_disk(f'{experiment_name}_{image_name.replace(".JPEG", "")}_losses', losses)
+        if vit_config['log']:
+            run.finish()
+            vit_config['log'] = False
     return vit_model, vit_sigmoid_model
 
 

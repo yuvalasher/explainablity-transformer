@@ -41,7 +41,7 @@ def log(loss, l1_loss, entropy_loss, prediction_loss, x_attention, output, targe
 
 
 def is_iteration_to_print(iteration_idx: int) -> bool:
-    return iteration_idx % vit_config['print_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1
+    return vit_config['verbose'] and (iteration_idx % vit_config['print_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1)
 
 
 def print_objective_every(a: Tensor, b: Tensor, iteration_idx: int, output: Tensor, target: Tensor) -> None:
