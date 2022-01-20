@@ -20,6 +20,7 @@ run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
 feature_extractor, vit_model, vit_sigmoid_model = load_feature_extractor_and_vit_models(vit_config=vit_config)
 
 
+
 def save_model(model: nn.Module, model_name: str) -> None:
     path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
     torch.save(model.state_dict(), path)
@@ -61,15 +62,15 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) 
 
 
 def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
-    prediction_loss = ce_loss(F.softmax(output), torch.argmax(target).unsqueeze(0))
+    prediction_loss = ce_loss(F.softmax(output), torch.argmax(target).unsqueeze(0)) * vit_config['loss'][
+        'prediction_loss_multiplier']
     x_attention_relu = nn.functional.relu(x_attention)
     x_attention_relu_normalized = x_attention_relu / x_attention_relu.sum()
-    l1_loss = x_attention.abs().sum() / len(x_attention)
-    entropy_loss = entropy(x_attention_relu_normalized + vit_config['small_number_for_stability'])
+    l1_loss = x_attention.abs().sum() / len(x_attention) * vit_config['loss']['l1_loss_multiplier']
+    entropy_loss = entropy(x_attention_relu_normalized + vit_config['small_number_for_stability']) * vit_config['loss'][
+        'entropy_loss_multiplier']
     # l1_loss = x_attention_relu.sum() / len(x_attention_relu)
-    loss = vit_config['loss']['l1_loss_multiplier'] * l1_loss + \
-           vit_config['loss']['entropy_loss_multiplier'] * entropy_loss + \
-           vit_config['loss']['prediction_loss_multiplier'] * prediction_loss
+    loss = l1_loss + entropy_loss + prediction_loss
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         output=output, target=target)
     return loss
@@ -80,10 +81,11 @@ def save_resized_original_picture(picture_path, dst_path) -> None:
         Path(dst_path, f"{vit_config['img_size']}x{vit_config['img_size']}.JPEG"), "JPEG")
 
 
-def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViTSigmoidForImageClassification,
-                    criterion, optimizer):
+def optimize_params(vit_model: ViTForImageClassification, criterion):
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
+        vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
+        optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
         if image_name in vit_config['sample_images']:
             print(image_name)
             image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
@@ -116,7 +118,6 @@ def optimize_params(vit_model: ViTForImageClassification, vit_sigmoid_model: ViT
 
                 # print(nn.functional.relu(vit_sigmoid_model.vit.encoder.x_attention))
                 if vit_config['verbose']:
-
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(get_scores(
                                           vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
@@ -152,8 +153,6 @@ def infer(experiment_name: str):
 if __name__ == '__main__':
     # print_number_of_trainable_and_not_trainable_params(model=vit_model, model_name='ViT')
     # print_number_of_trainable_and_not_trainable_params(model=vit_sigmoid_model, model_name='ViT-Sigmoid')
-    optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
-    vit_model, vit_sigmoid_model = optimize_params(vit_model=vit_model, vit_sigmoid_model=vit_sigmoid_model,
-                                                   criterion=objective_loss_relu_entropy,
-                                                   optimizer=optimizer)
+    vit_model, vit_sigmoid_model = optimize_params(vit_model=vit_model,
+                                                   criterion=objective_loss_relu_entropy)
     # save_model(model=vit_sigmoid_model, model_name=f'{experiment_name}_vit_sigmoid_model')
