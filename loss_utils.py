@@ -9,7 +9,9 @@ bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction='mean')
 kl_loss = nn.KLDivLoss(reduction='mean')
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
-def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tensor, x_attention: Tensor, iteration_idx: int) -> Tensor:
+
+def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tensor, x_attention: Tensor,
+                                                   iteration_idx: int) -> Tensor:
     """
     Loss between the original prediction's distribution of the model and the prediction's distribution of the new model
     + average of the BCE of the x * self-attention
@@ -38,7 +40,7 @@ def log(loss, l1_loss, entropy_loss, prediction_loss, x_attention, output, targe
 
 def is_iteration_to_print(iteration_idx: int) -> bool:
     return vit_config['verbose'] and (
-                iteration_idx % vit_config['print_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1)
+            iteration_idx % vit_config['print_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1)
 
 
 def print_objective_every(a: Tensor, b: Tensor, iteration_idx: int, output: Tensor, target: Tensor) -> None:

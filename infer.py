@@ -57,9 +57,24 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) 
     return is_predicted_same_class, original_idx_logits_diff
 
 
+def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
+    # prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
+    prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier'] # logits in correct class
+    l1_loss = (x_attention - 1).abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
+    # x_attention_chopped = relu(x_attention)
+    x_attention_chopped = torch.clamp(x_attention, min=0, max=1)
+    x_attention_chopped = -(x_attention_chopped - x_attention_chopped.max())
+    x_attention_chopped_normalized = x_attention_chopped / x_attention_chopped.sum()
+    entropy_loss = entropy(x_attention_chopped_normalized) * loss_config['entropy_loss_multiplier']
+
+    loss = l1_loss + entropy_loss + prediction_loss
+    log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
+        output=output, target=target)
+    return loss
+
+
 def objective_loss_relu_entropy(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
-    prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * \
-                      loss_config['prediction_loss_multiplier']
+    prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
     # prediction_loss = -output[0][torch.argmax(F.softmax(target)).item()]  # logits in correct class
     x_attention_chopped = relu(x_attention)
     # x_attention_chopped = torch.clamp(x_attention, min=0, max=1)
@@ -68,6 +83,7 @@ def objective_loss_relu_entropy(output: Tensor, target: Tensor, x_attention: Ten
     # l1_loss = (x_attention - 1).abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
     l1_loss = x_attention.abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
     entropy_loss = entropy(x_attention_chopped_normalized) * loss_config['entropy_loss_multiplier']
+
     loss = l1_loss + entropy_loss + prediction_loss
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         output=output, target=target)
@@ -76,10 +92,10 @@ def objective_loss_relu_entropy(output: Tensor, target: Tensor, x_attention: Ten
 
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
-        vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
-        optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
-
         if image_name in vit_config['sample_images']:
+            vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
+            optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
+
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=images_folder_path,
                                                                            image_name=image_name,
                                                                            experiment_name=experiment_name)
@@ -92,8 +108,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 output = vit_sigmoid_model(**inputs)
                 # loss = criterion(output=output.logits, target=target.logits,
                 #                  x_attention=vit_sigmoid_model.vit.encoder.x_attention, iteration_idx=iteration_idx)
-                dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_sigmoid_model,
-                                                                     image_name=image_name)
+                # dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_sigmoid_model,
+                #                                                      image_name=image_name)
                 loss = criterion(output=output.logits, target=target.logits,
                                  x_attention=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
@@ -104,12 +120,12 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 if vit_config['verbose']:
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
-                                          get_scores(relu(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
+                                          get_scores(vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
                                       filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
                                       verbose=is_iteration_to_print(iteration_idx=iteration_idx))
-        if vit_config['log']:
-            run.finish()
-            vit_config['log'] = False
+            if vit_config['log']:
+                run.finish()
+                vit_config['log'] = False
 
 
 def infer(experiment_name: str):
@@ -126,5 +142,6 @@ def infer(experiment_name: str):
 
 if __name__ == '__main__':
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
-    optimize_params(vit_model=vit_model, criterion=objective_loss_relu_entropy)
+    optimize_params(vit_model=vit_model, criterion=objective_2)
+    # optimize_params(vit_model=vit_model, criterion=objective_loss_relu_entropy)
     # save_model(model=vit_sigmoid_model, model_name=f'{experiment_name}_vit_sigmoid_model')
