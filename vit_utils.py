@@ -1,3 +1,4 @@
+import os
 import torch
 from torch import Tensor
 from torch import nn
@@ -10,10 +11,30 @@ from pathlib import Path
 import numpy as np
 import cv2
 from config import config
+from consts import PLOTS_PATH
+from torch.functional import F
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
 vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification}
+
+
+def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
+                                                         image_name: str,
+                                                         image_size: int = config['vit']['img_size'],
+                                                         patch_size: int = config['vit']['patch_size']) -> None:
+    num_heads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
+    attentions = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
+        num_heads, -1)
+    w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
+    attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
+    attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
+        0].cpu().detach().numpy()
+    image_dino_plots_folder = Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], image_name.replace('.JPEG', ''))
+    os.makedirs(image_dino_plots_folder, exist_ok=True)
+    for head_idx in range(num_heads):
+        plt.imsave(fname=Path(image_dino_plots_folder, f'attn-head{head_idx}.png'), arr=attentions[head_idx],
+                   format='png')
 
 
 def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size'],
@@ -37,7 +58,7 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     return scores_image
 
 
-def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Union[str, Path], verbose: True) -> None:
+def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: True) -> None:
     """
     Save saliency map on image.
     Args:
@@ -56,7 +77,7 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Union[str, 
     saliency_map = cv2.resize(saliency_map, (384, 384))
 
     image = np.uint8(image * 255).transpose(1, 2, 0)
-    image = cv2.resize(image, (384,384))
+    image = cv2.resize(image, (384, 384))
 
     # Apply JET colormap
     color_heatmap = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
@@ -67,7 +88,7 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Union[str, 
     if verbose:
         plt.imshow(img_with_heatmap, interpolation='nearest')
         plt.show()
-    cv2.imwrite(f'{filename}.png', np.uint8(255 * img_with_heatmap))
+    cv2.imwrite(f'{filename.resolve()}.png', np.uint8(255 * img_with_heatmap))
 
 
 def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClassification:
@@ -136,10 +157,12 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
 
 
 def load_feature_extractor_and_vit_models(vit_config: Dict) -> Tuple[
-    ViTFeatureExtractor, ViTForImageClassification, ViTSigmoidForImageClassification]:
+    ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
-    vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
-    return feature_extractor, vit_model, vit_sigmoid_model
+    # vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
+    vit_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit'))
+
+    return feature_extractor, vit_model
 
 
 def handle_model_for_task(model: VitModelForClassification) -> VitModelForClassification:
@@ -147,11 +170,9 @@ def handle_model_for_task(model: VitModelForClassification) -> VitModelForClassi
     return model
 
 
-def load_handled_models_for_task(vit_config: Dict) -> Tuple[
-    VitModelForClassification, ViTSigmoidForImageClassification]:
-    vit_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit'))
+def load_handled_models_for_task(vit_config: Dict) -> ViTSigmoidForImageClassification:
     vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
-    return vit_model, vit_sigmoid_model
+    return vit_sigmoid_model
 
 
 def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
@@ -191,3 +212,27 @@ def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_
                format='png')
     plt.imshow(scores_image, interpolation='nearest')
     plt.show()
+
+
+def save_resized_original_picture(image_size, picture_path, dst_path) -> None:
+    Image.open(picture_path).resize((image_size, image_size)).save(
+        Path(dst_path, f"{image_size}x{image_size}.JPEG"), "JPEG")
+
+
+def check_stop_criterion(x_attention: Tensor) -> bool:
+    if len(torch.where(F.sigmoid(x_attention) >= float(config['vit']['stop_prob_criterion']))[0]) == 0:
+        return True
+    return False
+
+
+def get_and_create_image_plot_folder_path(images_folder_path: Path, image_name: str, experiment_name: str) -> Path:
+    """
+    Also saving the original picture in the models' resolution (img_size, img_size)
+    """
+    print(image_name)
+    image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
+    os.makedirs(name=image_plot_folder_path, exist_ok=True)
+    save_resized_original_picture(image_size=config['vit']['img_size'],
+                                  picture_path=Path(images_folder_path, image_name),
+                                  dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
+    return image_plot_folder_path

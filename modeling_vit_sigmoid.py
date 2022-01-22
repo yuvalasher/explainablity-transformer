@@ -172,7 +172,7 @@ class ViTSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size, bias=config.qkv_bias)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-        self.attention_scores = None
+        self.attention_probs = None
 
     def transpose_for_scores(self, x):
         # Dividing the dim_size (768) to num_attention heads (attention_head: dim: 64)
@@ -202,8 +202,10 @@ class ViTSelfAttention(nn.Module):
 
         # attention_probs = sigmoid_gate(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         attention_probs = nn.functional.relu(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        # attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
 
         attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
+        self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
