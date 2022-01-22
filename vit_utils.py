@@ -193,8 +193,7 @@ def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
 
 
 def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_plot_folder_path: Union[str, Path],
-                image_size: int = 384,
-                patch_size: int = 16) -> None:
+                image_size: int = 384,patch_size: int = 16) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 
     if len(scores.shape) == 1:
