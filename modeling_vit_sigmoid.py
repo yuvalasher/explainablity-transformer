@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ PyTorch ViT model. """
-
+from config import config
 import collections.abc
 import math
 
@@ -198,10 +198,10 @@ class ViTSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-
+        # attention_probs = nn.functional.softmax(x_attention / config['vit']['temperature']) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        attention_probs = nn.functional.relu(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = sigmoid_gate(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        # attention_probs = nn.functional.relu(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        # attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
 
         attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
@@ -369,7 +369,7 @@ class ViTEncoder(nn.Module):
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        self.x_attention = nn.Parameter(torch.randn(num_patches + 1, requires_grad=True)) # [n_patches + 1 for [CLS]]
+        self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True)) # [n_patches + 1 for [CLS]]
 
     def forward(
             self,
