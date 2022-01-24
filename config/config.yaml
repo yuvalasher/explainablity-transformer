@@ -12,11 +12,12 @@ vit:
   stop_prob_criterion: 0.3
   sample_picture_name: ILSVRC2012_val_00000018.JPEG
   sample_images:
-#    - ILSVRC2012_val_00000001.JPEG # sanke
+#    - ILSVRC2012_val_00000001.JPEG # snake
 #    - ILSVRC2012_val_00000003.JPEG # dog
 #    - ILSVRC2012_val_00000009.JPEG # mousetrap
     - ILSVRC2012_val_00000018.JPEG # bird
   lr: 3.0e-01
+  temperature: 0.5
   num_steps: 1000
   print_every: 1
   log: False
