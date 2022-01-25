@@ -380,9 +380,10 @@ class ViTEncoder(nn.Module):
     def calculate_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:
         """
         :return binary tensor of sampled by gumble-softmax with size of [n_patches + 1] # 1 for [CLS] token
+        When X_attention value is large, the sample should be 1 (?)
         """
         sigmoid_x_attention = torch.nn.functional.sigmoid(x_attention).clone()
-        log_prob_x_attention = torch.stack((torch.tensor(torch.log(1 - sigmoid_x_attention)), torch.log(sigmoid_x_attention))).T
+        log_prob_x_attention = torch.stack((torch.log(1 - sigmoid_x_attention), torch.log(sigmoid_x_attention))).T
         log_probs = [gumbel_softmax(log_prob, temperature=config['vit']['temperature']) for log_prob in log_prob_x_attention]
         sampled_binary_patches = torch.stack(log_probs).mm(torch.tensor([[0., 1.]]).T).T[0]
         return sampled_binary_patches
