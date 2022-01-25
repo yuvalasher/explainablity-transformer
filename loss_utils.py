@@ -28,7 +28,8 @@ def entropy(p_dist: Tensor) -> Tensor:
     return sum([-p * torch.log2(p) if p > 0 else 0 for p in p_dist])
 
 
-def log(loss, x_attention, output, target, kl_loss=None, l1_loss=None, entropy_loss=None, prediction_loss=None) -> None:
+def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=None, l1_loss=None, entropy_loss=None,
+        prediction_loss=None) -> None:
     if vit_config['log']:
         wandb.log({"loss": loss,
                    "kl_loss": kl_loss if not None else 0,
@@ -36,9 +37,14 @@ def log(loss, x_attention, output, target, kl_loss=None, l1_loss=None, entropy_l
                    "entropy_loss": entropy_loss if not None else 0,
                    "prediction_loss": prediction_loss if not None else 0,
                    'correct_class_pred': F.softmax(output)[0][torch.argmax(F.softmax(target)).item()],
-                   'num_of_positive_relu_values': len(torch.where(nn.functional.relu(x_attention))[0])})
+                   'correct_class_logit': output[0][torch.argmax(F.softmax(target)).item()],
+                   'num_of_non-zero_x_sampled_values': len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,
+                   'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
+                   })
     print(
-        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, num_of_positive_relu_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+
+
 
 
 def is_iteration_to_print(iteration_idx: int) -> bool:

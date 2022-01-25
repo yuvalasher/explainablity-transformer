@@ -202,7 +202,7 @@ class ViTSelfAttention(nn.Module):
 
         # attention_probs = nn.functional.softmax(x_attention / config['vit']['temperature']) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = nn.functional.relu(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        # attention_probs = nn.functional.sigmoid(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        # attention_probs = torch.sigmoid(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         attention_probs = sampled_binary_patches * attention_probs
@@ -382,7 +382,7 @@ class ViTEncoder(nn.Module):
         :return binary tensor of sampled by gumble-softmax with size of [n_patches + 1] # 1 for [CLS] token
         When X_attention value is large, the sample should be 1 (?)
         """
-        sigmoid_x_attention = torch.nn.functional.sigmoid(x_attention).clone()
+        sigmoid_x_attention = torch.sigmoid(x_attention).clone()
         log_prob_x_attention = torch.stack((torch.log(1 - sigmoid_x_attention), torch.log(sigmoid_x_attention))).T
         log_probs = [gumbel_softmax(log_prob, temperature=config['vit']['temperature']) for log_prob in log_prob_x_attention]
         sampled_binary_patches = torch.stack(log_probs).mm(torch.tensor([[0., 1.]]).T).T[0]
