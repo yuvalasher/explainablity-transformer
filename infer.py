@@ -50,7 +50,7 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     if is_iteration_to_print(iteration_idx=iteration_idx):
         print(prev_x_attention)
-        if sampled_binary_patches:
+        if sampled_binary_patches is not None:
             print(sampled_binary_patches)
 
 
