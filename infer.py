@@ -19,7 +19,8 @@ vit_config = config['vit']
 loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
-experiment_name = f"dog_relu_{vit_config['temperature']}_objective_1_objective_1_clamp_l1_mul{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
+# experiment_name = f"{vit_config['temperature']}_objective_1_l1_{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
+experiment_name = f"fixed_gumble_softmax_sample_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
 feature_extractor, vit_model = load_feature_extractor_and_vit_models(vit_config=vit_config)
 
@@ -39,7 +40,8 @@ def load_model(model_name: str) -> nn.Module:
     return model
 
 
-def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor):
+def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
+                                 sampled_binary_patches: Tensor=None):
     is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
         vit_logits=target, vit_s_logits=output)
     print(
@@ -48,6 +50,8 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     if is_iteration_to_print(iteration_idx=iteration_idx):
         print(prev_x_attention)
+        if sampled_binary_patches:
+            print(sampled_binary_patches)
 
 
 def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
@@ -59,7 +63,7 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) 
 
 def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     # prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
-    prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier'] # logits in correct class
+    prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
     l1_loss = (x_attention - 1).abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
     # x_attention_chopped = relu(x_attention)
     x_attention_chopped = torch.clamp(x_attention, min=0, max=1)
@@ -100,6 +104,20 @@ def objective_1(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     return loss
 
 
+def kl_div(p, q):
+    return sum(p[i] * torch.log(p[i] / q[i]) for i in range(len(p))) / len(p)
+
+
+def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
+    prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
+    kl = kl_div(F.sigmoid(x_attention), torch.zeros_like(x_attention) + 1e-6) * loss_config['kl_loss_multiplier']
+    print(f'kl_loss: {kl}, prediction_loss: {prediction_loss}')
+    loss = kl + prediction_loss
+    log(loss=loss, kl_loss=kl, prediction_loss=prediction_loss, x_attention=x_attention,
+        output=output, target=target)
+    return loss
+
+
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
         if image_name in vit_config['sample_images']:
@@ -126,13 +144,21 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 prev_x_attention = vit_sigmoid_model.vit.encoder.x_attention.clone()
                 optimizer.step()
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
-                                             prev_x_attention=prev_x_attention)
+                                             prev_x_attention=prev_x_attention,
+                                             sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
                 if vit_config['verbose']:
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
-                                          get_scores(relu(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
+                                          # get_scores(relu(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
+                                          get_scores(vit_sigmoid_model.vit.encoder.sampled_binary_patches)).unsqueeze(
+                                          0),
                                       filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
                                       verbose=is_iteration_to_print(iteration_idx=iteration_idx))
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(vit_sigmoid_model.vit.encoder.x_attention - vit_sigmoid_model.vit.encoder.x_attention.min())).unsqueeze(0),
+                    #                   filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_print(iteration_idx=iteration_idx))
             if vit_config['log']:
                 run.finish()
                 vit_config['log'] = False
@@ -152,6 +178,5 @@ def infer(experiment_name: str):
 
 if __name__ == '__main__':
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
-    optimize_params(vit_model=vit_model, criterion=objective_1)
-    # optimize_params(vit_model=vit_model, criterion=objective_1)
+    optimize_params(vit_model=vit_model, criterion=objective_gumble_softmax)
     # save_model(model=vit_sigmoid_model, model_name=f'{experiment_name}_vit_sigmoid_model')

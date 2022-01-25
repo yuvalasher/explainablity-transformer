@@ -28,14 +28,17 @@ def entropy(p_dist: Tensor) -> Tensor:
     return sum([-p * torch.log2(p) if p > 0 else 0 for p in p_dist])
 
 
-def log(loss, l1_loss, entropy_loss, prediction_loss, x_attention, output, target) -> None:
+def log(loss, x_attention, output, target, kl_loss=None, l1_loss=None, entropy_loss=None, prediction_loss=None) -> None:
     if vit_config['log']:
-        wandb.log({"loss": loss, "l1_loss": l1_loss, "entropy_loss": entropy_loss,
-                   "prediction_loss": prediction_loss,
+        wandb.log({"loss": loss,
+                   "kl_loss": kl_loss if not None else 0,
+                   "l1_loss": l1_loss if not None else 0,
+                   "entropy_loss": entropy_loss if not None else 0,
+                   "prediction_loss": prediction_loss if not None else 0,
                    'correct_class_pred': F.softmax(output)[0][torch.argmax(F.softmax(target)).item()],
                    'num_of_positive_relu_values': len(torch.where(nn.functional.relu(x_attention))[0])})
     print(
-        f'l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, prediction_loss: {prediction_loss}, num_of_positive_relu_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, num_of_positive_relu_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
 def is_iteration_to_print(iteration_idx: int) -> bool:
