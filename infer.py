@@ -185,7 +185,7 @@ OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attenti
               'objective_2': objective_2,  # x_attention as rand & clamp
               'objective_loss_relu_entropy': objective_loss_relu_entropy  # x_attention as rand & clamp
               }
-experiment_name = f"{vit_config['objective']}_lr_{str(vit_config['lr']).replace('.', '_')}_softmax_temp_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
+experiment_name = f"{vit_config['objective']}_lr_{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"{vit_config['temperature']}_objective_1_l1_{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"fixed_gumble_softmax_sample_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 
