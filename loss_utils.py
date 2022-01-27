@@ -6,7 +6,6 @@ from icecream import ic
 
 vit_config = config['vit']
 bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction='mean')
-kl_loss = nn.KLDivLoss(reduction='mean')
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
 

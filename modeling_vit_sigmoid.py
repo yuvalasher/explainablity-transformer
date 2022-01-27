@@ -184,7 +184,8 @@ class ViTSelfAttention(nn.Module):
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None, sampled_binary_patches=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None):
         # hidden_states.shape: [batch_size, num_patches, dim_size]
         mixed_query_layer = self.query(hidden_states)
 
@@ -204,17 +205,19 @@ class ViTSelfAttention(nn.Module):
 
         # attention_probs = nn.functional.softmax(x_attention / vit_config['temperature']) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         if vit_config['objective'] in ['objective_1']:
-            attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+            attention_probs = nn.functional.relu(
+                x_attention) * attention_probs  # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = torch.sigmoid(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         elif vit_config['objective'] in ['objective_2']:
-            attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+            attention_probs = torch.clamp(x_attention, min=0,
+                                          max=1) * attention_probs  # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
             attention_probs = sampled_binary_patches * attention_probs
         else:
             raise NotImplementedError
 
-        attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
+        attention_probs /= attention_probs.sum(-1, keepdim=True)  # normalizing each row sum to 1
         self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
@@ -282,8 +285,10 @@ class ViTAttention(nn.Module):
         self.attention.all_head_size = self.attention.attention_head_size * self.attention.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None, sampled_binary_patches=None):
-        self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention, sampled_binary_patches)  # run self-attention forward
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None):
+        self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention,
+                                      sampled_binary_patches)  # run self-attention forward
 
         attention_output = self.output(self_outputs[0], hidden_states)
 
@@ -336,7 +341,8 @@ class ViTLayer(nn.Module):
         self.layernorm_before = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.layernorm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None, sampled_binary_patches=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None):
         self_attention_outputs = self.attention(  # run attention forward, inside run the self-attention forward
             self.layernorm_before(hidden_states),  # in ViT, layernorm is applied before self-attention
             head_mask,
@@ -381,9 +387,12 @@ class ViTEncoder(nn.Module):
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
         if vit_config['objective'] in ['objective_1']:
-            self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
-        elif vit_config['objective'] in ['objective_2', 'objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
-            self.x_attention = nn.Parameter(torch.randn(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
+            self.x_attention = nn.Parameter(
+                torch.ones(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
+        elif vit_config['objective'] in ['objective_2', 'objective_gumble_softmax',
+                                         'objective_opposite_gumble_softmax']:
+            self.x_attention = nn.Parameter(
+                torch.randn(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
         else:
             raise NotImplementedError
         self.sampled_binary_patches = None
@@ -395,7 +404,8 @@ class ViTEncoder(nn.Module):
         """
         sigmoid_x_attention = torch.sigmoid(x_attention).clone()
         log_prob_x_attention = torch.stack((torch.log(1 - sigmoid_x_attention), torch.log(sigmoid_x_attention))).T
-        log_probs = [gumbel_softmax(log_prob, temperature=vit_config['temperature']) for log_prob in log_prob_x_attention]
+        log_probs = [gumbel_softmax(log_prob, temperature=vit_config['temperature']) for log_prob in
+                     log_prob_x_attention]
         sampled_binary_patches = torch.stack(log_probs).mm(torch.tensor([[0., 1.]]).T).T[0]
         return sampled_binary_patches
 
