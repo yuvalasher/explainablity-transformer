@@ -46,7 +46,7 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     if is_iteration_to_print(iteration_idx=iteration_idx):
-        print(prev_x_attention)
+        print(relu(prev_x_attention))
         if sampled_binary_patches is not None:
             print(sampled_binary_patches)
 
@@ -62,7 +62,6 @@ def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     # prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
     prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
     l1_loss = (x_attention - 1).abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
-    # x_attention_chopped = relu(x_attention)
     x_attention_chopped = torch.clamp(x_attention, min=0, max=1)
     x_attention_chopped = -(x_attention_chopped - x_attention_chopped.max())
     x_attention_chopped_normalized = x_attention_chopped / x_attention_chopped.sum()
@@ -75,13 +74,11 @@ def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
 
 
 def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
-    prediction_loss = ce_loss(F.softmax(output), torch.argmax(target).unsqueeze(0)) * vit_config['loss'][
-        'prediction_loss_multiplier']
-    x_attention_relu = nn.functional.relu(x_attention)
+    prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * vit_config['loss']['pred_loss_multiplier']
+    x_attention_relu = relu(x_attention)
     x_attention_relu_normalized = x_attention_relu / x_attention_relu.sum()
     l1_loss = x_attention.abs().sum() / len(x_attention) * vit_config['loss']['l1_loss_multiplier']
-    entropy_loss = entropy(x_attention_relu_normalized + vit_config['small_number_for_stability']) * vit_config['loss'][
-        'entropy_loss_multiplier']
+    entropy_loss = entropy(x_attention_relu_normalized) * vit_config['loss']['entropy_loss_multiplier']
     # l1_loss = x_attention_relu.sum() / len(x_attention_relu)
     loss = l1_loss + entropy_loss + prediction_loss
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
@@ -91,7 +88,6 @@ def objective_loss_relu_entropy(output, target, x_attention: Tensor) -> Tensor:
 
 def objective_1(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
-    # prediction_loss = -output[0][torch.argmax(F.softmax(target)).item()]  # logits in correct class
     l1_loss = x_attention.abs().sum() / len(x_attention) * vit_config['loss']['l1_loss_multiplier']
     x_attention_chopped = relu(x_attention)
     x_attention_chopped_normalized = x_attention_chopped / x_attention_chopped.sum()
@@ -135,7 +131,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
                 # dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_sigmoid_model, image_name=image_name)
-                if chosen_objective == 'objective_gumble_softmax':
+                if vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                      sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches)
@@ -147,20 +143,23 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 optimizer.step()
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=prev_x_attention,
-                                             sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if chosen_objective == 'objective_gumble_softmax' else None)
+                                             sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if
+                                             vit_config['objective'] in ['objective_gumble_softmax',
+                                                                         'objective_opposite_gumble_softmax'] else None)
                 if vit_config['verbose']:
-                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if chosen_objective == 'objective_gumble_softmax' else relu(
+                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config[
+                                                                                                 'objective'] in [
+                                                                                                 'objective_gumble_softmax',
+                                                                                                 'objective_opposite_gumble_softmax'] else relu(
                         vit_sigmoid_model.vit.encoder.x_attention)
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
-                                          # get_scores(relu(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
-                                          get_scores(printed_vector)).unsqueeze(
-                                          0),
-                                      filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
+                                          get_scores(printed_vector)).unsqueeze(0),
+                                      filename=Path(image_plot_folder_path, f'relu_iter_idx_{iteration_idx}'),
                                       verbose=is_iteration_to_print(iteration_idx=iteration_idx))
                     # save_saliency_map(image=original_transformed_image,
                     #                   saliency_map=torch.tensor(
-                    #                       get_scores(vit_sigmoid_model.vit.encoder.x_attention - vit_sigmoid_model.vit.encoder.x_attention.min())).unsqueeze(0),
+                    #                       get_scores(vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
                     #                   filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
                     #                   verbose=is_iteration_to_print(iteration_idx=iteration_idx))
             if vit_config['log']:
@@ -180,17 +179,18 @@ def infer(experiment_name: str):
     print(F.softmax(output.logits)[0][65])  # 65 refer to correct class: torch.argmax(F.softmax(target)).item()
 
 
-OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,
-              'objective_1': objective_1,
-              'objective_2': objective_2}
-# chosen_objective = 'objective_gumble_softmax'
-chosen_objective = 'objective_1'
-experiment_name = f"{chosen_objective}_lr_{str(vit_config['lr']).replace('.', '_')}_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
+OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
+              'objective_opposite_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
+              'objective_1': objective_1,  # Require to initiate x_attention as ones & relu
+              'objective_2': objective_2,  # x_attention as rand & clamp
+              'objective_loss_relu_entropy': objective_loss_relu_entropy  # x_attention as rand & clamp
+              }
+experiment_name = f"{vit_config['objective']}_lr_{str(vit_config['lr']).replace('.', '_')}_softmax_temp_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"{vit_config['temperature']}_objective_1_l1_{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"fixed_gumble_softmax_sample_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 
 if __name__ == '__main__':
     run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
-    optimize_params(vit_model=vit_model, criterion=OBJECTIVES[chosen_objective])
+    optimize_params(vit_model=vit_model, criterion=OBJECTIVES[vit_config['objective']])
     # save_model(model=vit_sigmoid_model, model_name=f'{experiment_name}_vit_sigmoid_model')

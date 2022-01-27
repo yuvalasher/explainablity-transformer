@@ -16,14 +16,15 @@ vit:
 #    - ILSVRC2012_val_00000003.JPEG # dog
 #    - ILSVRC2012_val_00000009.JPEG # mousetrap
 #    - ILSVRC2012_val_00000018.JPEG # bird
-  lr: 3.0e-03
-  num_steps: 350
+  lr: 3.0e-1
+  num_steps: 100
   print_every: 1
   log: True
   verbose: True
   temperature: 1
+  objective: objective_gumble_softmax # objective_opposite_gumble_softmax
   loss:
-    pred_loss_multiplier: 2
     kl_loss_multiplier: 1
-    entropy_loss_multiplier: 1
-    l1_loss_multiplier: 1
+    pred_loss_multiplier: 3
+    entropy_loss_multiplier: 0
+    l1_loss_multiplier: 0

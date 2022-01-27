@@ -42,7 +42,7 @@ def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=
                    'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
                    })
     print(
-        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
 
