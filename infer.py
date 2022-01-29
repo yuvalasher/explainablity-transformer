@@ -19,16 +19,18 @@ vit_config = config['vit']
 loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
-feature_extractor, vit_model = load_feature_extractor_and_vit_models(vit_config=vit_config)
+feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
 
-def save_model(model: nn.Module, model_name: str) -> None:
-    path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
+def save_model(model: nn.Module, path: str) -> None:
+    path = Path(f'{path}.pt')
     torch.save(model.state_dict(), path)
+    print(f'Model Saved at {path}')
 
 
-def load_model(model_name: str) -> nn.Module:
-    path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
+def load_model(path: str) -> nn.Module:
+    # path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
+    path = Path(f'{path}.pt')
     c = ViTConfig()
     c.image_size = vit_config['img_size']
     c.num_labels = vit_config['num_labels']
