@@ -118,10 +118,11 @@ def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor
     return loss
 
 
-def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
+def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, log_run):
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
         if image_name in vit_config['sample_images']:
             vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
+            # dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_sigmoid_model, image_name=image_name)
             optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
 
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=images_folder_path,
@@ -131,10 +132,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
+            x_gradients = []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
-                # dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_sigmoid_model, image_name=image_name)
                 if vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
@@ -143,44 +144,81 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
-                prev_x_attention = vit_sigmoid_model.vit.encoder.x_attention.clone()
-                optimizer.step()
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
-                                             prev_x_attention=prev_x_attention,
+                                             prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if
                                              vit_config['objective'] in ['objective_gumble_softmax',
                                                                          'objective_opposite_gumble_softmax'] else None)
                 if vit_config['verbose']:
-                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config[
-                                                                                                 'objective'] in [
+                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config['objective'] in \
+                                                                                             [
                                                                                                  'objective_gumble_softmax',
                                                                                                  'objective_opposite_gumble_softmax'] else relu(
                         vit_sigmoid_model.vit.encoder.x_attention)
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
                                           get_scores(printed_vector)).unsqueeze(0),
-                                      filename=Path(image_plot_folder_path, f'relu_iter_idx_{iteration_idx}'),
-                                      verbose=is_iteration_to_print(iteration_idx=iteration_idx))
+                                      filename=Path(image_plot_folder_path, f'relu_x_iter_idx_{iteration_idx}'),
+                                      verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+
                     # save_saliency_map(image=original_transformed_image,
                     #                   saliency_map=torch.tensor(
-                    #                       get_scores(vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(0),
-                    #                   filename=Path(image_plot_folder_path, f'iter_idx_{iteration_idx}'),
-                    #                   verbose=is_iteration_to_print(iteration_idx=iteration_idx))
+                    #                       get_scores(
+                    #                           torch.sigmoid(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
+                    #                   filename=Path(image_plot_folder_path, f'sigmoid_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(vit_sigmoid_model.vit.encoder.x_attention.grad)).unsqueeze(0),
+                    #                   filename=Path(image_plot_folder_path, f'grad_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                    #
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(
+                    #                           vit_sigmoid_model.vit.encoder.x_attention.grad * vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(
+                    #                       0),
+                    #                   filename=Path(image_plot_folder_path, f'grad_x_mul_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                    #
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(relu(
+                    #                           vit_sigmoid_model.vit.encoder.x_attention.grad))).unsqueeze(0),
+                    #                   filename=Path(image_plot_folder_path, f'relu_grad_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                    #
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(relu(
+                    #                           vit_sigmoid_model.vit.encoder.x_attention.grad) * vit_sigmoid_model.vit.encoder.x_attention)).unsqueeze(
+                    #                       0),
+                    #                   filename=Path(image_plot_folder_path, f'relu_grad_x_mul_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                optimizer.step()
+                x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
+                if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
+                    save_obj_to_disk(f'{image_plot_folder_path}_x_gradients', x_gradients)
             if vit_config['log']:
-                run.finish()
+                log_run.finish()
                 vit_config['log'] = False
+            save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
+            print(1)
 
 
-def infer(experiment_name: str):
+def infer_prediction(path: str, experiment_name: str = None):
     """
     Load saved model and run forward
     """
-    vit_sigmoid_model = load_model(model_name=f'{experiment_name}_vit_sigmoid_model')
+    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
+    # vit_sigmoid_model = load_model(path=f'{experiment_name}_vit_sigmoid_model')
+    vit_sigmoid_model = load_model(path=path)
     image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
     inputs = feature_extractor(images=image, return_tensors="pt")
     output = vit_sigmoid_model(**inputs)
-    print(F.softmax(output.logits))
-    print(F.softmax(output.logits)[0][65])  # 65 refer to correct class: torch.argmax(F.softmax(target)).item()
+    target = vit_model(**inputs)
+    print(f'correct_class_pred: {F.softmax(output.logits[0])[torch.argmax(F.softmax(target.logits[0])).item()]}, correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}')
 
 
 OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand

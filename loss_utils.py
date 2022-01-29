@@ -41,17 +41,20 @@ def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=
                    'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
                    })
     print(
-        f'kl_loss: {kl_loss}, pred_loss: {prediction_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, pred_loss: {prediction_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+        f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
 
 
-def is_iteration_to_print(iteration_idx: int) -> bool:
+def is_iteration_to_action(iteration_idx: int, action:str= 'print') -> bool:
+    """
+    :param action: 'print' / 'save'
+    """
     return vit_config['verbose'] and (
-            iteration_idx % vit_config['print_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1)
+            iteration_idx % vit_config[f'{action}_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1)
 
 
 def print_objective_every(a: Tensor, b: Tensor, iteration_idx: int, output: Tensor, target: Tensor) -> None:
-    if is_iteration_to_print(iteration_idx=iteration_idx):
+    if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
         ic(iteration_idx, a.item(), b.item())
         ic(F.softmax(output)[0][torch.argmax(F.softmax(target)).item()].item())
