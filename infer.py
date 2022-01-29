@@ -47,10 +47,12 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output)[0][torch.argmax(F.softmax(target)).item()]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-    if is_iteration_to_print(iteration_idx=iteration_idx):
-        print(relu(prev_x_attention))
+
+    if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
+        print(torch.sigmoid(prev_x_attention))
         if sampled_binary_patches is not None:
             print(sampled_binary_patches)
+        # print(prev_x_attention.grad)
 
 
 def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
@@ -187,12 +189,12 @@ OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attenti
               'objective_2': objective_2,  # x_attention as rand & clamp
               'objective_loss_relu_entropy': objective_loss_relu_entropy  # x_attention as rand & clamp
               }
-experiment_name = f"{vit_config['objective']}_lr_{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+experiment_name = f"D_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"{vit_config['temperature']}_objective_1_l1_{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"fixed_gumble_softmax_sample_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 
 if __name__ == '__main__':
-    run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
+    log_run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
-    optimize_params(vit_model=vit_model, criterion=OBJECTIVES[vit_config['objective']])
-    # save_model(model=vit_sigmoid_model, model_name=f'{experiment_name}_vit_sigmoid_model')
+    optimize_params(vit_model=vit_model, criterion=OBJECTIVES[vit_config['objective']], log_run=log_run)
+    # infer_prediction(path=r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\D_objective_opposite_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_20\ILSVRC2012_val_00000001\vit_sigmoid_model")
