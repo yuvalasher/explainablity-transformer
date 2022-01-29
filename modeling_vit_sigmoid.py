@@ -186,17 +186,17 @@ class ViTSelfAttention(nn.Module):
 
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
                 sampled_binary_patches=None):
-        # hidden_states.shape: [batch_size, num_patches, dim_size]
+        # hidden_states.shape: [batch_size, num_patches + 1, dim_size]
         mixed_query_layer = self.query(hidden_states)
 
-        key_layer = self.transpose_for_scores(
-            self.key(hidden_states))  # [batch_size, n_heads, num_patches + 1, attention_head_size]
+        key_layer = self.transpose_for_scores(self.key(hidden_states))  # [batch_size, n_heads, num_patches + 1,\
+        # attention_head_size]
         value_layer = self.transpose_for_scores(self.value(hidden_states))
         query_layer = self.transpose_for_scores(mixed_query_layer)
 
         # Take the dot product between "query" and "key" to get the raw attention scores.
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1,
-                                                                         -2))  # [batch_size, n_heads, num_patches + 1, num_patches + 1]
+        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))  # [batch_size, n_heads, \
+        # num_patches + 1, num_patches + 1]
 
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
 
