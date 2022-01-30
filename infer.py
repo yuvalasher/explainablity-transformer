@@ -30,7 +30,10 @@ def save_model(model: nn.Module, path: str) -> None:
 
 def load_model(path: str) -> nn.Module:
     # path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
-    path = Path(f'{path}.pt')
+    if path[-3:] == '.pt':
+        path = Path(f'{path}')
+    else:
+        path = Path(f'{path}.pt')
     c = ViTConfig()
     c.image_size = vit_config['img_size']
     c.num_labels = vit_config['num_labels']
