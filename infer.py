@@ -21,7 +21,6 @@ loss_config = vit_config['loss']
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
-
 def save_model(model: nn.Module, path: str) -> None:
     path = Path(f'{path}.pt')
     torch.save(model.state_dict(), path)
@@ -136,6 +135,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
             x_gradients = []
+            sampled_binary_patches = []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
@@ -201,27 +201,15 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                     #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
                 optimizer.step()
                 x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
+                sampled_binary_patches.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
                     save_obj_to_disk(f'{image_plot_folder_path}_x_gradients', x_gradients)
+                    save_obj_to_disk(f'{image_plot_folder_path}_s_b_p', sampled_binary_patches)
             if vit_config['log']:
                 log_run.finish()
                 vit_config['log'] = False
             save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
             print(1)
-
-
-def infer_prediction(path: str, experiment_name: str = None):
-    """
-    Load saved model and run forward
-    """
-    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-    # vit_sigmoid_model = load_model(path=f'{experiment_name}_vit_sigmoid_model')
-    vit_sigmoid_model = load_model(path=path)
-    image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
-    inputs = feature_extractor(images=image, return_tensors="pt")
-    output = vit_sigmoid_model(**inputs)
-    target = vit_model(**inputs)
-    print(f'correct_class_pred: {F.softmax(output.logits[0])[torch.argmax(F.softmax(target.logits[0])).item()]}, correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}')
 
 
 OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
@@ -230,7 +218,7 @@ OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attenti
               'objective_2': objective_2,  # x_attention as rand & clamp
               'objective_loss_relu_entropy': objective_loss_relu_entropy  # x_attention as rand & clamp
               }
-experiment_name = f"D_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+experiment_name = f"{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"{vit_config['temperature']}_objective_1_l1_{loss_config['l1_loss_multiplier']} + entropy_loss_mul_{loss_config['entropy_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 # experiment_name = f"fixed_gumble_softmax_sample_{vit_config['temperature']} + kl_loss_mul_{loss_config['kl_loss_multiplier']} + pred_loss_mul_{loss_config['pred_loss_multiplier']}"
 
