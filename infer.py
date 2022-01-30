@@ -205,6 +205,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
                     save_obj_to_disk(f'{image_plot_folder_path}_x_gradients', x_gradients)
                     save_obj_to_disk(f'{image_plot_folder_path}_s_b_p', sampled_binary_patches)
+                    save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
             if vit_config['log']:
                 log_run.finish()
                 vit_config['log'] = False
