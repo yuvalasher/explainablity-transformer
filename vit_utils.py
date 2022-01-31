@@ -1,3 +1,4 @@
+import pickle
 import os
 import torch
 from torch import Tensor
@@ -26,6 +27,7 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
     num_heads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
     attentions = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
+    save_obj_to_disk(path=Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], 'attentions.pkl'), obj=attentions)
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
@@ -36,7 +38,9 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
         plt.imsave(fname=Path(image_dino_plots_folder, f'attn-head{head_idx}.png'), arr=attentions[head_idx],
                    format='png')
 
-
+def save_obj_to_disk(path: str, obj) -> None:
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size'],
                patch_size: int = config['vit']['patch_size']) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
@@ -156,7 +160,7 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
     return model
 
 
-def load_feature_extractor_and_vit_models(vit_config: Dict) -> Tuple[
+def load_feature_extractor_and_vit_model(vit_config: Dict) -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
     # vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
@@ -193,7 +197,7 @@ def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
 
 
 def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_plot_folder_path: Union[str, Path],
-                image_size: int = 384,patch_size: int = 16) -> None:
+                image_size: int = 384, patch_size: int = 16) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 
     if len(scores.shape) == 1:
