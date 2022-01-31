@@ -46,11 +46,7 @@ def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str
     """
     Load saved model and run forward
     """
-    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-    vit_sigmoid_model = load_model(path=path)
-    image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
-    inputs = feature_extractor(images=image, return_tensors="pt")
-    target = vit_model(**inputs)
+    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
 
     if tokens_mask is not None:
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
@@ -72,14 +68,18 @@ def dark_random_k_patches(precentage_to_dark: float, n_patches: int = 577) -> Te
     return mask
 
 
-def test_dark_random_k_patches(path, num_tests, precentage_to_dark: float):
-    correct_random_guess = []
+def _load_extract_features(model_path: str):
     feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-    vit_sigmoid_model = load_model(path=path)
+    vit_sigmoid_model = load_model(path=model_path)
     image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
     inputs = feature_extractor(images=image, return_tensors="pt")
     target = vit_model(**inputs)
+    return inputs, target, vit_model, vit_sigmoid_model
 
+
+def test_dark_random_k_patches(path, num_tests, precentage_to_dark: float):
+    correct_random_guess = []
+    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
     for test_idx in range(num_tests):
         tokens_mask = dark_random_k_patches(precentage_to_dark=precentage_to_dark)
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
@@ -107,13 +107,12 @@ def infer():
     print(1)
 
 
-def generate_sampled_binary_patches_from_distribution(distribution: Tensor) -> Tensor:
+def generate_sampled_binary_patches_from_distribution(distribution: Tensor, precentage_to_dark: float) -> Tensor:
     dist = distribution.clone()
     # return dist.detach().apply_(lambda x: bernoulli.rvs(x, size=1)[0])
     # return dist.detach().apply_(lambda x: 1 if x > 0 else 0)
     # return torch.tensor([bernoulli.rvs(p.item(),size=1)[0] for p in dist])
     n_patches = 577
-    precentage_to_dark = 0.72
     k = int(n_patches * precentage_to_dark)
     k_th_quant = torch.topk(dist, k, largest=False)[0][-1]
     mask = (dist >= k_th_quant).int()
@@ -123,13 +122,11 @@ def generate_sampled_binary_patches_from_distribution(distribution: Tensor) -> T
 
 def get_dino_probability_per_head(path: str, attentions_path: str):
     attentions = load_obj(path=attentions_path)
-    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-    vit_sigmoid_model = load_model(path=path)
-    image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
-    inputs = feature_extractor(images=image, return_tensors="pt")
-    target = vit_model(**inputs)
+    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
+
     for attention_head in attentions:
-        tokens_mask = generate_sampled_binary_patches_from_distribution(distribution=attention_head)
+        tokens_mask = generate_sampled_binary_patches_from_distribution(distribution=attention_head,
+                                                                        precentage_to_dark=0.72)
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
         print(
