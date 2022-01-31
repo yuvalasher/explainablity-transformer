@@ -106,7 +106,7 @@ def objective_1(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
 
 
 def kl_div(p, q):
-    return sum(p[i] * torch.log(p[i] / q[i]) for i in range(len(p))) / len(p)
+    return sum(p[i] * torch.log(p[i] / q[i]) for i in range(len(p)))
 
 
 def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor,
