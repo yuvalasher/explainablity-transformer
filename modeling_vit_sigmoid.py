@@ -688,28 +688,8 @@ class ViTSigmoidForImageClassification(ViTPreTrainedModel):
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
             Labels for computing the image classification/regression loss. Indices should be in `[0, ..., config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss),
             If `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
-
         Returns:
-
-        Examples:
-
         ```python
-        >>> from transformers import ViTFeatureExtractor, ViTForImageClassification
-        >>> from PIL import Image
-        >>> import requests
-
-        >>> url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
-        >>> image = Image.open(requests.get(url, stream=True).raw)
-
-        >>> feature_extractor = ViTFeatureExtractor.from_pretrained('google/vit-base-patch16-224')
-        >>> model = ViTSigmoidForImageClassification.from_pretrained('google/vit-base-patch16-224')
-
-        >>> inputs = feature_extractor(images=image, return_tensors="pt")
-        >>> outputs = model(**inputs)
-        >>> logits = outputs.logits
-        >>> # model predicts one of the 1000 ImageNet classes
-        >>> predicted_class_idx = logits.argmax(-1).item()
-        >>> print("Predicted class:", model.config.id2label[predicted_class_idx])
         ```"""
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
