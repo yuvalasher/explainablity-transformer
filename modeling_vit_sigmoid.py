@@ -213,7 +213,7 @@ class ViTSelfAttention(nn.Module):
                 attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  \
                 # [batch_size, n_heads, num_patches + 1, num_patches + 1]
             # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
+            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax', 'objective_gumble_minimize_softmax']:
                 attention_probs = sampled_binary_patches * attention_probs
             else:
                 raise NotImplementedError
@@ -392,7 +392,7 @@ class ViTEncoder(nn.Module):
             self.x_attention = nn.Parameter(
                 torch.ones(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
         elif vit_config['objective'] in ['objective_2', 'objective_gumble_softmax',
-                                         'objective_opposite_gumble_softmax']:
+                                         'objective_opposite_gumble_softmax', 'objective_gumble_minimize_softmax']:
             self.x_attention = nn.Parameter(
                 torch.randn(num_patches + 1, requires_grad=True))  # [n_patches + 1 for [CLS]]
         else:

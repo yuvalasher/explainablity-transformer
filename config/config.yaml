@@ -9,20 +9,21 @@ vit:
   model_name: google/vit-base-patch16-384
   img_size: 384
   patch_size: 16
+  save_every: 1
   stop_prob_criterion: 0.3
-  sample_picture_name: ILSVRC2012_val_00000018.JPEG
+  sample_picture_name: ILSVRC2012_val_00000001.JPEG
   sample_images:
-    - ILSVRC2012_val_00000001.JPEG # snake
-#    - ILSVRC2012_val_00000003.JPEG # dog
+#    - ILSVRC2012_val_00000001.JPEG # snake
+    - ILSVRC2012_val_00000003.JPEG # dog
 #    - ILSVRC2012_val_00000009.JPEG # mousetrap
 #    - ILSVRC2012_val_00000018.JPEG # bird
   lr: 3.0e-1
   num_steps: 100
   print_every: 1
-  log: True
+  log: False
   verbose: True
   temperature: 1
-  objective: objective_gumble_softmax # objective_opposite_gumble_softmax
+  objective: objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
     kl_loss_multiplier: 1
     pred_loss_multiplier: 3
