@@ -5,6 +5,7 @@ from torch import Tensor
 from torch import nn
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 from modeling_vit_sigmoid import ViTSigmoidForImageClassification
+from vit_for_dino import ViTBasicForDinoForImageClassification
 from PIL import Image
 import matplotlib.pyplot as plt
 from typing import Dict, Tuple, Union, NewType
@@ -17,7 +18,7 @@ from torch.functional import F
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
-vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification}
+vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification, 'vit-for-dino': ViTBasicForDinoForImageClassification}
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
