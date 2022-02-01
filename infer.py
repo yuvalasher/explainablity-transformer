@@ -14,7 +14,7 @@ from consts import *
 from pytorch_lightning import seed_everything
 from transformation import pil_to_resized_tensor_transform
 from typing import Callable
-from vit_s_github_dino import ViTBasicForDinoForImageClassification
+from vit_for_dino import ViTBasicForDinoForImageClassification
 vit_config = config['vit']
 loss_config = vit_config['loss']
 
