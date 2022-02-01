@@ -17,6 +17,15 @@ loss_config = vit_config['loss']
 seed_everything(config['general']['seed'])
 
 
+def print_conclusions(vit_model, tokens_mask, output, target) -> None:
+    print(
+        f'Num of patches: {tokens_mask.sum()}, {round((tokens_mask.sum() / len(tokens_mask)).item(), 2) * 100}% of the tokens, '
+        f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]}, '
+        f'correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}, '
+        f'Highest class: {torch.argmax(output.logits[0])} , {vit_model.config.id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0])).item()}, '
+        f'Is highest class: {torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])}')
+
+
 def load_obj(path: str) -> Any:
     with open(path, 'rb') as f:
         return pickle.load(f)
@@ -40,24 +49,6 @@ def load_model(path: str) -> nn.Module:
     model = ViTSigmoidForImageClassification(config=c)
     model.load_state_dict(torch.load(path))
     return model
-
-
-def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str = None):
-    """
-    Load saved model and run forward
-    """
-    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
-
-    if tokens_mask is not None:
-        output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
-    else:
-        output = vit_sigmoid_model(**inputs)
-    print(
-        f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]},'
-        f'correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]},'
-        f' Highest class: {torch.argmax(output.logits[0])} , {vit_model.config.id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0])).item()}, '
-        f' Is highest class: {torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])}')
-    print(1)
 
 
 def dark_random_k_patches(precentage_to_dark: float, n_patches: int = 577) -> Tensor:
@@ -86,11 +77,7 @@ def test_dark_random_k_patches(path, num_tests, precentage_to_dark: float):
         if torch.argmax(output.logits[0]) == torch.argmax(target.logits[0]):
             correct_random_guess.append((test_idx, torch.max(F.softmax(output.logits[0])).item()))
         print(f'*** {test_idx} ***')
-        print(
-            f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]},'
-            f'correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]},'
-            f' Highest class: {torch.argmax(output.logits[0])} , {vit_model.config.id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0])).item()}, '
-            f' Is highest class: {torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])}')
+        print_conclusions(vit_model, tokens_mask, output, target)
     print(f'Number of correct random guesses: {len(correct_random_guess)}')
     print(correct_random_guess)
 
@@ -109,31 +96,42 @@ def infer():
 
 def generate_sampled_binary_patches_from_distribution(distribution: Tensor, precentage_to_dark: float) -> Tensor:
     dist = distribution.clone()
-    # return dist.detach().apply_(lambda x: bernoulli.rvs(x, size=1)[0])
+    return dist.detach().apply_(lambda x: bernoulli.rvs(x, size=1)[0])
     # return dist.detach().apply_(lambda x: 1 if x > 0 else 0)
     # return torch.tensor([bernoulli.rvs(p.item(),size=1)[0] for p in dist])
-    n_patches = 577
-    k = int(n_patches * precentage_to_dark)
-    k_th_quant = torch.topk(dist, k, largest=False)[0][-1]
+
+
+def generate_sampled_binary_patches_by_top_scores(distribution: Tensor, tokens_to_show: int) -> Tensor:
+    dist = distribution.clone()
+    k = tokens_to_show  # int(len(dist) * precentage_to_dark)
+    # k_th_quant = torch.topk(dist, k, largest=False)[0][-1]
+    # mask = (dist <= k_th_quant).int()
+    k_th_quant = torch.topk(dist, k)[0][-1]
     mask = (dist >= k_th_quant).int()
     return mask
-    # return torch.tensor([1.0 if p.item() > 0.0 else 0.0 for p in distribution])
 
 
-def get_dino_probability_per_head(path: str, attentions_path: str):
+def get_dino_probability_per_head(path: str, attentions_path: str, tokens_to_show: int):
     attentions = load_obj(path=attentions_path)
     inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
 
     for attention_head in attentions:
-        tokens_mask = generate_sampled_binary_patches_from_distribution(distribution=attention_head,
-                                                                        precentage_to_dark=0.72)
+        tokens_mask = generate_sampled_binary_patches_by_top_scores(distribution=attention_head,
+                                                                    tokens_to_show=tokens_to_show)
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
-        print(
-            f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]},'
-            f'correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]},'
-            f' Highest class: {torch.argmax(output.logits[0])} , {vit_model.config.id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0])).item()}, '
-            f' Is like target highest class: {torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])}')
+        print_conclusions(vit_model, tokens_mask, output, target)
+
+
+def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str = None):
+    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
+
+    if tokens_mask is not None:
+        output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
+    else:
+        output = vit_sigmoid_model(**inputs)
+    print_conclusions(vit_model, tokens_mask, output, target)
+    print(1)
 
 
 snake_tokens_mask_obj_1 = torch.tensor([0.7155, 0.5070, 0.3448, 0.3422, 0.3352, 0.3436, 0.3426, 0.3434, 0.3129,
@@ -300,81 +298,158 @@ snake_tokens_mask_opposite_gumble = torch.tensor(
      1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 1., 1., 1., 1., 1.,
      1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0.,
      0.])
-snake_tokens_mask_gumble = torch.tensor([1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                         0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0.,
-                                         0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 0., 0., 1.,
-                                         0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 1., 0.,
-                                         0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
-                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1.,
-                                         1., 0., 1., 1., 0., 1., 0., 1., 1., 0., 1., 0., 1., 0., 1., 0., 0., 1.,
-                                         0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 1., 0., 1., 0., 1., 0., 0., 0.,
-                                         0., 1., 0., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0.,
-                                         1., 0., 1., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
-                                         0., 1., 1., 1., 0., 1., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-                                         1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0.,
-                                         1., 0., 0., 0., 0., 1., 1., 0., 1., 1., 1., 0., 1., 1., 0., 0., 0., 0.,
-                                         1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 1., 1.,
-                                         1., 1., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0.,
-                                         0., 0., 1., 1., 1., 0., 1., 1., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0.,
-                                         0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 1., 0., 0., 1.,
-                                         1., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 1., 0., 0.,
-                                         0., 0., 0., 0., 1., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 1.,
-                                         1., 1., 1., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 1., 1., 0.,
-                                         1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 1.,
-                                         1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1.,
-                                         0., 0., 0., 1., 0., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0.,
-                                         0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 1., 0., 0., 0., 0., 0.,
-                                         1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1.,
-                                         0., 1., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
-                                         0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
-                                         0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                         1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
-                                         1., 0., 1., 0., 1., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0.,
-                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0.,
-                                         0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+# snake_tokens_mask_gumble = torch.tensor([1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#         0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 1., 0., 0., 0., 1., 0.,
+#         0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 1.,
+#         1., 0., 0., 0., 1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#         0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#         1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.,
+#         1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1.,
+#         0., 0., 0., 1., 1., 0., 1., 1., 1., 1., 1., 0., 1., 0., 0., 1., 0., 0.,
+#         0., 1., 0., 0., 1., 1., 0., 1., 1., 0., 1., 1., 1., 1., 0., 0., 0., 0.,
+#         1., 1., 0., 0., 0., 0., 1., 0., 1., 1., 1., 0., 0., 0., 1., 1., 1., 1.,
+#         1., 0., 0., 1., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.,
+#         0., 1., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 0., 1., 0.,
+#         0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
+#         0., 1., 1., 1., 0., 0., 1., 0., 1., 1., 0., 0., 1., 0., 1., 0., 0., 0.,
+#         1., 1., 1., 0., 0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#         0., 0., 0., 1., 1., 1., 1., 1., 0., 1., 1., 1., 1., 0., 0., 0., 1., 0.,
+#         1., 0., 0., 0., 0., 1., 0., 1., 1., 0., 1., 0., 0., 0., 0., 1., 0., 1.,
+#         0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 1., 1., 0., 0., 0., 0.,
+#         0., 1., 0., 0., 0., 0., 1., 1., 0., 0., 1., 0., 0., 1., 0., 1., 1., 1.,
+#         1., 1., 1., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 1., 1., 1., 0.,
+#         1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1.,
+#         0., 1., 0., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+#         0., 0., 1., 0., 1., 1., 0., 1., 0., 1., 1., 1., 1., 0., 0., 1., 0., 0.,
+#         0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 1., 0.,
+#         1., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 0., 1., 0., 0., 0., 0.,
+#         0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0.,
+#         0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+#         0., 0., 1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0.,
+#         0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 1., 1., 0., 0., 0.,
+#         1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0.,
+#         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0.,
+#         0., 0., 1., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1.,
+#         1.])
+snake_tokens_mask_gumble = torch.tensor([1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                         0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 1., 1., 0., 1., 0., 1., 0.,
+                                         0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0.,
+                                         0., 0., 0., 1., 1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
+                                         0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                         0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
+                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1.,
+                                         0., 0., 0., 0., 1., 0., 1., 0., 1., 0., 1., 1., 0., 0., 0., 1., 1., 1.,
+                                         0., 1., 0., 1., 1., 1., 1., 1., 0., 0., 0., 0., 1., 0., 1., 0., 1., 0.,
+                                         0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1.,
+                                         1., 0., 0., 1., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 1., 0., 0.,
+                                         0., 1., 0., 1., 1., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0.,
+                                         0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 1., 1., 1., 0., 0., 1., 1.,
+                                         0., 1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 1.,
+                                         1., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                         0., 1., 0., 1., 1., 1., 0., 1., 0., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+                                         1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 1., 0., 1., 0., 0., 1., 0., 1.,
+                                         1., 0., 1., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                         0., 0., 0., 1., 0., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 1., 1., 0.,
+                                         0., 0., 0., 1., 1., 1., 0., 0., 0., 1., 0., 1., 0., 0., 1., 0., 1., 1.,
+                                         1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 1.,
+                                         0., 1., 1., 1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0.,
+                                         0., 0., 0., 1., 1., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 0.,
+                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+                                         0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0., 1., 1., 0.,
+                                         0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1.,
+                                         0., 0., 1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0.,
+                                         1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                         1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                         0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 0., 1., 0., 1.,
+                                         0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0.,
                                          0.])
-bird_tokens_mask_gumble = torch.tensor([1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 0.,
-                                        1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 1., 1., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0.,
-                                        1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 1., 1., 0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0.,
+bird_tokens_mask_gumble = torch.tensor([1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 1., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
+                                        1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0.,
+                                        1., 1., 0., 0., 1., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0.,
+                                        0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 1., 0.,
+                                        0., 0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 1., 0., 0.,
+                                        0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+                                        1., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 0., 0., 0., 0.,
+                                        1., 1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0.,
+                                        1., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
+                                        1., 0., 1., 0., 1., 0., 0., 0., 1., 0., 1., 1., 1., 1., 1., 1., 1., 0.,
+                                        1., 1., 0., 0., 1., 1., 0., 1., 1., 1., 0., 1., 1., 1., 1., 1., 0., 0.,
+                                        0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
+                                        0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+                                        0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+                                        1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0.,
+                                        0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0.,
+                                        0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 1., 0., 0., 1., 1., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 1.,
+                                        0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0.,
+                                        0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 1., 0., 1., 0., 0.,
+                                        0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
                                         0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 1., 0.,
-                                        0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-                                        1., 0., 1., 1., 0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 1., 0., 1., 0., 1., 1., 1., 0., 0., 1., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 1., 0., 1., 1., 1., 0., 0., 1.,
-                                        0., 1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0.,
-                                        1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 1., 0.,
-                                        0., 0., 1., 0., 1., 0., 1., 1., 0., 1., 0., 1., 1., 0., 1., 0., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 0.,
-                                        0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 1., 0.,
-                                        1., 0., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 1., 1., 1., 0., 0., 1., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
-                                        1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 0., 0., 0.,
-                                        1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
-                                        0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-                                        0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0.,
-                                        0., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.,
-                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                                        0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                                        0., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 1.,
                                         0.])
-
-dino_snake_attentions_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\dino method on supervised vit - cls of the last layer to other tokens\ILSVRC2012_val_00000001\attentions.pkl"
+dog_tokens_mask_gumble = torch.tensor([1., 1., 0., 1., 0., 0., 1., 1., 1., 0., 1., 0., 1., 1., 0., 1., 1., 0.,
+                                       1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0., 1., 1.,
+                                       1., 1., 0., 1., 0., 1., 1., 0., 1., 0., 0., 0., 1., 1., 0., 1., 1., 0.,
+                                       0., 0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0.,
+                                       0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 1., 0., 1., 0., 0.,
+                                       0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 0.,
+                                       0., 1., 1., 1., 0., 0., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0.,
+                                       0., 1., 0., 0., 0., 1., 1., 1., 0., 1., 0., 1., 1., 0., 1., 0., 1., 0.,
+                                       0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 0., 0., 1., 0., 1., 1., 0., 1.,
+                                       1., 1., 1., 0., 1., 0., 1., 1., 1., 0., 1., 0., 0., 0., 0., 1., 1., 1.,
+                                       1., 1., 1., 0., 1., 1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 1., 1.,
+                                       1., 1., 1., 0., 1., 0., 1., 0., 1., 1., 0., 0., 1., 0., 0., 0., 1., 1.,
+                                       0., 0., 1., 1., 0., 0., 1., 1., 1., 1., 0., 1., 1., 1., 0., 0., 0., 1.,
+                                       0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 0., 1., 1., 1., 1., 1., 0., 0.,
+                                       0., 0., 1., 0., 0., 1., 0., 1., 0., 0., 0., 1., 1., 1., 1., 0., 1., 0.,
+                                       0., 1., 1., 1., 0., 0., 1., 0., 0., 0., 1., 1., 1., 0., 0., 1., 1., 1.,
+                                       1., 1., 1., 1., 1., 0., 0., 0., 1., 0., 1., 0., 0., 1., 1., 0., 1., 0.,
+                                       0., 1., 0., 1., 1., 1., 0., 1., 0., 1., 0., 0., 1., 0., 1., 0., 1., 1.,
+                                       0., 0., 0., 1., 1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 1., 0., 1.,
+                                       0., 1., 1., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 1., 0., 1., 1., 0.,
+                                       1., 1., 0., 0., 1., 0., 0., 1., 1., 0., 0., 1., 1., 1., 1., 1., 0., 1.,
+                                       0., 1., 1., 0., 1., 0., 0., 1., 0., 0., 1., 1., 0., 1., 1., 0., 0., 1.,
+                                       1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 1., 1., 1.,
+                                       1., 1., 1., 1., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 1., 0., 0.,
+                                       0., 0., 1., 0., 1., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 0.,
+                                       0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 1., 1., 0., 0., 0., 1.,
+                                       1., 1., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 1., 0., 0.,
+                                       1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 1., 1.,
+                                       0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
+                                       1., 0., 1., 1., 0., 1., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.,
+                                       0., 0., 0., 0., 0., 1., 0., 1., 0., 0., 0., 0., 0., 1., 1., 1., 0., 1.,
+                                       1., 1., 1., 0., 1., 1., 0., 0., 1., 1., 1., 1., 0., 1., 1., 0., 1., 1.,
+                                       0.])
+dino_snake_attentions_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\dino method on supervised vit - cls of the last layer to other tokens\ILSVRC2012_val_00000001\original\attentions.pkl"
 dino_bird_attentions_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\dino method on supervised vit - cls of the last layer to other tokens\ILSVRC2012_val_00000018\original\dino_bird_attentions.pkl"
+dino_dog_attentions_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\dino method on supervised vit - cls of the last layer to other tokens\ILSVRC2012_val_00000003\attentions.pkl"
 model_obj_1_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_1_lr0_3_temp_1+l1_1+kl_loss_0+entropy_loss_5+pred_loss_10\ILSVRC2012_val_00000001\vit_sigmoid_model.pt"
 model_obj_2_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_2_lr0_3_temp_1+l1_1+kl_loss_0+entropy_loss_3+pred_loss_3\ILSVRC2012_val_00000001\vit_sigmoid_model.pt"
-model_gumble_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\ILSVRC2012_val_00000018\vit_sigmoid_model.pt"
+model_gumble_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_0.001+entropy_loss_0+pred_loss_3\ILSVRC2012_val_00000018\vit_sigmoid_model.pt"
 model_gumble_opposite_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\ILSVRC2012_val_00000001\vit_sigmoid_model.pt"
+# Model Saved at C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\ILSVRC2012_val_00000001\vit_sigmoid_model.pt
 
 if __name__ == '__main__':
-    infer_prediction(path=model_gumble_path, tokens_mask=bird_tokens_mask_gumble)
+    print('snake')
+    infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(snake_tokens_mask_gumble))
+    infer_prediction(path=model_gumble_path, tokens_mask=snake_tokens_mask_gumble)
     # test_dark_random_k_patches(path=model_gumble_path, num_tests=1000, precentage_to_dark=0.81)
-    # get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_snake_attentions_path)
+    get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_snake_attentions_path,
+                                  tokens_to_show=int(snake_tokens_mask_gumble.sum().item()))
+
+    # print('dog')
+    # infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(dog_tokens_mask_gumble))
+    # infer_prediction(path=model_gumble_path, tokens_mask=dog_tokens_mask_gumble)
+    # # test_dark_random_k_patches(path=model_gumble_path, num_tests=1000, precentage_to_dark=0.81)
+    # get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_dog_attentions_path,
+    #                               tokens_to_show=int(dog_tokens_mask_gumble.sum().item()))
