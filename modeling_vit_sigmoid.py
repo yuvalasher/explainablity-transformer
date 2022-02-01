@@ -213,7 +213,8 @@ class ViTSelfAttention(nn.Module):
                 attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  \
                 # [batch_size, n_heads, num_patches + 1, num_patches + 1]
             # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax', 'objective_gumble_minimize_softmax']:
+            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax',
+                                             'objective_gumble_minimize_softmax']:
                 attention_probs = sampled_binary_patches * attention_probs
             else:
                 raise NotImplementedError
@@ -289,7 +290,8 @@ class ViTAttention(nn.Module):
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
                 sampled_binary_patches=None, tokens_mask=None):
         self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention=x_attention,
-                                      sampled_binary_patches=sampled_binary_patches, tokens_mask=tokens_mask)  # run self-attention forward
+                                      sampled_binary_patches=sampled_binary_patches,
+                                      tokens_mask=tokens_mask)  # run self-attention forward
 
         attention_output = self.output(self_outputs[0], hidden_states)
 
