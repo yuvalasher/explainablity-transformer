@@ -4,6 +4,7 @@ general:
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
 
 vit:
+  freezing_transformer: True
   dino_plots_folder_name: dino supervised vit
   num_labels: 1000
   model_name: google/vit-base-patch16-384
@@ -16,9 +17,9 @@ vit:
 #    - 00000001.JPEG # snake
 #    - 00000003.JPEG # dog
 #    - 00000009.JPEG # mousetrap
-#    - 00000018.JPEG # bird
+    - 00000018.JPEG # bird
 #    - 00000061.JPEG # poncho (0.803)
-    - 00000151.JPEG # computer (0.751)
+#    - 00000151.JPEG # computer (0.751)
 #    - 00000279.JPEG # Dandie Dinmont terrier (0.82)
 #    - 00000327.JPEG # Rottweiler (0.813)
   lr: 3.0e-1
@@ -27,9 +28,9 @@ vit:
   log: False
   verbose: True
   temperature: 1
-  objective: objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  objective: objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
-    kl_loss_multiplier: 0
-    pred_loss_multiplier: 1
+    kl_loss_multiplier: 1
+    pred_loss_multiplier: 3
     entropy_loss_multiplier: 0
     l1_loss_multiplier: 0
