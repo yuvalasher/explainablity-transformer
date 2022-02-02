@@ -1,40 +1,41 @@
-import pickle
-import os
+from config import config
+import numpy as np
 import torch
 from torch import Tensor
 from torch import nn
+from torch.functional import F
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 from modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from vit_for_dino import ViTBasicForDinoForImageClassification
 from PIL import Image
+import cv2
 import matplotlib.pyplot as plt
+import os
 from typing import Dict, Tuple, Union, NewType
 from pathlib import Path
-import numpy as np
-import cv2
-from config import config
 from consts import PLOTS_PATH
-from torch.functional import F
+from utils import save_obj_to_disk
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
-vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification, 'vit-for-dino': ViTBasicForDinoForImageClassification}
+vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification,
+                   'vit-for-dino': ViTBasicForDinoForImageClassification}
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
                                                          image_name: str,
                                                          image_size: int = config['vit']['img_size'],
                                                          patch_size: int = config['vit']['patch_size']) -> None:
+    image_dino_plots_folder = Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], image_name.replace('.JPEG', ''))
+    os.makedirs(image_dino_plots_folder, exist_ok=True)
     num_heads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
     attentions = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
-    save_obj_to_disk(path=Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], 'attentions.pkl'), obj=attentions)
+    save_obj_to_disk(path=Path(image_dino_plots_folder, 'attentions.pkl'), obj=attentions)
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
         0].cpu().detach().numpy()
-    image_dino_plots_folder = Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], image_name.replace('.JPEG', ''))
-    os.makedirs(image_dino_plots_folder, exist_ok=True)
     for head_idx in range(num_heads):
         plt.imsave(fname=Path(image_dino_plots_folder, f'attn-head{head_idx}.png'), arr=attentions[head_idx],
                    format='png')
