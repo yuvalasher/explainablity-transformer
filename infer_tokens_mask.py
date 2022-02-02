@@ -1,8 +1,8 @@
-from modeling_vit_sigmoid import ViTSigmoidForImageClassification
-from transformers import ViTConfig
 import torch
 from torch import nn
 from torch.functional import F
+from modeling_vit_sigmoid import ViTSigmoidForImageClassification
+from transformers import ViTConfig
 from config import config
 from utils import *
 from vit_utils import *
@@ -12,12 +12,10 @@ from pytorch_lightning import seed_everything
 from scipy.stats import bernoulli
 
 vit_config = config['vit']
-loss_config = vit_config['loss']
-
 seed_everything(config['general']['seed'])
 
 
-def print_conclusions(vit_model, tokens_mask, output, target) -> None:
+def _print_conclusions(vit_model, tokens_mask, output, target) -> None:
     print(
         f'Num of patches: {tokens_mask.sum()}, {round((tokens_mask.sum() / len(tokens_mask)).item(), 2) * 100}% of the tokens, '
         f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]}, '
@@ -29,12 +27,6 @@ def print_conclusions(vit_model, tokens_mask, output, target) -> None:
 def load_obj(path: str) -> Any:
     with open(path, 'rb') as f:
         return pickle.load(f)
-
-
-def save_model(model: nn.Module, path: str) -> None:
-    path = Path(f'{path}.pt')
-    torch.save(model.state_dict(), path)
-    print(f'Model Saved at {path}')
 
 
 def load_model(path: str) -> nn.Module:
@@ -51,15 +43,15 @@ def load_model(path: str) -> nn.Module:
     return model
 
 
-def dark_random_k_patches(precentage_to_dark: float, n_patches: int = 577) -> Tensor:
-    k = int(n_patches * precentage_to_dark)
+def dark_random_k_patches(percentage_to_dark: float, n_patches: int = 577) -> Tensor:
+    k = int(n_patches * percentage_to_dark)
     random_vector = torch.rand(n_patches)
     k_th_quant = torch.topk(random_vector, k, largest=False)[0][-1]
     mask = (random_vector >= k_th_quant).int()
     return mask
 
 
-def _load_extract_features(model_path: str):
+def _load_vit_models_inputs_and_target(model_path: str):
     feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
     vit_sigmoid_model = load_model(path=model_path)
     image = get_image_from_path(os.path.join(images_folder_path, image_name))
@@ -68,32 +60,21 @@ def _load_extract_features(model_path: str):
     return inputs, target, vit_model, vit_sigmoid_model
 
 
-def test_dark_random_k_patches(path, num_tests, precentage_to_dark: float):
+def test_dark_random_k_patches(path, num_tests, percentage_to_dark: float):
     correct_random_guess = []
-    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
+    inputs, target, vit_model, vit_sigmoid_model = _load_vit_models_inputs_and_target(model_path=path)
     for test_idx in range(num_tests):
-        tokens_mask = dark_random_k_patches(precentage_to_dark=precentage_to_dark)
+        tokens_mask = dark_random_k_patches(percentage_to_dark=percentage_to_dark)
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
         if torch.argmax(output.logits[0]) == torch.argmax(target.logits[0]):
             correct_random_guess.append((test_idx, torch.max(F.softmax(output.logits[0])).item()))
         print(f'*** {test_idx} ***')
-        print_conclusions(vit_model, tokens_mask, output, target)
+        _print_conclusions(vit_model, tokens_mask, output, target)
     print(f'Number of correct random guesses: {len(correct_random_guess)}')
     print(correct_random_guess)
 
 
-def infer():
-    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-    vit_s = ViTSigmoidForImageClassification.from_pretrained(vit_config['model_name'])
-    image = get_image_from_path(os.path.join(images_folder_path, image_name))
-    inputs = feature_extractor(images=image, return_tensors="pt")
-    target = vit_model(**inputs)
-    output = vit_s(**inputs, tokens_mask=torch.ones(577))
-    print(
-        f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]}, correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}')
-
-
-def generate_sampled_binary_patches_from_distribution(distribution: Tensor, precentage_to_dark: float) -> Tensor:
+def generate_sampled_binary_patches_from_distribution(distribution: Tensor, percentage_to_dark: float) -> Tensor:
     dist = distribution.clone()
     return dist.detach().apply_(lambda x: bernoulli.rvs(x, size=1)[0])
     # return dist.detach().apply_(lambda x: 1 if x > 0 else 0)
@@ -102,7 +83,7 @@ def generate_sampled_binary_patches_from_distribution(distribution: Tensor, prec
 
 def generate_sampled_binary_patches_by_top_scores(distribution: Tensor, tokens_to_show: int) -> Tensor:
     dist = distribution.clone()
-    k = tokens_to_show  # int(len(dist) * precentage_to_dark)
+    k = tokens_to_show  # int(len(dist) * percentage_to_dark)
     # k_th_quant = torch.topk(dist, k, largest=False)[0][-1]
     # mask = (dist <= k_th_quant).int()
     k_th_quant = torch.topk(dist, k)[0][-1]
@@ -112,24 +93,24 @@ def generate_sampled_binary_patches_by_top_scores(distribution: Tensor, tokens_t
 
 def get_dino_probability_per_head(path: str, attentions_path: str, tokens_to_show: int):
     attentions = load_obj(path=attentions_path)
-    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
+    inputs, target, vit_model, vit_sigmoid_model = _load_vit_models_inputs_and_target(model_path=path)
     print('Dino heads')
     for attention_head in attentions:
         tokens_mask = generate_sampled_binary_patches_by_top_scores(distribution=attention_head,
-                                                                    tokens_to_show=tokens_to_show-1) # -1 as added one token of cls
+                                                                    tokens_to_show=tokens_to_show - 1)  # -1 as added one token of cls
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
-        print_conclusions(vit_model, tokens_mask, output, target)
+        _print_conclusions(vit_model, tokens_mask, output, target)
 
 
 def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str = None):
-    inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
+    inputs, target, vit_model, vit_sigmoid_model = _load_vit_models_inputs_and_target(model_path=path)
 
     if tokens_mask is not None:
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
     else:
         output = vit_sigmoid_model(**inputs)
-    print_conclusions(vit_model, tokens_mask, output, target)
+    _print_conclusions(vit_model, tokens_mask, output, target)
 
 
 snake_tokens_mask_obj_1 = torch.tensor([0.7155, 0.5070, 0.3448, 0.3422, 0.3352, 0.3436, 0.3426, 0.3434, 0.3129,
@@ -451,3 +432,4 @@ if __name__ == '__main__':
     # # test_dark_random_k_patches(path=model_gumble_path, num_tests=1000, precentage_to_dark=0.81)
     # get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_dog_attentions_path,
     #                               tokens_to_show=int(dog_tokens_mask_gumble.sum().item()))
+    # test_dark_random_k_patches(path=model_gumble_path, num_tests=1000, percentage_to_dark=0.81)
