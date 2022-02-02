@@ -69,7 +69,7 @@ def dark_random_k_patches(percentage_to_dark: float, n_patches: int = 577) -> Te
     return mask
 
 
-def test_dark_random_k_patches(path, num_tests, percentage_to_dark: float):
+def test_dark_random_k_patches(path, num_tests: int, percentage_to_dark: float):
     correct_random_guess = []
     inputs, target, vit_model, vit_sigmoid_model = _load_vit_models_inputs_and_target(path=path)
     for test_idx in range(num_tests):
@@ -91,7 +91,7 @@ def generate_sampled_binary_patches_by_bernoulli(distribution: Tensor, percentag
 """
 
 
-def generate_sampled_binary_patches_by_top_scores(distribution: Tensor, tokens_to_show: int) -> Tensor:
+def generate_binary_tokens_mask_by_top_scores(distribution: Tensor, tokens_to_show: int) -> Tensor:
     dist = distribution.clone()
     k = tokens_to_show  # int(len(dist) * percentage_to_dark)
     k_th_quant = torch.topk(dist, k)[0][-1]
@@ -104,8 +104,8 @@ def get_dino_probability_per_head(path: str, tokens_to_show: int):
     inputs, target, vit_model, vit_sigmoid_model = _load_vit_models_inputs_and_target(path=path)
     print('Dino heads')
     for attention_head in attentions:
-        tokens_mask = generate_sampled_binary_patches_by_top_scores(distribution=attention_head,
-                                                                    tokens_to_show=tokens_to_show - 1)  # -1 as added one token of cls
+        tokens_mask = generate_binary_tokens_mask_by_top_scores(distribution=attention_head,
+                                                                tokens_to_show=tokens_to_show - 1)  # -1 as added one token of cls
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
         _print_conclusions(vit_model, tokens_mask, output, target)
@@ -123,13 +123,25 @@ def get_iteration_idx_of_minimum_loss(path) -> int:
 
 
 def get_tokens_mask_by_iteration_idx(path, iteration_idx: int) -> Tensor:
-    return load_obj(path=Path(path, 'sbp'))[iteration_idx]
+    return load_obj(path=Path(path, 'tokens_mask'))[iteration_idx]
+
+def is_tokens_mask_binary(tokens_mask: Tensor) -> bool:
+    return torch.equal(torch.tensor(len(tokens_mask)),
+                torch.count_nonzero((tokens_mask == 0) | (tokens_mask == 1)))
+
+def get_binary_token_mask(path, tokens_to_show: int):
+    iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
+    tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
+    if is_tokens_mask_binary(tokens_mask=tokens_mask):
+        tokens_mask = generate_binary_tokens_mask_by_top_scores(distribution=tokens_mask, tokens_to_show=tokens_to_show)
+
+    return tokens_mask
 
 
 def run_infer(path, tokens_mask: Tensor=None) -> None:
     if tokens_mask is None:
-        iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
-        tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
+        tokens_mask = get_binary_token_mask(path=path, tokens_to_show=OBJCTIVE_1_AND_2_N_TOKENS_TO_PRED_BY)
+
     infer_prediction(path=path, tokens_mask=torch.ones_like(tokens_mask))
     infer_prediction(path=path, tokens_mask=tokens_mask)
     get_dino_probability_per_head(path=path,
@@ -140,5 +152,7 @@ if __name__ == '__main__':
     """
     Input: path to folder of image
     """
-    experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    OBJCTIVE_1_AND_2_N_TOKENS_TO_PRED_BY = int(0.2 * 577) # TODO - change
+    experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_2_lr0_3_temp_1+l1_1+kl_loss_0+entropy_loss_1+pred_loss_3\00000018"
+    # experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
     run_infer(path=experiment_image_path)
