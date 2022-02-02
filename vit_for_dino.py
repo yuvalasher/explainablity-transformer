@@ -172,7 +172,7 @@ class ViTSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size, bias=config.qkv_bias)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-        self.attention_probs = None
+        # self.attention_probs = None
 
     def transpose_for_scores(self, x):
         # Dividing the dim_size (768) to num_attention heads (attention_head: dim: 64)
@@ -180,7 +180,7 @@ class ViTSelfAttention(nn.Module):
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False):
         # hidden_states.shape: [batch_size, num_patches, dim_size]
         sigmoid_gate = nn.Sigmoid()
         mixed_query_layer = self.query(hidden_states)
@@ -266,8 +266,8 @@ class ViTAttention(nn.Module):
         self.attention.all_head_size = self.attention.attention_head_size * self.attention.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=False):
-        self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention)  # run self-attention forward
+    def forward(self, hidden_states, head_mask=None, output_attentions=False):
+        self_outputs = self.attention(hidden_states, head_mask, output_attentions)  # run self-attention forward
 
         attention_output = self.output(self_outputs[0], hidden_states)
 
@@ -320,12 +320,11 @@ class ViTLayer(nn.Module):
         self.layernorm_before = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.layernorm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False):
         self_attention_outputs = self.attention(  # run attention forward, inside run the self-attention forward
             self.layernorm_before(hidden_states),  # in ViT, layernorm is applied before self-attention
             head_mask,
             output_attentions=output_attentions,
-            x_attention=x_attention,
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -362,8 +361,6 @@ class ViTEncoder(nn.Module):
         self.config = config
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
-        num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True)) # [n_patches + 1 for [CLS]]
 
     def forward(
             self,
@@ -396,7 +393,7 @@ class ViTEncoder(nn.Module):
                     layer_head_mask,
                 )
             else:
-                layer_outputs = layer_module(hidden_states, layer_head_mask, output_attentions, self.x_attention)  # run forward of ViTLayer
+                layer_outputs = layer_module(hidden_states, layer_head_mask, output_attentions)  # run forward of ViTLayer
 
             hidden_states = layer_outputs[0]
 
