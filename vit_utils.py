@@ -12,7 +12,7 @@ import cv2
 import matplotlib.pyplot as plt
 import os
 from typing import Dict, Tuple, Union, NewType
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from consts import PLOTS_PATH
 from utils import save_obj_to_disk
 
@@ -21,12 +21,11 @@ VitModelForClassification = NewType('VitModelForClassification',
 vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification,
                    'vit-for-dino': ViTBasicForDinoForImageClassification}
 
-
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
-                                                         image_name: str,
+                                                         path: Union[str, WindowsPath, Path],
                                                          image_size: int = config['vit']['img_size'],
                                                          patch_size: int = config['vit']['patch_size']) -> None:
-    image_dino_plots_folder = Path(PLOTS_PATH, config['vit']['dino_plots_folder_name'], image_name.replace('.JPEG', ''))
+    image_dino_plots_folder = Path(path, 'dino')
     os.makedirs(image_dino_plots_folder, exist_ok=True)
     num_heads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
     attentions = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(

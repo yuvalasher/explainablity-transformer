@@ -49,7 +49,6 @@ def get_image_from_path(path: str) -> Image:
 
 
 def save_obj_to_disk(path: Union[WindowsPath, str], obj) -> None:
-    print(path)
     if type(path) == str and path[-4:] != '.pkl':
         path += '.pkl'
     elif type(path) == WindowsPath and path.suffix != '.pkl':
