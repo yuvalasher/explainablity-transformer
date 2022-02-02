@@ -133,7 +133,6 @@ class ViTEmbeddings(nn.Module):
 class PatchEmbeddings(nn.Module):
     """
     Image to Patch Embedding.
-
     """
 
     def __init__(self, image_size=224, patch_size=16, num_channels=3, embed_dim=768):
@@ -401,13 +400,14 @@ class ViTEncoder(nn.Module):
     def calculate_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:
         """
         :return binary tensor of sampled by gumble-softmax with size of [n_patches + 1] # 1 for [CLS] token
-        When X_attention value is large, the sample should be 1 (?)
+        When X_attention value is large, the sample should be 1. The first token is for [CLS] token and should be turn-on.
         """
         sigmoid_x_attention = torch.sigmoid(x_attention).clone()
         log_prob_x_attention = torch.stack((torch.log(1 - sigmoid_x_attention), torch.log(sigmoid_x_attention))).T
         log_probs = [gumbel_softmax(log_prob, temperature=vit_config['temperature']) for log_prob in
                      log_prob_x_attention]
         sampled_binary_patches = torch.stack(log_probs) @ torch.tensor([0., 1.]).T
+        sampled_binary_patches[0] = 1  # For [CLS] token
         return sampled_binary_patches
 
     def calculate_opposite_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:
@@ -429,16 +429,23 @@ class ViTEncoder(nn.Module):
             output_attentions=False,
             output_hidden_states=False,
             return_dict=True,
+            tokens_mask=None,
     ):
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
 
-        if vit_config['objective'] == 'objective_opposite_gumble_softmax':
-            self.sampled_binary_patches = self.calculate_opposite_sampled_distribution_gumble_softmax(
-                x_attention=self.x_attention)
+        if tokens_mask is not None:
+            self.sampled_binary_patches = tokens_mask
+
         else:
-            self.sampled_binary_patches = self.calculate_sampled_distribution_gumble_softmax(
-                x_attention=self.x_attention)
+            if vit_config['objective'] == 'objective_opposite_gumble_softmax':
+                self.sampled_binary_patches = self.calculate_opposite_sampled_distribution_gumble_softmax(
+                    x_attention=self.x_attention)
+            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_gumble_minimize_softmax']:
+                self.sampled_binary_patches = self.calculate_sampled_distribution_gumble_softmax(
+                    x_attention=self.x_attention)
+            else:
+                self.sampled_binary_patches = None
 
         for i, layer_module in enumerate(self.layer):  # run on layers
             if output_hidden_states:
@@ -585,6 +592,7 @@ class ViTModel(ViTPreTrainedModel):
     def forward(
             self,
             pixel_values,
+            tokens_mask=None,
             attention_mask=None,
             head_mask=None,
             output_attentions=None,
@@ -613,8 +621,6 @@ class ViTModel(ViTPreTrainedModel):
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
         embedding_output = self.embeddings(pixel_values, interpolate_pos_encoding=interpolate_pos_encoding)
-        # if tokens_mask is not None:
-        #     embedding_output = torch.einsum('nhw,h->nhw', embedding_output, tokens_mask)
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -622,6 +628,7 @@ class ViTModel(ViTPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            tokens_mask=tokens_mask,
         )
         sequence_output = encoder_outputs[0]
         sequence_output = self.layernorm(sequence_output)
@@ -683,6 +690,7 @@ class ViTSigmoidForImageClassification(ViTPreTrainedModel):
             output_hidden_states=None,
             interpolate_pos_encoding=None,
             return_dict=None,
+            tokens_mask=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -700,6 +708,7 @@ class ViTSigmoidForImageClassification(ViTPreTrainedModel):
             output_hidden_states=output_hidden_states,
             interpolate_pos_encoding=interpolate_pos_encoding,
             return_dict=return_dict,
+            tokens_mask=tokens_mask
         )
 
         sequence_output = outputs[0]
