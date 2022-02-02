@@ -407,7 +407,7 @@ class ViTEncoder(nn.Module):
         log_probs = [gumbel_softmax(log_prob, temperature=vit_config['temperature']) for log_prob in
                      log_prob_x_attention]
         sampled_binary_patches = torch.stack(log_probs) @ torch.tensor([0., 1.]).T
-        sampled_binary_patches[0] = 1  # For [CLS] token
+        sampled_binary_patches[0] = torch.tensor(1.0)  # For [CLS] token
         return sampled_binary_patches
 
     def calculate_opposite_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:

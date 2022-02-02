@@ -153,7 +153,9 @@ def objective_gumble_minimize_softmax(output: Tensor, target: Tensor, x_attentio
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, log_run):
     for idx, image_name in enumerate(os.listdir(images_folder_path)):
         if image_name in vit_config['sample_images']:
-            vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
+            vit_sigmoid_model = handle_model_config_and_freezing_for_task(
+                model=load_ViTModel(vit_config, model_type='vit-sigmoid'),
+                freezing_transformer=vit_config['freezing_transformer'])
             optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
 
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=images_folder_path,
