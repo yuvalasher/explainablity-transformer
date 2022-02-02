@@ -163,19 +163,23 @@ def load_feature_extractor_and_vit_model(vit_config: Dict) -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
     # vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
-    vit_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit'))
+    vit_model = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='vit'))
 
     return feature_extractor, vit_model
 
 
-def handle_model_for_task(model: VitModelForClassification) -> VitModelForClassification:
-    model = handle_model_freezing(model=setup_model_config(model=model))
+def handle_model_config_and_freezing_for_task(model: VitModelForClassification, freezing_transformer: bool =True) -> VitModelForClassification:
+    model = setup_model_config(model=model)
+    if freezing_transformer:
+        model = handle_model_freezing(model=model)
     return model
 
 
-def load_handled_models_for_task(vit_config: Dict) -> ViTSigmoidForImageClassification:
-    vit_sigmoid_model = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-sigmoid'))
-    return vit_sigmoid_model
+# def load_handled_models_for_task(vit_config: Dict, freezing_transformer: bool=True) -> ViTSigmoidForImageClassification:
+    # vit_sigmoid_model = load_ViTModel(vit_config, model_type='vit-sigmoid')
+    # if freezing_transformer:
+    #     vit_sigmoid_model = handle_model_config_and_freezing_for_task(model=vit_sigmoid_model)
+    # return vit_sigmoid_model
 
 
 def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
