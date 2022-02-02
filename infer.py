@@ -168,14 +168,19 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             target = vit_model(**inputs)
             x_gradients = []
             sampled_binary_patches = []
-            # vit_basic_for_dino = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-for-dino'))
-            # _ = vit_basic_for_dino(**inputs)
-            # dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_basic_for_dino, image_name=image_name)
+            vit_basic_for_dino = handle_model_for_task(model=load_ViTModel(vit_config, model_type='vit-for-dino'))
+            _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
+            dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_basic_for_dino,
+                                                                 image_name=image_name)
+            losses = []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
 
-                if vit_config['objective'] in ['objective_gumble_softmax', 'objective_gumble_minimize_softmax','objective_opposite_gumble_softmax']:
+                if vit_config['objective'] in ['objective_gumble_softmax', 'objective_gumble_minimize_softmax',
+                                               'objective_opposite_gumble_softmax']:
+                    losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
+                        'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                      sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches)
