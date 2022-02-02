@@ -126,7 +126,10 @@ def get_tokens_mask_by_iteration_idx(path, iteration_idx: int) -> Tensor:
     return load_obj(path=Path(path, 'sbp'))[iteration_idx]
 
 
-def run_infer(path, tokens_mask: Tensor) -> None:
+def run_infer(path, tokens_mask: Tensor=None) -> None:
+    if tokens_mask is None:
+        iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
+        tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
     infer_prediction(path=path, tokens_mask=torch.ones_like(tokens_mask))
     infer_prediction(path=path, tokens_mask=tokens_mask)
     get_dino_probability_per_head(path=path,
@@ -137,39 +140,5 @@ if __name__ == '__main__':
     """
     Input: path to folder of image
     """
-    path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
-    tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
-    run_infer(path=path, tokens_mask=tokens_mask)
-
-    """
-    print('with extra token')
-    print('poncho')
-    image_name = "ILSVRC2012_val_00000061.JPEG"
-    infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(poncho_tokens_mask_gumble))
-    infer_prediction(path=model_gumble_path, tokens_mask=poncho_tokens_mask_gumble)
-    get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_poncho_attentions_path,
-                                  tokens_to_show=int(poncho_tokens_mask_gumble.sum().item()))
-
-    print('snake')
-    image_name = "ILSVRC2012_val_00000001.JPEG"
-    infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(snake_tokens_mask_gumble))
-    infer_prediction(path=model_gumble_path, tokens_mask=snake_tokens_mask_gumble)
-    get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_snake_attentions_path,
-                                  tokens_to_show=int(snake_tokens_mask_gumble.sum().item()))
-
-    image_name = "ILSVRC2012_val_00000003.JPEG"
-    print('dog')
-    infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(dog_tokens_mask_gumble))
-    infer_prediction(path=model_gumble_path, tokens_mask=dog_tokens_mask_gumble)
-    get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_dog_attentions_path,
-                                  tokens_to_show=int(dog_tokens_mask_gumble.sum().item()))
-
-    image_name = "ILSVRC2012_val_00000018.JPEG"
-    print('bird')
-    infer_prediction(path=model_gumble_path, tokens_mask=torch.ones_like(bird_tokens_mask_gumble))
-    infer_prediction(path=model_gumble_path, tokens_mask=bird_tokens_mask_gumble)
-    get_dino_probability_per_head(path=model_gumble_path, attentions_path=dino_bird_attentions_path,
-                                  tokens_to_show=int(bird_tokens_mask_gumble.sum().item()))
-    # test_dark_random_k_patches(path=model_gumble_path, num_tests=1000, percentage_to_dark=0.81)
-    """
+    experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    run_infer(path=experiment_image_path)
