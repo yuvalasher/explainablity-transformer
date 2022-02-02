@@ -113,10 +113,10 @@ def generate_sampled_binary_patches_by_top_scores(distribution: Tensor, tokens_t
 def get_dino_probability_per_head(path: str, attentions_path: str, tokens_to_show: int):
     attentions = load_obj(path=attentions_path)
     inputs, target, vit_model, vit_sigmoid_model = _load_extract_features(model_path=path)
-
+    print('Dino heads')
     for attention_head in attentions:
         tokens_mask = generate_sampled_binary_patches_by_top_scores(distribution=attention_head,
-                                                                    tokens_to_show=tokens_to_show)
+                                                                    tokens_to_show=tokens_to_show-1) # -1 as added one token of cls
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         output = vit_sigmoid_model(**inputs, tokens_mask=tokens_mask)
         print_conclusions(vit_model, tokens_mask, output, target)
