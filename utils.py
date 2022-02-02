@@ -4,8 +4,8 @@ import pandas as pd
 
 from PIL import Image
 import os
-from pathlib import Path
-from typing import Any, Dict, List
+from pathlib import Path, WindowsPath
+from typing import Any, Dict, List, Union
 from consts import PICKLES_FOLDER_PATH
 
 def create_df_of_img_name_with_label(path: Path) -> pd.DataFrame:
@@ -48,10 +48,15 @@ def get_image_from_path(path: str) -> Image:
     return Image.open(path)
 
 
-def save_obj_to_disk(obj_name: str, obj) -> None:
-    with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+def save_obj_to_disk(path: Union[WindowsPath, str], obj) -> None:
+    print(path)
+    if type(path) == str and path[-4:] != '.pkl':
+        path += '.pkl'
+    elif type(path) == WindowsPath and path.suffix != '.pkl':
+        path = path.with_suffix('.pkl')
 
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(obj_name: str) -> Any:
     with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'rb') as f:

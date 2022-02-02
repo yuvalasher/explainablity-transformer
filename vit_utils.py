@@ -39,9 +39,7 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
         plt.imsave(fname=Path(image_dino_plots_folder, f'attn-head{head_idx}.png'), arr=attentions[head_idx],
                    format='png')
 
-def save_obj_to_disk(path: str, obj) -> None:
-    with open(path, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
 def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size'],
                patch_size: int = config['vit']['patch_size']) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
@@ -229,7 +227,7 @@ def check_stop_criterion(x_attention: Tensor) -> bool:
     return False
 
 
-def get_and_create_image_plot_folder_path(images_folder_path: Path, image_name: str, experiment_name: str) -> Path:
+def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_name: str, image_name: str) -> Path:
     """
     Also saving the original picture in the models' resolution (img_size, img_size)
     """
