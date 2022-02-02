@@ -166,7 +166,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
             x_gradients = []
-            sampled_binary_patches = []
+            tokens_mask = []
             vit_basic_for_dino = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='vit-for-dino'))
             _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
@@ -177,7 +177,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
 
-                if vit_config['objective'] in vit_config['gumble_objectives']:
+                if vit_config['objective'] in vit_config['gumble_objectives', 'objective_1']:
                     losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
                         'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
@@ -206,12 +206,13 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 optimizer.step()
                 x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
                 if vit_config['objective'] in vit_config['gumble_objectives']:
-                    sampled_binary_patches.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
+                    tokens_mask.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
+                else:
+                    tokens_mask.append(F.sigmoid(vit_sigmoid_model.vit.encoder.x_attention.clone()))
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'x_gradients'), obj=x_gradients)
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=losses)
-                    if vit_config['objective'] in vit_config['gumble_objectives']:
-                        save_obj_to_disk(path=Path(image_plot_folder_path, 'sbp'), obj=sampled_binary_patches)
+                    save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
                     save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
             if vit_config['log']:
                 log_run.finish()
