@@ -142,7 +142,8 @@ def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor
 
 def objective_gumble_minimize_softmax(output: Tensor, target: Tensor, x_attention: Tensor,
                                       sampled_binary_patches: Tensor = None) -> Tensor:
-    prediction_loss = -output[0][torch.argmax(F.softmax(target)).item()]
+    prediction_loss = -ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
+    # prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
     kl = kl_div(p=convert_probability_vector_to_bernoulli_kl(F.sigmoid(x_attention)),
                 q=convert_probability_vector_to_bernoulli_kl(torch.ones_like(x_attention))) * loss_config[
              'kl_loss_multiplier']
@@ -236,4 +237,3 @@ if __name__ == '__main__':
     log_run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
     optimize_params(vit_model=vit_model, criterion=OBJECTIVES[vit_config['objective']], log_run=log_run)
-    # infer_prediction(path=r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\D_objective_opposite_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_20\ILSVRC2012_val_00000001\vit_sigmoid_model")
