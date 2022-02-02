@@ -1,31 +1,35 @@
 general:
   seed: 42
-  images_folder_name: ILSVRC2012_val
+  images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
 
 vit:
-  dino_plots_folder_name: dino method on supervised vit - cls of the last layer to other tokens
+  dino_plots_folder_name: dino supervised vit
   num_labels: 1000
   model_name: google/vit-base-patch16-384
   img_size: 384
   patch_size: 16
   save_every: 1
   stop_prob_criterion: 0.3
-  sample_picture_name: ILSVRC2012_val_00000001.JPEG
+  sample_picture_name: 00000001.JPEG
   sample_images:
-#    - ILSVRC2012_val_00000001.JPEG # snake
-    - ILSVRC2012_val_00000003.JPEG # dog
-#    - ILSVRC2012_val_00000009.JPEG # mousetrap
-#    - ILSVRC2012_val_00000018.JPEG # bird
+#    - 00000001.JPEG # snake
+#    - 00000003.JPEG # dog
+#    - 00000009.JPEG # mousetrap
+#    - 00000018.JPEG # bird
+#    - 00000061.JPEG # poncho (0.803)
+    - 00000151.JPEG # computer (0.751)
+#    - 00000279.JPEG # Dandie Dinmont terrier (0.82)
+#    - 00000327.JPEG # Rottweiler (0.813)
   lr: 3.0e-1
   num_steps: 100
   print_every: 1
   log: False
   verbose: True
   temperature: 1
-  objective: objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  objective: objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
-    kl_loss_multiplier: 1
-    pred_loss_multiplier: 3
+    kl_loss_multiplier: 0
+    pred_loss_multiplier: 1
     entropy_loss_multiplier: 0
     l1_loss_multiplier: 0
