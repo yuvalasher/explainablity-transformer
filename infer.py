@@ -177,8 +177,9 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
 
-                if vit_config['objective'] in vit_config['gumble_objectives', 'objective_1']:
-                    losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
+                if vit_config['objective'] in vit_config['gumble_objectives'] or vit_config[
+                    'objective'] == 'objective_1':
+                    losses.append(ce_loss(output.ljogits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
                         'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
@@ -218,7 +219,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 log_run.finish()
                 vit_config['log'] = False
             save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
-            print(f'lowest pred loss at iteration {torch.argmax(torch.tensor(losses))}')
             print(1)
 
 
