@@ -177,8 +177,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
 
-                if vit_config['objective'] in ['objective_gumble_softmax', 'objective_gumble_minimize_softmax',
-                                               'objective_opposite_gumble_softmax']:
+                if vit_config['objective'] in vit_config['gumble_objectives']:
                     losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
                         'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
@@ -191,15 +190,12 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if
-                                             vit_config['objective'] in ['objective_gumble_softmax',
-                                                                         'objective_gumble_minimize_softmax',
-                                                                         'objective_opposite_gumble_softmax'] else None)
+                                             vit_config['objective'] in vit_config['gumble_objectives'] else None)
                 if vit_config['verbose']:
-                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config['objective'] in \
-                                                                                             [
-                                                                                                 'objective_gumble_minimize_softmax',
-                                                                                                 'objective_gumble_softmax',
-                                                                                                 'objective_opposite_gumble_softmax'] else relu(
+                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config[
+                                                                                                 'objective'] in \
+                                                                                             vit_config[
+                                                                                                 'gumble_objectives'] else relu(
                         vit_sigmoid_model.vit.encoder.x_attention)
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
@@ -209,11 +205,13 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
 
                 optimizer.step()
                 x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
-                sampled_binary_patches.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
+                if vit_config['objective'] in vit_config['gumble_objectives']:
+                    sampled_binary_patches.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'x_gradients'), obj=x_gradients)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'sbp'), obj=sampled_binary_patches)
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=losses)
+                    if vit_config['objective'] in vit_config['gumble_objectives']:
+                        save_obj_to_disk(path=Path(image_plot_folder_path, 'sbp'), obj=sampled_binary_patches)
                     save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
             if vit_config['log']:
                 log_run.finish()

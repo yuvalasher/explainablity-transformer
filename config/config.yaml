@@ -4,6 +4,10 @@ general:
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
 
 vit:
+  gumble_objectives:
+    - objective_gumble_softmax
+    - objective_gumble_minimize_softmax
+    - objective_opposite_gumble_softmax
   freezing_transformer: True
   dino_plots_folder_name: dino supervised vit
   num_labels: 1000
@@ -28,9 +32,9 @@ vit:
   log: False
   verbose: True
   temperature: 1
-  objective: objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  objective: objective_2 # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
-    kl_loss_multiplier: 1
+    kl_loss_multiplier: 0
     pred_loss_multiplier: 3
-    entropy_loss_multiplier: 0
-    l1_loss_multiplier: 0
+    entropy_loss_multiplier: 1
+    l1_loss_multiplier: 1
