@@ -62,7 +62,7 @@ def dark_random_k_patches(precentage_to_dark: float, n_patches: int = 577) -> Te
 def _load_extract_features(model_path: str):
     feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
     vit_sigmoid_model = load_model(path=model_path)
-    image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
+    image = get_image_from_path(os.path.join(images_folder_path, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
     target = vit_model(**inputs)
     return inputs, target, vit_model, vit_sigmoid_model
@@ -85,13 +85,12 @@ def test_dark_random_k_patches(path, num_tests, precentage_to_dark: float):
 def infer():
     feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
     vit_s = ViTSigmoidForImageClassification.from_pretrained(vit_config['model_name'])
-    image = get_image_from_path(os.path.join(images_folder_path, vit_config['sample_picture_name']))
+    image = get_image_from_path(os.path.join(images_folder_path, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
     target = vit_model(**inputs)
     output = vit_s(**inputs, tokens_mask=torch.ones(577))
     print(
         f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]}, correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}')
-    print(1)
 
 
 def generate_sampled_binary_patches_from_distribution(distribution: Tensor, precentage_to_dark: float) -> Tensor:
