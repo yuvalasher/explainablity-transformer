@@ -130,7 +130,6 @@ def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str
     else:
         output = vit_sigmoid_model(**inputs)
     print_conclusions(vit_model, tokens_mask, output, target)
-    print(1)
 
 
 snake_tokens_mask_obj_1 = torch.tensor([0.7155, 0.5070, 0.3448, 0.3422, 0.3352, 0.3436, 0.3426, 0.3434, 0.3129,

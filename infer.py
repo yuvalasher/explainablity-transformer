@@ -111,10 +111,6 @@ def js_kl(p, q):
     return 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
 
 
-# def kl_div(p, q):
-#     return torch.sum(
-#         torch.where(p != 0, p * torch.log(p / q) + (1 - p) * torch.log((1 - p) / (1 - q)), torch.tensor(0.0))) / len(p)
-
 def kl_div(p: Tensor, q: Tensor, eps: float = 1e-7):
     q += eps
     q /= torch.sum(q, axis=1, keepdims=True)
@@ -212,7 +208,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
                 sampled_binary_patches.append(vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone())
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-                    save_obj_to_disk(path=Path(image_plot_folder_path,'x_gradients'), obj=x_gradients)
+                    save_obj_to_disk(path=Path(image_plot_folder_path, 'x_gradients'), obj=x_gradients)
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'sbp'), obj=sampled_binary_patches)
                     save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=losses)
                     save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
