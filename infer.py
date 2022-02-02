@@ -179,7 +179,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
 
                 if vit_config['objective'] in vit_config['gumble_objectives'] or vit_config[
                     'objective'] == 'objective_1':
-                    losses.append(ce_loss(output.ljogits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
+                    losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
                         'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
