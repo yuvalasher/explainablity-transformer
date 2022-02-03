@@ -202,16 +202,16 @@ class ViTSelfAttention(nn.Module):
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
 
-        # attention_probs = nn.functional.softmax(x_attention / vit_config['temperature']) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        # attention_probs = torch.sigmoid(x_attention) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         if vit_config['objective'] in ['objective_1']:
             attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *\
             #  [batch_size, n_heads, num_patches + 1, num_patches + 1]
         elif vit_config['objective'] in ['objective_2']:
             attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  \
             # [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        # attention_probs = (1 - torch.clamp(x_attention, min=0, max=1)) * attention_probs # [n_patches + 1] *  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        elif vit_config['objective'] in vit_config['gumble_objectives']:
+        elif vit_config['objective'] in ['objective_gumble_minimize_softmax']:
+            attention_probs = (1- nn.functional.softmax(x_attention)) * attention_probs
+
+        elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
             attention_probs = sampled_binary_patches * attention_probs
         else:
             raise NotImplementedError
