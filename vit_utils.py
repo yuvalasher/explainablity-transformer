@@ -7,6 +7,7 @@ from torch.functional import F
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 from modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from vit_for_dino import ViTBasicForDinoForImageClassification
+from modeling_infer_vit import ViTInferForImageClassification
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ from utils import save_obj_to_disk
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
 vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification,
-                   'vit-for-dino': ViTBasicForDinoForImageClassification}
+                   'vit-for-dino': ViTBasicForDinoForImageClassification, 'infer': ViTInferForImageClassification}
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
                                                          path: Union[str, WindowsPath, Path],
@@ -164,9 +165,12 @@ def load_feature_extractor_and_vit_model(vit_config: Dict) -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
     # vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
-    vit_model = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='vit'))
-
+    vit_model = load_vit_model_by_type(vit_config=vit_config, model_type='vit')
     return feature_extractor, vit_model
+
+def load_vit_model_by_type(vit_config: Dict, model_type: str):
+    vit_model = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type=model_type))
+    return vit_model
 
 
 def handle_model_config_and_freezing_for_task(model: VitModelForClassification, freezing_transformer: bool =True) -> VitModelForClassification:
