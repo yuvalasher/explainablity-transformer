@@ -66,7 +66,6 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) 
 
 
 def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
-    # prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
     prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
     l1_loss = (x_attention - 1).abs().sum() / len(x_attention) * loss_config['l1_loss_multiplier']
     x_attention_chopped = torch.clamp(x_attention, min=0, max=1)
@@ -138,14 +137,19 @@ def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor
 
 def objective_gumble_minimize_softmax(output: Tensor, target: Tensor, x_attention: Tensor,
                                       sampled_binary_patches: Tensor = None) -> Tensor:
+    """
+    We want to destroy the image prediction with as many patches as we can
+    """
     prediction_loss = -ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
     # prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
-    kl = kl_div(p=convert_probability_vector_to_bernoulli_kl(F.sigmoid(x_attention)),
-                q=convert_probability_vector_to_bernoulli_kl(torch.ones_like(x_attention))) * loss_config[
-             'kl_loss_multiplier']
-    print(f'kl_loss: {kl}, prediction_loss: {prediction_loss}')
-    loss = kl + prediction_loss
-    log(loss=loss, kl_loss=kl, prediction_loss=prediction_loss, x_attention=x_attention,
+    entropy_loss = entropy(F.softmax(x_attention)) * loss_config['entropy_loss_multiplier']
+    # kl = kl_div(p=convert_probability_vector_to_bernoulli_kl(F.sigmoid(x_attention)),
+    #             q=convert_probability_vector_to_bernoulli_kl(torch.ones_like(x_attention))) * loss_config['kl_loss_multiplier']
+    # print(f'kl_loss: {kl}, prediction_loss: {prediction_loss}')
+    # loss = kl + prediction_loss
+    loss = entropy_loss + prediction_loss
+    print(f'entropy_loss: {entropy_loss}, prediction_loss: {prediction_loss}')
+    log(loss=loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         sampled_binary_patches=sampled_binary_patches, output=output, target=target)
     return loss
 
