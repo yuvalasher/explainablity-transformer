@@ -184,8 +184,9 @@ class ViTSelfAttention(nn.Module):
         return x.permute(0, 2, 1, 3)
 
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
-                sampled_binary_patches=None):
+                sampled_binary_patches=None, layer_idx=None):
         # hidden_states.shape: [batch_size, num_patches + 1, dim_size]
+        # print(f'layer_idx: {layer_idx}')
         mixed_query_layer = self.query(hidden_states)
 
         key_layer = self.transpose_for_scores(self.key(hidden_states))  # [batch_size, n_heads, num_patches + 1,\
@@ -201,22 +202,24 @@ class ViTSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+        if True:
+        # if layer_idx in [11]:
+            print(f'in layer_idx: {layer_idx}')
+            if vit_config['objective'] in ['objective_1']:
+                attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *\
+                #  [batch_size, n_heads, num_patches + 1, num_patches + 1]
+            elif vit_config['objective'] in ['objective_2']:
+                attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  \
+                # [batch_size, n_heads, num_patches + 1, num_patches + 1]
+            elif vit_config['objective'] in ['objective_gumble_minimize_softmax']:
+                attention_probs = (1- nn.functional.softmax(x_attention)) * attention_probs
+    
+            elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
+                attention_probs = sampled_binary_patches * attention_probs
+                attention_probs /= attention_probs.sum(-1, keepdim=True)  # normalizing each row sum to 1
+            else:
+                raise NotImplementedError
 
-        if vit_config['objective'] in ['objective_1']:
-            attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *\
-            #  [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        elif vit_config['objective'] in ['objective_2']:
-            attention_probs = torch.clamp(x_attention, min=0, max=1) * attention_probs  # [n_patches + 1] *  \
-            # [batch_size, n_heads, num_patches + 1, num_patches + 1]
-        elif vit_config['objective'] in ['objective_gumble_minimize_softmax']:
-            attention_probs = (1- nn.functional.softmax(x_attention)) * attention_probs
-
-        elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
-            attention_probs = sampled_binary_patches * attention_probs
-        else:
-            raise NotImplementedError
-
-        attention_probs /= attention_probs.sum(-1, keepdim=True)  # normalizing each row sum to 1
         self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
@@ -285,9 +288,9 @@ class ViTAttention(nn.Module):
         self.pruned_heads = self.pruned_heads.union(heads)
 
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
-                sampled_binary_patches=None):
+                sampled_binary_patches=None, layer_idx=None):
         self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention=x_attention,
-                                      sampled_binary_patches=sampled_binary_patches)  # run self-attention forward
+                                      sampled_binary_patches=sampled_binary_patches, layer_idx=layer_idx)  # run self-attention forward
 
         attention_output = self.output(self_outputs[0], hidden_states)
 
@@ -341,13 +344,14 @@ class ViTLayer(nn.Module):
         self.layernorm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
-                sampled_binary_patches=None):
+                sampled_binary_patches=None, layer_idx=None):
         self_attention_outputs = self.attention(  # run attention forward, inside run the self-attention forward
             self.layernorm_before(hidden_states),  # in ViT, layernorm is applied before self-attention
             head_mask,
             output_attentions=output_attentions,
             x_attention=x_attention,
             sampled_binary_patches=sampled_binary_patches,
+            layer_idx=layer_idx,
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -467,7 +471,7 @@ class ViTEncoder(nn.Module):
             else:
                 layer_outputs = layer_module(hidden_states, layer_head_mask, output_attentions,
                                              x_attention=self.x_attention,
-                                             sampled_binary_patches=self.sampled_binary_patches)  # run forward of ViTLayer
+                                             sampled_binary_patches=self.sampled_binary_patches, layer_idx=i)  # run forward of ViTLayer
 
             hidden_states = layer_outputs[0]
 
