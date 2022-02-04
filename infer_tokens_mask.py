@@ -117,9 +117,10 @@ def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str
                                   tokens_mask=tokens_mask, target=target)
 
 
-def forward_and_print_conclusions(infer_model, vit_model, inputs, tokens_mask, target):
+def forward_and_print_conclusions(infer_model, vit_model, inputs, tokens_mask, target, verbose: bool = True):
     output = infer_model(**inputs, tokens_mask=tokens_mask)
-    _print_conclusions(id2label=vit_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target)
+    if verbose:
+        _print_conclusions(id2label=vit_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target)
 
 
 def get_iteration_idx_of_minimum_loss(path) -> int:
@@ -136,9 +137,14 @@ def is_tokens_mask_binary(tokens_mask: Tensor) -> bool:
                        torch.count_nonzero((tokens_mask == 0) | (tokens_mask == 1)))
 
 
-def get_binary_token_mask(path, tokens_to_show: int):
+def load_tokens_task(path) -> Tensor:
     iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
     tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
+    return tokens_mask
+
+
+def get_binary_token_mask(path, tokens_to_show: int) -> Tensor:
+    tokens_mask = load_tokens_task(path=path)
     if not is_tokens_mask_binary(tokens_mask=tokens_mask):
         tokens_mask = generate_binary_tokens_mask_by_top_scores(distribution=tokens_mask, tokens_to_show=tokens_to_show)
 
@@ -154,10 +160,55 @@ def run_infer(path, tokens_mask: Tensor = None) -> None:
     get_dino_probability_per_head(path=path, tokens_to_show=int(tokens_mask.sum().item()))
 
 
+def calculate_avg_drop_percentage(full_image_confidence: float, saliency_map_confidence: float) -> float:
+    return max(0, full_image_confidence - saliency_map_confidence) / full_image_confidence
+
+
+def calculate_percentage_increase_in_confidence(full_image_confidence: float, saliency_map_confidence: float) -> float:
+    return 1 if full_image_confidence < saliency_map_confidence else 0  # should be averaged
+
+
+def calculate_metrics_for_experience(experiment_path: str):
+    feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
+    infer_model = load_vit_model_by_type(vit_config=vit_config, model_type='infer')
+    percentage_increase_in_confidence_indicators = []
+    avg_drop_percentage = []
+    for idx, image_name in enumerate(os.listdir(images_folder_path)):
+        image = get_image_from_path(os.path.join(images_folder_path, image_name))
+        inputs = feature_extractor(images=image, return_tensors="pt")
+        tokens_mask = load_tokens_task(path=Path(experiment_path, image_name.replace('ILSVRC2012_val_', '')))
+        saliency_map_output = infer_model(**inputs, tokens_mask=tokens_mask)
+        full_image_outputs = vit_model(**inputs)
+        saliency_map_confidence = F.softmax(saliency_map_output.logits)[0][
+            torch.argmax(F.softmax(full_image_outputs.logits)).item()]
+
+        full_image_confidence = torch.argmax(F.softmax(full_image_outputs.logits)).item()
+        avg_drop_percentage.append(calculate_avg_drop_percentage(full_image_confidence=full_image_confidence,
+                                                                 saliency_map_confidence=saliency_map_confidence))
+        percentage_increase_in_confidence_indicators.append(
+            calculate_percentage_increase_in_confidence(full_image_confidence=full_image_confidence,
+                                                        saliency_map_confidence=saliency_map_confidence))
+    percentage_increase_in_confidence = 100 * sum(percentage_increase_in_confidence_indicators) / len(
+        percentage_increase_in_confidence_indicators)
+    averaged_drop_precetage = 100 * sum(avg_drop_percentage)
+
+    print(
+        f'% Increase in Confidence: {round(percentage_increase_in_confidence, 4)}%; Average Drop %: {round(averaged_drop_precetage, 4)}%')
+
+
 if __name__ == '__main__':
     """
     Input: path to folder of image
     """
     OBJCTIVE_1_AND_2_N_TOKENS_TO_PRED_BY = int(0.2 * 577)  # TODO - change
-    experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    run_infer(path=experiment_image_path)
+    # experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    ALL_LAYERS_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_all_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    LAYER_0_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_0_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    LAYER_11_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_11_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    d = {'all layers': ALL_LAYERS_PATH, 'layer 0 only': LAYER_0_PATH, 'layer 11 only': LAYER_11_PATH}
+    for name, path in d.items():
+        print(name)
+        # run_infer(path=path)
+        # n_tokens = int(tokens_mask.sum().item())
+        n_tokens = 10
+        get_dino_probability_per_head(path=path, tokens_to_show=n_tokens)
