@@ -57,7 +57,6 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
             print(sampled_binary_patches)
         # print(prev_x_attention.grad)
 
-
 def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
     original_predicted_idx = torch.argmax(vit_logits[0]).item()
     original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
@@ -208,6 +207,12 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                       filename=Path(image_plot_folder_path, f'relu_x_iter_idx_{iteration_idx}'),
                                       verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
 
+                    # save_saliency_map(image=original_transformed_image,
+                    #                   saliency_map=torch.tensor(
+                    #                       get_scores(F.softmax(vit_sigmoid_model.vit.encoder.x_attention))).unsqueeze(0),
+                    #                   filename=Path(image_plot_folder_path, f'relu_x_iter_idx_{iteration_idx}'),
+                    #                   verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+
                 optimizer.step()
                 x_gradients.append(vit_sigmoid_model.vit.encoder.x_attention.grad.clone())
                 if vit_config['objective'] in vit_config['gumble_objectives']:
@@ -223,7 +228,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 log_run.finish()
                 vit_config['log'] = False
             save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
-            print(1)
 
 
 OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
