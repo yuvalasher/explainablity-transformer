@@ -8,6 +8,6 @@ def configure_log(vit_config: Dict, experiment_name: str):
             "learning_rate": vit_config['lr'],
             "experiment_name": experiment_name
         }
-        run = wandb.init(project="my-test-project", entity="yuvalasher", config=wandb.config)
+        run = wandb.init(project="vit-sigmoid-1", entity="yuvalasher", config=wandb.config)
         return run
     return None
