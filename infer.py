@@ -50,10 +50,10 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output)[0][torch.argmax(F.softmax(target)).item()]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-
     if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
-        print(torch.sigmoid(prev_x_attention))
-        if sampled_binary_patches is not None:
+        # print(nn.functional.softmax(prev_x_attention))
+        print(F.sigmoid(prev_x_attention))
+        if sampled_binary_patches is not None and vit_config['objective'] != 'objective_gumble_minimize_softmax':
             print(sampled_binary_patches)
         # print(prev_x_attention.grad)
 
