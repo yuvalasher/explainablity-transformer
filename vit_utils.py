@@ -1,3 +1,4 @@
+import re
 from config import config
 import numpy as np
 import torch
@@ -8,6 +9,7 @@ from transformers import ViTFeatureExtractor, ViTForImageClassification
 from modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from vit_for_dino import ViTBasicForDinoForImageClassification
 from modeling_infer_vit import ViTInferForImageClassification
+from vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
@@ -20,7 +22,10 @@ from utils import save_obj_to_disk
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
 vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification,
-                   'vit-for-dino': ViTBasicForDinoForImageClassification, 'infer': ViTInferForImageClassification}
+                   'vit-for-dino': ViTBasicForDinoForImageClassification, 'infer': ViTInferForImageClassification,
+                   'per-layer-head': ViTSigmoidPerLayerHeadForImageClassification,
+                   }
+
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
                                                          path: Union[str, WindowsPath, Path],
@@ -101,6 +106,13 @@ def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClas
         param.requires_grad = False
     return model
 
+def unfreeze_x_attention_params_self_attnetion(model: VitModelForClassification) -> VitModelForClassification:
+    regex = re.compile('vit.encoder.layer.[0-9][1]?.attention.attention.x_attention')
+    # len([param[0] for param in model.named_parameters() if re.match(regex, param[0]) is not None])
+    for param in model.named_parameters():
+        if re.match(regex, param[0]) is not None:
+            param[1].requires_grad = True
+    return model
 
 def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelForClassification:
     for param in model.named_parameters():
@@ -109,9 +121,12 @@ def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelFor
     return model
 
 
-def handle_model_freezing(model: VitModelForClassification) -> VitModelForClassification:
+def handle_model_freezing(model: VitModelForClassification, per_head_layer:bool=False) -> VitModelForClassification:
     model = freeze_all_model_params(model=model)
-    model = unfreeze_x_attention_params(model=model)
+    if per_head_layer:
+        model = unfreeze_x_attention_params_self_attnetion(model=model)
+    else:
+        model = unfreeze_x_attention_params(model=model)
     return model
 
 
@@ -168,23 +183,26 @@ def load_feature_extractor_and_vit_model(vit_config: Dict) -> Tuple[
     vit_model = load_vit_model_by_type(vit_config=vit_config, model_type='vit')
     return feature_extractor, vit_model
 
+
 def load_vit_model_by_type(vit_config: Dict, model_type: str):
     vit_model = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type=model_type))
     return vit_model
 
 
-def handle_model_config_and_freezing_for_task(model: VitModelForClassification, freezing_transformer: bool =True) -> VitModelForClassification:
+def handle_model_config_and_freezing_for_task(model: VitModelForClassification,
+                                              per_head_layer: bool = False,
+                                              freezing_transformer: bool = True) -> VitModelForClassification:
     model = setup_model_config(model=model)
     if freezing_transformer:
-        model = handle_model_freezing(model=model)
+        model = handle_model_freezing(model=model, per_head_layer=per_head_layer)
     return model
 
 
 # def load_handled_models_for_task(vit_config: Dict, freezing_transformer: bool=True) -> ViTSigmoidForImageClassification:
-    # vit_sigmoid_model = load_ViTModel(vit_config, model_type='vit-sigmoid')
-    # if freezing_transformer:
-    #     vit_sigmoid_model = handle_model_config_and_freezing_for_task(model=vit_sigmoid_model)
-    # return vit_sigmoid_model
+# vit_sigmoid_model = load_ViTModel(vit_config, model_type='vit-sigmoid')
+# if freezing_transformer:
+#     vit_sigmoid_model = handle_model_config_and_freezing_for_task(model=vit_sigmoid_model)
+# return vit_sigmoid_model
 
 
 def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
