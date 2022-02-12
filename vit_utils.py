@@ -106,14 +106,6 @@ def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClas
         param.requires_grad = False
     return model
 
-def unfreeze_x_attention_params_self_attnetion(model: VitModelForClassification) -> VitModelForClassification:
-    regex = re.compile('vit.encoder.layer.[0-9][1]?.attention.attention.x_attention')
-    # len([param[0] for param in model.named_parameters() if re.match(regex, param[0]) is not None])
-    for param in model.named_parameters():
-        if re.match(regex, param[0]) is not None:
-            param[1].requires_grad = True
-    return model
-
 def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelForClassification:
     for param in model.named_parameters():
         if param[0] == 'vit.encoder.x_attention':
@@ -121,12 +113,9 @@ def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelFor
     return model
 
 
-def handle_model_freezing(model: VitModelForClassification, per_head_layer:bool=False) -> VitModelForClassification:
+def handle_model_freezing(model: VitModelForClassification) -> VitModelForClassification:
     model = freeze_all_model_params(model=model)
-    if per_head_layer:
-        model = unfreeze_x_attention_params_self_attnetion(model=model)
-    else:
-        model = unfreeze_x_attention_params(model=model)
+    model = unfreeze_x_attention_params(model=model)
     return model
 
 
@@ -190,11 +179,10 @@ def load_vit_model_by_type(vit_config: Dict, model_type: str):
 
 
 def handle_model_config_and_freezing_for_task(model: VitModelForClassification,
-                                              per_head_layer: bool = False,
                                               freezing_transformer: bool = True) -> VitModelForClassification:
     model = setup_model_config(model=model)
     if freezing_transformer:
-        model = handle_model_freezing(model=model, per_head_layer=per_head_layer)
+        model = handle_model_freezing(model=model)
     return model
 
 
