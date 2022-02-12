@@ -374,7 +374,8 @@ class ViTEncoder(nn.Module):
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
         self.x_attention = nn.Parameter(
-            torch.randn(12, 12, num_patches + 1, requires_grad=True))  # [n_layers, n_heads, n_patches + 1]
+            torch.randn(config.num_hidden_layers, config.num_attention_heads, num_patches + 1,
+                        requires_grad=True))  # [n_layers, n_heads, n_patches + 1]
         self.sampled_binary_patches = None
 
     def calculate_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:
