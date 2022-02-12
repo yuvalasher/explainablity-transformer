@@ -7,7 +7,7 @@ from torch import nn
 from torch.functional import F
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 from models.modeling_vit_sigmoid import ViTSigmoidForImageClassification
-from models.vit_for_dino import ViTBasicForDinoForImageClassification
+from models.modeling_dino_vit import ViTBasicForDinoForImageClassification
 from models.modeling_infer_vit import ViTInferForImageClassification
 from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from PIL import Image
