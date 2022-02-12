@@ -6,7 +6,7 @@ from PIL import Image
 import os
 from pathlib import Path, WindowsPath
 from typing import Any, Dict, List, Union
-from consts import PICKLES_FOLDER_PATH
+from utils.consts import PICKLES_FOLDER_PATH
 
 def create_df_of_img_name_with_label(path: Path) -> pd.DataFrame:
     dirlist = os.listdir(path)

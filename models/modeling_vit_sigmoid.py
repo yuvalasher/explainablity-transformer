@@ -29,7 +29,7 @@ from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPo
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers.models.vit.configuration_vit import ViTConfig
-from st_gumble import gumbel_softmax
+from utils.st_gumble import gumbel_softmax
 
 logger = logging.get_logger(__name__)
 
@@ -186,7 +186,6 @@ class ViTSelfAttention(nn.Module):
     def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
                 sampled_binary_patches=None, layer_idx=None):
         # hidden_states.shape: [batch_size, num_patches + 1, dim_size]
-        # print(f'layer_idx: {layer_idx}')
         mixed_query_layer = self.query(hidden_states)
 
         key_layer = self.transpose_for_scores(self.key(hidden_states))  # [batch_size, n_heads, num_patches + 1,\
@@ -203,7 +202,7 @@ class ViTSelfAttention(nn.Module):
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         if True:
-        # if layer_idx in [11]:
+        # if layer_idx in [0]:
             print(f'in layer_idx: {layer_idx}')
             if vit_config['objective'] in ['objective_1']:
                 attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *\
@@ -213,7 +212,7 @@ class ViTSelfAttention(nn.Module):
                 # [batch_size, n_heads, num_patches + 1, num_patches + 1]
             elif vit_config['objective'] in ['objective_gumble_minimize_softmax']:
                 attention_probs = (1- nn.functional.softmax(x_attention)) * attention_probs
-    
+
             elif vit_config['objective'] in ['objective_gumble_softmax', 'objective_opposite_gumble_softmax']:
                 attention_probs = sampled_binary_patches * attention_probs
                 attention_probs /= attention_probs.sum(-1, keepdim=True)  # normalizing each row sum to 1

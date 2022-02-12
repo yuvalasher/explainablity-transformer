@@ -1,16 +1,7 @@
-import torch
-from torch import nn
-from torch.functional import F
-from modeling_infer_vit import ViTInferForImageClassification
-from transformers import ViTConfig
-from config import config
-from utils import *
-from vit_utils import *
 from loss_utils import *
-from consts import *
+from utils.consts import *
 from pathlib import WindowsPath
 from pytorch_lightning import seed_everything
-from scipy.stats import bernoulli
 import pickle
 from typing import Union
 
@@ -30,7 +21,7 @@ def _print_conclusions(id2label, tokens_mask, output, target) -> None:
 def _load_vit_models_inputs_and_target(path: str):
     feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
     infer_model = load_vit_model_by_type(vit_config=vit_config, model_type='infer')
-    image = get_image_from_path(Path(images_folder_path, f"{os.path.normpath(path).split(os.path.sep)[-1]}.JPEG"))
+    image = get_image_from_path(Path(IMAGES_FOLDER_PATH, f"{os.path.normpath(path).split(os.path.sep)[-1]}.JPEG"))
     inputs = feature_extractor(images=image, return_tensors="pt")
     target = vit_model(**inputs)
     return inputs, target, vit_model, infer_model
@@ -139,6 +130,7 @@ def is_tokens_mask_binary(tokens_mask: Tensor) -> bool:
 
 def load_tokens_task(path) -> Tensor:
     iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
+    print(f'Minimum prediction loss at iteration: {iteration_idx}')
     tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
     return tokens_mask
 
@@ -173,8 +165,8 @@ def calculate_metrics_for_experience(experiment_path: str):
     infer_model = load_vit_model_by_type(vit_config=vit_config, model_type='infer')
     percentage_increase_in_confidence_indicators = []
     avg_drop_percentage = []
-    for idx, image_name in enumerate(os.listdir(images_folder_path)):
-        image = get_image_from_path(os.path.join(images_folder_path, image_name))
+    for idx, image_name in enumerate(os.listdir(IMAGES_FOLDER_PATH)):
+        image = get_image_from_path(os.path.join(IMAGES_FOLDER_PATH, image_name))
         inputs = feature_extractor(images=image, return_tensors="pt")
         tokens_mask = load_tokens_task(path=Path(experiment_path, image_name.replace('ILSVRC2012_val_', '')))
         saliency_map_output = infer_model(**inputs, tokens_mask=tokens_mask)
@@ -202,13 +194,16 @@ if __name__ == '__main__':
     """
     OBJCTIVE_1_AND_2_N_TOKENS_TO_PRED_BY = int(0.2 * 577)  # TODO - change
     # experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    ALL_LAYERS_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_all_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    LAYER_0_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_0_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    LAYER_11_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_11_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
-    d = {'all layers': ALL_LAYERS_PATH, 'layer 0 only': LAYER_0_PATH, 'layer 11 only': LAYER_11_PATH}
-    for name, path in d.items():
-        print(name)
+    # ALL_LAYERS_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_all_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    # LAYER_0_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_0_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    # LAYER_11_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_11_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
+    # d = {'all layers': ALL_LAYERS_PATH, 'layer 0 only': LAYER_0_PATH, 'layer 11 only': LAYER_11_PATH}
+    # for name, path in d.items():
+    #     print(name)
         # run_infer(path=path)
         # n_tokens = int(tokens_mask.sum().item())
-        n_tokens = 10
-        get_dino_probability_per_head(path=path, tokens_to_show=n_tokens)
+        # n_tokens = 10
+        # get_dino_probability_per_head(path=path, tokens_to_show=n_tokens)
+
+    plane_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000000"
+    run_infer(path=plane_path)

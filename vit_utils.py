@@ -6,17 +6,17 @@ from torch import Tensor
 from torch import nn
 from torch.functional import F
 from transformers import ViTFeatureExtractor, ViTForImageClassification
-from modeling_vit_sigmoid import ViTSigmoidForImageClassification
-from vit_for_dino import ViTBasicForDinoForImageClassification
-from modeling_infer_vit import ViTInferForImageClassification
-from vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
+from models.modeling_vit_sigmoid import ViTSigmoidForImageClassification
+from models.vit_for_dino import ViTBasicForDinoForImageClassification
+from models.modeling_infer_vit import ViTInferForImageClassification
+from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import os
 from typing import Dict, Tuple, Union, NewType
 from pathlib import Path, WindowsPath
-from consts import PLOTS_PATH
+from utils.consts import PLOTS_PATH
 from utils import save_obj_to_disk
 
 VitModelForClassification = NewType('VitModelForClassification',

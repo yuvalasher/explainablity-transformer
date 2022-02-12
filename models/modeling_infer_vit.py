@@ -29,7 +29,6 @@ from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPo
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers.models.vit.configuration_vit import ViTConfig
-from st_gumble import gumbel_softmax
 
 logger = logging.get_logger(__name__)
 

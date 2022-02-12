@@ -1,16 +1,9 @@
-from transformers import ViTConfig
 from tqdm import tqdm
-import torch
-from torch import nn
-from torch.functional import F
-from torch.nn.functional import relu
 from torch import optim
-from config import config
 from utils import *
-from vit_utils import *
 from loss_utils import *
 from log_utils import configure_log
-from consts import *
+from utils.consts import *
 from pytorch_lightning import seed_everything
 from typing import Callable
 
@@ -19,6 +12,7 @@ loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
+
 
 def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
                                  sampled_binary_patches: Tensor = None):
@@ -35,11 +29,13 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
             print(sampled_binary_patches)
         # print(prev_x_attention.grad)
 
+
 def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
     original_predicted_idx = torch.argmax(vit_logits[0]).item()
     original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
     is_predicted_same_class = original_predicted_idx == torch.argmax(vit_s_logits[0]).item()
     return is_predicted_same_class, original_idx_logits_diff
+
 
 def js_kl(p, q):
     m = 0.5 * (p + q)
@@ -72,14 +68,14 @@ def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor
 
 
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, log_run):
-    for idx, image_name in enumerate(os.listdir(images_folder_path)):
+    for idx, image_name in enumerate(os.listdir(IMAGES_FOLDER_PATH)):
         if image_name in vit_config['sample_images']:
 
             vit_sigmoid_model = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='per-layer-head'),
                 freezing_transformer=vit_config['freezing_transformer'])
             optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
-            image = get_image_from_path(Path(images_folder_path, image_name))
+            image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
             target = vit_model(**inputs)
 
@@ -107,6 +103,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 #                       filename=Path(image_plot_folder_path, f'relu_x_iter_idx_{iteration_idx}'),
                 #                       verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
                 optimizer.step()
+
 
 OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
               }
