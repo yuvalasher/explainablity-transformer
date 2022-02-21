@@ -186,16 +186,14 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
+                attentions_probs = get_attention_probs_by_head(model=vit_sigmoid_model)
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if
                                              vit_config['objective'] in vit_config['gumble_objectives'] else None)
                 if vit_config['verbose']:
-                    printed_vector = vit_sigmoid_model.vit.encoder.sampled_binary_patches if vit_config[
-                                                                                                 'objective'] in \
-                                                                                             vit_config[
-                                                                                                 'gumble_objectives'] else relu(
-                        vit_sigmoid_model.vit.encoder.x_attention)
+                    plot_attn_probs(attentions=attentions_probs, image_size=config['vit']['img_size'], patch_size= config['vit']['patch_size'], path=image_plot_folder_path, iteration_idx=iteration_idx, num_heads=12, only_fusion=False)
+                    printed_vector = get_vector_to_print(model=vit_sigmoid_model, vit_config=vit_config)
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
                                           get_scores(printed_vector)).unsqueeze(0),

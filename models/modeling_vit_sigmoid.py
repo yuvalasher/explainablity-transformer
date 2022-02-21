@@ -203,7 +203,7 @@ class ViTSelfAttention(nn.Module):
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
         if True:
         # if layer_idx in [0]:
-            print(f'in layer_idx: {layer_idx}')
+        #     print(f'in layer_idx: {layer_idx}')
             if vit_config['objective'] in ['objective_1']:
                 attention_probs = nn.functional.relu(x_attention) * attention_probs  # [n_patches + 1] *\
                 #  [batch_size, n_heads, num_patches + 1, num_patches + 1]

@@ -27,15 +27,16 @@ vit:
 #    - 00000151.JPEG # computer (0.751)
 #    - 00000279.JPEG # Dandie Dinmont terrier (0.82)
 #    - 00000327.JPEG # Rottweiler (0.813)
-  lr: 3.0e-1
-  num_steps: 50
+  lr: 3.0e-4
+  num_steps: 500
   print_every: 1
+  discard_ratio: 0.6
   log: True
   verbose: True
   temperature: 1
-  objective: objective_gumble_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  objective: temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
-    kl_loss_multiplier: 1
-    pred_loss_multiplier: 3
-    entropy_loss_multiplier: 0
+    kl_loss_multiplier: 0
+    pred_loss_multiplier: 10
+    entropy_loss_multiplier: 10
     l1_loss_multiplier: 0

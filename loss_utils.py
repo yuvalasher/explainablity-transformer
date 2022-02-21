@@ -22,9 +22,9 @@ def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tenso
     loss = prediction_loss + bce_turn_off_patches_loss
     return loss
 
-
 def entropy(p_dist: Tensor) -> Tensor:
-    return sum([-p * torch.log2(p) if p > 0 else 0 for p in p_dist])
+    # return sum([-p * torch.log2(p) if p > 0 else 0 for p in p_dist])
+    return torch.sum(torch.nan_to_num_(-torch.log2(p_dist) * p_dist, nan=0.0))
 
 
 def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=None, l1_loss=None, entropy_loss=None,
@@ -36,12 +36,13 @@ def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=
                    "entropy_loss": entropy_loss if not None else 0,
                    "prediction_loss": prediction_loss if not None else 0,
                    'correct_class_pred': F.softmax(output)[0][torch.argmax(F.softmax(target)).item()],
-                   'correct_class_logit': output[0][torch.argmax(F.softmax(target)).item()],
-                   'num_of_non-zero_x_sampled_values': len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,
-                   'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
+                   'correct_class_logit': output[0][torch.argmax(F.softmax(target)).item()]
+                   # 'num_of_non-zero_x_sampled_values': len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,
+                   # 'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
                    })
     print(
-        f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
+        f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}')
+        # f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
 
