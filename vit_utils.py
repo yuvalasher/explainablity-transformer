@@ -10,21 +10,42 @@ from models.modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from models.modeling_dino_vit import ViTBasicForDinoForImageClassification
 from models.modeling_infer_vit import ViTInferForImageClassification
 from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
+from models.modeling_temp_softmax_vit import ViTTempSoftmaxForImageClassification
+from models.modeling_vit_gumble_resolutions import ViTGumbleResolutionsForImageClassification
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import os
-from typing import Dict, Tuple, Union, NewType
+from typing import Dict, Tuple, Union, NewType, List
 from pathlib import Path, WindowsPath
 from utils.consts import PLOTS_PATH
 from utils import save_obj_to_disk
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
-vit_model_types = {'vit': ViTForImageClassification, 'vit-sigmoid': ViTSigmoidForImageClassification,
-                   'vit-for-dino': ViTBasicForDinoForImageClassification, 'infer': ViTInferForImageClassification,
+vit_model_types = {'vit': ViTForImageClassification,
+                   'vit-sigmoid': ViTSigmoidForImageClassification,
+                   'vit-for-dino': ViTBasicForDinoForImageClassification,
+                   'infer': ViTInferForImageClassification,
                    'per-layer-head': ViTSigmoidPerLayerHeadForImageClassification,
+                   'softmax_temp': ViTTempSoftmaxForImageClassification,
+                   'gumble_resolutions': ViTGumbleResolutionsForImageClassification,
                    }
+
+
+def get_head_num_heads(model) -> int:
+    return model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
+
+
+def get_attention_probs_by_head(model) -> Tensor:
+    """
+
+    :return: Tensor of size (num_heads, num_tokens)
+    """
+    num_heads = get_head_num_heads(model=model)
+    attentions = model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
+        num_heads, -1)
+    return attentions
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
@@ -33,18 +54,27 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                                                          patch_size: int = config['vit']['patch_size']) -> None:
     image_dino_plots_folder = Path(path, 'dino')
     os.makedirs(image_dino_plots_folder, exist_ok=True)
-    num_heads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
-    attentions = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
-        num_heads, -1)
+    num_heads = get_head_num_heads(model=vit_sigmoid_model)
+    attentions = get_attention_probs_by_head(model=vit_sigmoid_model)
     save_obj_to_disk(path=Path(image_dino_plots_folder, 'attentions.pkl'), obj=attentions)
+    plot_attn_probs(attentions=attentions, image_size=image_size, patch_size=patch_size, num_heads=num_heads,
+                    path=image_dino_plots_folder)
 
+
+def plot_attn_probs(attentions: Tensor, image_size: int, patch_size: int, num_heads: int, path: Path, iteration_idx:int=None, only_fusion: bool=True) -> None:
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
         0].cpu().detach().numpy()
-    for head_idx in range(num_heads):
-        plt.imsave(fname=Path(image_dino_plots_folder, f'attn-head{head_idx}.png'), arr=attentions[head_idx],
-                   format='png')
+
+    plt.imsave(fname=Path(path, f'iter_{iteration_idx}_max_fusion.png'), arr=attentions.max(axis=0), format='png')
+    plt.imsave(fname=Path(path, f'iter_{iteration_idx}_min_fusion.png'), arr=attentions.min(axis=0), format='png')
+    plt.imsave(fname=Path(path, f'iter_{iteration_idx}_mean_fusion.png'), arr=attentions.mean(axis=0), format='png')
+
+    if not only_fusion:
+        for head_idx in range(num_heads):
+            filename = f'attn-head{head_idx}.png' if iteration_idx is None else f'iter_{iteration_idx}_attn-head{head_idx}.png'
+            plt.imsave(fname=Path(path, filename), arr=attentions[head_idx], format='png')
 
 
 def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size'],
@@ -105,6 +135,7 @@ def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClas
     for param in model.parameters():
         param.requires_grad = False
     return model
+
 
 def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelForClassification:
     for param in model.named_parameters():
@@ -253,3 +284,17 @@ def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_n
                                   picture_path=Path(images_folder_path, image_name),
                                   dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
     return image_plot_folder_path
+
+
+def get_vector_to_print(model, vit_config: Dict):
+    return model.vit.encoder.sampled_binary_patches if vit_config['objective'] in vit_config[
+        'gumble_objectives'] else F.relu(model.vit.encoder.x_attention)
+
+def get_top_k_mimimum_values_indices(array: List[float], k: int=5):
+    return torch.topk(torch.tensor(array), k=k, largest=False)[1]
+
+def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool = True) -> Tensor:
+    k = int(array.shape[-1] * discard_ratio)
+    _, indices = torch.topk(array, k, largest=bool(1 - top))
+    array[indices] = 0
+    return array

@@ -201,7 +201,8 @@ class ViTSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-        attention_probs = sampled_binary_patches[layer_idx].unsqueeze(0).unsqueeze(2) * attention_probs # element-wise mul.
+        attention_probs = sampled_binary_patches[layer_idx].unsqueeze(0).unsqueeze(
+            2) * attention_probs  # element-wise mul.
         attention_probs /= attention_probs.sum(-1, keepdim=True)
 
         self.attention_probs = attention_probs

@@ -29,6 +29,7 @@ from transformers.modeling_outputs import BaseModelOutput, BaseModelOutputWithPo
 from transformers.modeling_utils import PreTrainedModel, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import logging
 from transformers.models.vit.configuration_vit import ViTConfig
+from utils.st_gumble import gumbel_softmax
 
 logger = logging.get_logger(__name__)
 
@@ -182,7 +183,8 @@ class ViTSelfAttention(nn.Module):
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, temp=None, layer_idx=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None, layer_idx=None):
         # hidden_states.shape: [batch_size, num_patches + 1, dim_size]
         mixed_query_layer = self.query(hidden_states)
 
@@ -198,11 +200,11 @@ class ViTSelfAttention(nn.Module):
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
 
         # Normalize the attention scores to probabilities.
-        if len(temp.shape) == 1:
-            attention_probs = nn.functional.softmax(attention_scores / temp, dim=-1)
-        else:
-            attention_probs = nn.functional.softmax(attention_scores / temp[layer_idx].unsqueeze(0).unsqueeze(2), dim=-1)
+        attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+        # print(f'in layer_idx: {layer_idx}')
 
+        attention_probs = sampled_binary_patches * attention_probs
+        attention_probs /= attention_probs.sum(-1, keepdim=True)  # normalizing each row sum to 1
         self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
@@ -270,9 +272,11 @@ class ViTAttention(nn.Module):
         self.attention.all_head_size = self.attention.attention_head_size * self.attention.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, temp=None, layer_idx=None):
-        self_outputs = self.attention(hidden_states, head_mask, output_attentions,
-                                      temp=temp, layer_idx=layer_idx)  # run self-attention forward
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None, layer_idx=None):
+        self_outputs = self.attention(hidden_states, head_mask, output_attentions, x_attention=x_attention,
+                                      sampled_binary_patches=sampled_binary_patches,
+                                      layer_idx=layer_idx)  # run self-attention forward
 
         attention_output = self.output(self_outputs[0], hidden_states)
 
@@ -325,10 +329,16 @@ class ViTLayer(nn.Module):
         self.layernorm_before = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.layernorm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False, temp=None, layer_idx=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, x_attention=None,
+                sampled_binary_patches=None, layer_idx=None):
         self_attention_outputs = self.attention(  # run attention forward, inside run the self-attention forward
             self.layernorm_before(hidden_states),  # in ViT, layernorm is applied before self-attention
-            head_mask, output_attentions=output_attentions, temp=temp, layer_idx=layer_idx)
+            head_mask,
+            output_attentions=output_attentions,
+            x_attention=x_attention,
+            sampled_binary_patches=sampled_binary_patches,
+            layer_idx=layer_idx,
+        )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
 
@@ -365,8 +375,37 @@ class ViTEncoder(nn.Module):
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        # self.x_attention = nn.Parameter(torch.ones(12, 12, num_patches + 1, requires_grad=True))
-        self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True))
+        self.x_attention = nn.Parameter(torch.randn(36, requires_grad=True))  # [n_patches + 1 for [CLS]]
+        self.sampled_binary_patches = None
+
+    def calculate_sampled_distribution_gumble_softmax(self, x_attention) -> torch.Tensor:
+        """
+        :return binary tensor of sampled by gumble-softmax with size of [n_patches + 1] # 1 for [CLS] token
+        When X_attention value is large, the sample should be 1. The first token is for [CLS] token and should be turn-on.
+        """
+        sigmoid_x_attention = torch.sigmoid(x_attention).clone()
+        log_prob_x_attention = torch.stack((torch.log(1 - sigmoid_x_attention), torch.log(sigmoid_x_attention))).T
+        log_probs = [gumbel_softmax(log_prob, temperature=vit_config['temperature']) for log_prob in
+                     log_prob_x_attention]
+        sampled_binary_patches = torch.stack(log_probs) @ torch.tensor([0., 1.]).T
+        sampled_binary_patches[0] = torch.tensor(1.0)  # For [CLS] token
+        return sampled_binary_patches
+
+    def get_sampled_binary_patches_original_resolution(self, sampled_binary_patches):
+        sampled_binary_patches_original_resolution = []
+        resolution_factor = int(64 / 16)
+        num_patches_in_row = int(384 / 16)
+        sampled_binary_patches_interpolated = torch.nn.functional.interpolate(
+            sampled_binary_patches.unsqueeze(0).unsqueeze(0).unsqueeze(0),
+            scale_factor=resolution_factor)
+        for block_idx in range(int(num_patches_in_row / resolution_factor)):
+            for res_factor in range(resolution_factor):
+                sampled_binary_patches_original_resolution.extend(sampled_binary_patches_interpolated[0, 0, 0][
+                                                                  block_idx * num_patches_in_row:(
+                                                                                                         block_idx + 1) * num_patches_in_row])
+        sampled_binary_patches_original_resolution = torch.cat(
+            (torch.tensor(1.0).unsqueeze(0), torch.tensor(sampled_binary_patches_original_resolution)))
+        return sampled_binary_patches_original_resolution
 
     def forward(
             self,
@@ -379,6 +418,14 @@ class ViTEncoder(nn.Module):
     ):
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
+
+        if tokens_mask is not None:
+            self.sampled_binary_patches = tokens_mask
+
+        else:
+            self.sampled_binary_patches = self.calculate_sampled_distribution_gumble_softmax(
+                x_attention=self.x_attention)
+            self.sampled_binary_patches = self.get_sampled_binary_patches_original_resolution(sampled_binary_patches=self.sampled_binary_patches)
 
         for i, layer_module in enumerate(self.layer):  # run on layers
             if output_hidden_states:
@@ -401,7 +448,9 @@ class ViTEncoder(nn.Module):
                 )
             else:
                 layer_outputs = layer_module(hidden_states, layer_head_mask, output_attentions,
-                                             temp=self.x_attention, layer_idx=i)  # run forward of ViTLayer
+                                             x_attention=self.x_attention,
+                                             sampled_binary_patches=self.sampled_binary_patches,
+                                             layer_idx=i)  # run forward of ViTLayer
 
             hidden_states = layer_outputs[0]
 
@@ -599,7 +648,7 @@ class ViTPooler(nn.Module):
     """,
     VIT_START_DOCSTRING,
 )
-class ViTTempSoftmaxForImageClassification(ViTPreTrainedModel):
+class ViTGumbleResolutionsForImageClassification(ViTPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
