@@ -62,3 +62,8 @@ def save_obj_to_disk(path: Union[WindowsPath, str], obj) -> None:
 def load_obj(obj_name: str) -> Any:
     with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'rb') as f:
         return pickle.load(f)
+
+
+def save_url_to_text_file(path: Path, log_run):
+    with open(Path(path, 'metrics_url.txt'), 'w') as f:
+        f.write(log_run.url)
