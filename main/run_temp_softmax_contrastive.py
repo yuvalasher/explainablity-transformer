@@ -18,7 +18,6 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=v
 vit_infer = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='infer'))
 
 
-c
 def save_model(model: nn.Module, path: str) -> None:
     path = Path(f'{path}.pt')
     torch.save(model.state_dict(), path)
