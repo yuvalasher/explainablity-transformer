@@ -130,7 +130,7 @@ dmypy.json
 data/
 .idea/
 wandb/
-plots/
+*.pt
+*.pkl/
 pickles/
-*.png
 *.JPEG
