@@ -1,21 +1,35 @@
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
 from loss_utils import *
 from utils.consts import *
 from pathlib import WindowsPath
 from pytorch_lightning import seed_everything
 import pickle
-from typing import Union
+from typing import Union, Any
+from utils import *
+from tqdm import tqdm
 
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
 
+def get_metrics_for_infer_run(tokens_mask:Tensor, output:Tensor, target:Tensor) -> Tuple[int, float, float, float, bool]:
+    num_of_patches = tokens_mask.sum()
+    patches_coverage_percentage = round((tokens_mask.sum() / len(tokens_mask)).item(), 3)
+    correct_class_pred_prob = F.softmax(output.logits, dim=-1)[0][torch.argmax(F.softmax(target.logits, dim=-1)).item()]
+    correct_class_logit = output.logits[0][torch.argmax(F.softmax(target.logits[0], dim=-1)).item()]
+    is_highest_class = torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])
+    return num_of_patches, patches_coverage_percentage, correct_class_pred_prob, correct_class_logit, is_highest_class
 
-def _print_conclusions(id2label, tokens_mask, output, target) -> None:
+
+def _print_conclusions(id2label:Dict, tokens_mask:Tensor, output:Tensor, target:Tensor, num_of_patches:int, patches_coverage_percentage: float,
+                       correct_class_pred_prob:float, correct_class_logit:float, is_highest_class:bool) -> None:
     print(
-        f'Num of patches: {tokens_mask.sum()}, {round((tokens_mask.sum() / len(tokens_mask)).item(), 2) * 100}% of the tokens, '
-        f'correct_class_pred: {F.softmax(output.logits)[0][torch.argmax(F.softmax(target.logits)).item()]}, '
-        f'correct_class_logit: {output.logits[0][torch.argmax(F.softmax(target.logits[0])).item()]}, '
-        f'Highest class: {torch.argmax(output.logits[0])} , {id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0])).item()}, '
-        f'Is highest class: {torch.argmax(output.logits[0]) == torch.argmax(target.logits[0])}')
+        f'Num of patches: {num_of_patches}, {patches_coverage_percentage * 100}% of the tokens, '
+        f'correct_class_pred: {correct_class_pred_prob}, '
+        f'correct_class_logit: {correct_class_logit}, '
+        f'Highest class: {torch.argmax(output.logits[0])} , {id2label[torch.argmax(output.logits[0]).item()]} with {torch.max(F.softmax(output.logits[0], dim=-1)).item()}, '
+        f'Is highest class: {is_highest_class}')
 
 
 def _load_vit_models_inputs_and_target(path: str):
@@ -24,6 +38,8 @@ def _load_vit_models_inputs_and_target(path: str):
     image = get_image_from_path(Path(IMAGES_FOLDER_PATH, f"{os.path.normpath(path).split(os.path.sep)[-1]}.JPEG"))
     inputs = feature_extractor(images=image, return_tensors="pt")
     target = vit_model(**inputs)
+    infer_model.eval()
+    vit_model.eval()
     return inputs, target, vit_model, infer_model
 
 
@@ -67,7 +83,7 @@ def test_dark_random_k_patches(path, num_tests: int, percentage_to_dark: float):
         tokens_mask = dark_random_k_patches(percentage_to_dark=percentage_to_dark)
         output = infer_model(**inputs, tokens_mask=tokens_mask)
         if torch.argmax(output.logits[0]) == torch.argmax(target.logits[0]):
-            correct_random_guess.append((test_idx, torch.max(F.softmax(output.logits[0])).item()))
+            correct_random_guess.append((test_idx, torch.max(F.softmax(output.logits[0], dim=-1)).item()))
         print(f'*** {test_idx} ***')
         _print_conclusions(id2label=vit_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target)
     print(f'Number of correct random guesses: {len(correct_random_guess)}')
@@ -96,7 +112,7 @@ def get_dino_probability_per_head(path: str, tokens_to_show: int):
     print('Dino heads')
     for attention_head in attentions:
         tokens_mask = generate_binary_tokens_mask_by_top_scores(distribution=attention_head,
-                                                                tokens_to_show=tokens_to_show - 1)  # -1 as added one token of cls
+                                                                tokens_to_show=tokens_to_show - 1 if tokens_to_show > 1 else tokens_to_show)  # -1 as added one token of cls
         tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
         forward_and_print_conclusions(infer_model=infer_model, vit_model=vit_model, inputs=inputs,
                                       tokens_mask=tokens_mask, target=target)
@@ -108,10 +124,33 @@ def infer_prediction(path: str, tokens_mask: Tensor = None, experiment_name: str
                                   tokens_mask=tokens_mask, target=target)
 
 
-def forward_and_print_conclusions(infer_model, vit_model, inputs, tokens_mask, target, verbose: bool = True):
+def forward_model(infer_model, tokens_mask, inputs):
+    if tokens_mask.shape[-1] == 576:
+        tokens_mask = torch.cat((torch.ones(1), tokens_mask))  # one for the [CLS] token
     output = infer_model(**inputs, tokens_mask=tokens_mask)
+    return output
+
+
+def forward_and_get_metrics(infer_model, inputs, tokens_mask, target, verbose: bool = False):
+    output = forward_model(infer_model=infer_model, tokens_mask=tokens_mask, inputs=inputs)
+    num_of_patches, patches_coverage_percentage, correct_class_pred_prob, correct_class_logit, is_highest_class = get_metrics_for_infer_run(
+        tokens_mask=tokens_mask, output=output, target=target)
     if verbose:
-        _print_conclusions(id2label=vit_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target)
+        _print_conclusions(id2label=infer_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target,
+                           num_of_patches=num_of_patches, patches_coverage_percentage=patches_coverage_percentage,
+                           correct_class_pred_prob=correct_class_pred_prob, correct_class_logit=correct_class_logit,
+                           is_highest_class=is_highest_class)
+    return output, num_of_patches, patches_coverage_percentage, correct_class_pred_prob, correct_class_logit, is_highest_class
+
+
+def forward_and_print_conclusions(infer_model, vit_model, inputs, tokens_mask, target, verbose: bool = True):
+    output, num_of_patches, patches_coverage_percentage, correct_class_pred_prob, correct_class_logit, is_highest_class = forward_and_get_metrics(
+        infer_model, inputs, tokens_mask, target)
+    if verbose:
+        _print_conclusions(id2label=vit_model.config.id2label, tokens_mask=tokens_mask, output=output, target=target,
+                           num_of_patches=num_of_patches, patches_coverage_percentage=patches_coverage_percentage,
+                           correct_class_pred_prob=correct_class_pred_prob, correct_class_logit=correct_class_logit,
+                           is_highest_class=is_highest_class)
 
 
 def get_iteration_idx_of_minimum_loss(path) -> int:
@@ -128,15 +167,18 @@ def is_tokens_mask_binary(tokens_mask: Tensor) -> bool:
                        torch.count_nonzero((tokens_mask == 0) | (tokens_mask == 1)))
 
 
-def load_tokens_task(path) -> Tensor:
-    iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
-    print(f'Minimum prediction loss at iteration: {iteration_idx}')
+def load_tokens_mask(path, iteration_idx: int = None) -> Tuple[int, Tensor]:
+    if iteration_idx is None:
+        iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
+        print(f'Minimum prediction loss at iteration: {iteration_idx}')
+    else:
+        print(f'Get tokens mask of iteration: {iteration_idx}')
     tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
-    return tokens_mask
+    return iteration_idx, tokens_mask
 
 
 def get_binary_token_mask(path, tokens_to_show: int) -> Tensor:
-    tokens_mask = load_tokens_task(path=path)
+    iteration_idx, tokens_mask = load_tokens_mask(path=path)
     if not is_tokens_mask_binary(tokens_mask=tokens_mask):
         tokens_mask = generate_binary_tokens_mask_by_top_scores(distribution=tokens_mask, tokens_to_show=tokens_to_show)
 
@@ -168,13 +210,14 @@ def calculate_metrics_for_experience(experiment_path: str):
     for idx, image_name in enumerate(os.listdir(IMAGES_FOLDER_PATH)):
         image = get_image_from_path(os.path.join(IMAGES_FOLDER_PATH, image_name))
         inputs = feature_extractor(images=image, return_tensors="pt")
-        tokens_mask = load_tokens_task(path=Path(experiment_path, image_name.replace('ILSVRC2012_val_', '')))
+        iteration_idx, tokens_mask = load_tokens_mask(
+            path=Path(experiment_path, image_name.replace('ILSVRC2012_val_', '')))
         saliency_map_output = infer_model(**inputs, tokens_mask=tokens_mask)
         full_image_outputs = vit_model(**inputs)
-        saliency_map_confidence = F.softmax(saliency_map_output.logits)[0][
-            torch.argmax(F.softmax(full_image_outputs.logits)).item()]
+        saliency_map_confidence = F.softmax(saliency_map_output.logits, dim=-1)[0][
+            torch.argmax(F.softmax(full_image_outputs.logits, dim=-1)).item()]
 
-        full_image_confidence = torch.argmax(F.softmax(full_image_outputs.logits)).item()
+        full_image_confidence = torch.argmax(F.softmax(full_image_outputs.logits, dim=-1)).item()
         avg_drop_percentage.append(calculate_avg_drop_percentage(full_image_confidence=full_image_confidence,
                                                                  saliency_map_confidence=saliency_map_confidence))
         percentage_increase_in_confidence_indicators.append(
@@ -188,11 +231,123 @@ def calculate_metrics_for_experience(experiment_path: str):
         f'% Increase in Confidence: {round(percentage_increase_in_confidence, 4)}%; Average Drop %: {round(averaged_drop_precetage, 4)}%')
 
 
+def get_top_k_tokens_from_mask(tokens_mask: Tensor, k: int) -> Tensor:
+    mask = torch.zeros_like(tokens_mask)
+    _, indices = torch.topk(tokens_mask, k, largest=True)
+    mask[indices] = 1
+    return mask
+
+
+def get_dino_attentions(path):
+    return load_obj(path=Path(path, 'dino', 'attentions.pkl'))
+
+
+def mkdir_evaluation_picture_folder(picture_name: str) -> None:
+    os.makedirs(name=Path(Path.cwd(), picture_name), exist_ok=True)
+
+
+def overlap_of_tokens_between_methods(method_a_tokens_indices, method_b_tokens_indices):
+    return len(np.intersect1d(method_a_tokens_indices, method_b_tokens_indices))
+
+
+def run_infer_difference_dino_and_temp_by_k_patches_iterative(path: str, iteration_idx: int = None):
+    picture_name = path.split('\\')[-1]
+    mkdir_evaluation_picture_folder(picture_name=picture_name)
+    iteration_idx, tokens_mask = load_tokens_mask(path=path, iteration_idx=iteration_idx)  # saved as "tokens_mask.pkl"
+    ours_tokens_mask = avg_attention_scores_heads(tokens_mask)
+    dino_tokens_mask = avg_attention_scores_heads(get_dino_attentions(path=path))  # saved as "dino/attentions.pkl"
+    inputs, target, vit_model, infer_model = _load_vit_models_inputs_and_target(path=path)
+    step_size = 2
+    # forward_and_print_conclusions(infer_model=infer_model, vit_model=vit_model, inputs=inputs,
+    #                               tokens_mask=torch.ones_like(ours_tokens_mask), target=target)
+
+    tokens_percentage = []
+    ours_logits = []
+    ours_probs = []
+    dino_probs = []
+    dino_logits = []
+    for k_patches in range(5, 576, step_size):
+        our_mask = get_top_k_tokens_from_mask(tokens_mask=ours_tokens_mask, k=k_patches)
+        dino_mask = get_top_k_tokens_from_mask(tokens_mask=dino_tokens_mask, k=k_patches)
+        # forward_and_print_conclusions(infer_model=infer_model, vit_model=vit_model, inputs=inputs, tokens_mask=our_mask, target=target)
+        ours_output, ours_num_of_patches, ours_patches_coverage_percentage, ours_correct_class_pred_prob, ours_correct_class_logit, ours_is_highest_class = forward_and_get_metrics(
+            infer_model=infer_model, inputs=inputs, tokens_mask=our_mask, target=target, verbose=True)
+
+        dino_output, dino_num_of_patches, dino_patches_coverage_percentage, dino_correct_class_pred_prob, dino_correct_class_logit, dino_is_highest_class = forward_and_get_metrics(
+            infer_model=infer_model, inputs=inputs, tokens_mask=dino_mask, target=target, verbose=True)
+        # print(torch.where(our_mask))
+        # print(torch.where(dino_mask))
+        # print(torch.topk(dino_mask, k_patches, largest=True)[1])
+        print(f'Num of tokens intersection: {overlap_of_tokens_between_methods(our_mask, dino_mask)}')
+        print(
+            '------------------------------------------------------------------------------------------------------------------------------------------------')
+        tokens_percentage.append(ours_patches_coverage_percentage)
+        ours_logits.append(ours_correct_class_logit)
+        ours_probs.append(ours_correct_class_pred_prob)
+        dino_probs.append(dino_correct_class_pred_prob)
+        dino_logits.append(dino_correct_class_logit)
+
+    plot_metrics(tokens_percentage=tokens_percentage, dino_values=dino_logits, ours_values=ours_logits,
+                 metric_value_name='Logit', name=picture_name, iteration_idx=iteration_idx, step_size=step_size)
+    plot_metrics(tokens_percentage=tokens_percentage, dino_values=dino_probs, ours_values=ours_probs,
+                 metric_value_name='Prob', name=picture_name, iteration_idx=iteration_idx, step_size=step_size)
+    plot_sorted_vector(our_attention=ours_tokens_mask, dino_attention=dino_tokens_mask, title=f'iter_{iteration_idx}',
+                       folder_name=picture_name)
+
+
+def plot_metrics(tokens_percentage, dino_values, ours_values, metric_value_name: str, name: str, iteration_idx: int,
+                 step_size: int):
+    multiline(tokens_percentage=tokens_percentage, ours_values=ours_values, dino_values=dino_values,
+              title=f'{metric_value_name} Per Tokens Percentage ({name}); iter: {iteration_idx}, step_size={step_size}',
+              x_label='Tokens Percentage',
+              y_label=f'{metric_value_name}', filename=f'{metric_value_name}_iter_{iteration_idx}', folder_name=name)
+
+
+def plot_sorted_vector(our_attention: Tensor, dino_attention: Tensor, title: str, folder_name: str):
+    plt.plot(sorted(our_attention.detach().numpy()))
+    plt.plot(sorted(dino_attention.detach().numpy()))
+    plt.legend(['Ours', 'Dino'])
+    plt.title(f'Sorted Attention Values - {title}')
+    plt.savefig(fname=Path(Path.cwd(), folder_name, f'sorted_mask_{title}.png'), format='png')
+    plt.show()
+
+
+def multiline(tokens_percentage, ours_values, dino_values, title: str, x_label: str, y_label: str, filename: str,
+              folder_name):
+    if type(ours_values) is list:
+        ours_values = np.array(ours_values)
+    if type(dino_values) is list:
+        dino_values = np.array(dino_values)
+    if type(tokens_percentage) is list:
+        tokens_percentage = np.array(tokens_percentage)
+
+    p = sns.lineplot(np.array(tokens_percentage), np.array(ours_values))
+    sns.lineplot(np.array(tokens_percentage), np.array(dino_values))
+    p.set(title=title, xlabel=x_label, ylabel=y_label)
+    plt.legend(labels=["Ours", "Dino"])
+    plt.savefig(fname=Path(Path.cwd(), folder_name, f'{filename}.png'), format='png')
+    plt.show()
+
+
+def lineplot(x, y, title: str, x_label: str, y_label: str):
+    if type(x) is list:
+        x = np.array(x)
+    if type(y) is list:
+        y = np.array(y)
+
+    p = sns.lineplot(np.array(x), np.array(y))
+    p.set(title=title, xlabel=x_label, ylabel=y_label)
+    plt.show()
+
+
+def avg_attention_scores_heads(attentions: Tensor):
+    return attentions.mean(dim=0)
+
+
 if __name__ == '__main__':
     """
     Input: path to folder of image
     """
-    OBJCTIVE_1_AND_2_N_TOKENS_TO_PRED_BY = int(0.2 * 577)  # TODO - change
     # experiment_image_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
     # ALL_LAYERS_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_all_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
     # LAYER_0_PATH = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\layer_0_objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000018"
@@ -200,10 +355,43 @@ if __name__ == '__main__':
     # d = {'all layers': ALL_LAYERS_PATH, 'layer 0 only': LAYER_0_PATH, 'layer 11 only': LAYER_11_PATH}
     # for name, path in d.items():
     #     print(name)
-        # run_infer(path=path)
-        # n_tokens = int(tokens_mask.sum().item())
-        # n_tokens = 10
-        # get_dino_probability_per_head(path=path, tokens_to_show=n_tokens)
+    # run_infer(path=path)
+    # n_tokens = int(tokens_mask.sum().item())
+    # n_tokens = 10
+    # get_dino_probability_per_head(path=path, tokens_to_show=n_tokens)
+    # mask = torch.cat((torch.ones(1), torch.zeros(576)))
+    # run_infer(path=plane_path, tokens_mask=mask)
 
-    plane_path = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\objective_gumble_softmax_lr0_3_temp_1+l1_0+kl_loss_1+entropy_loss_0+pred_loss_3\00000000"
-    run_infer(path=plane_path)
+
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=path)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=path, iteration_idx=13)
+
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000001"
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000018"
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000003"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=140)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=113)
+
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000009"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=99)
+
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000001"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p)
+
+
+
+
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000003"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=140)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=113)
+
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_100+pred_loss_10\00000327"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=103)
+    # p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_1000+pred_loss_10\00000009"
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p)
+    # run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p, iteration_idx=103)
+
+    p = r"C:\Users\asher\OneDrive\Documents\Data Science Degree\Tesis\Explainability NLP\explainablity-transformer\research\plots\head_layer_temp_softmax_lr0_003_temp_1+l1_0+kl_loss_0+entropy_loss_1000+pred_loss_10\00000003"
+    run_infer_difference_dino_and_temp_by_k_patches_iterative(path=p)
