@@ -182,8 +182,7 @@ class ViTSelfAttention(nn.Module):
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
-    def forward(self, hidden_states, head_mask=None, output_attentions=False,
-                sampled_binary_patches=None):
+    def forward(self, hidden_states, head_mask=None, output_attentions=False, sampled_binary_patches=None):
         # hidden_states.shape: [batch_size, num_patches + 1, dim_size]
         mixed_query_layer = self.query(hidden_states)
 

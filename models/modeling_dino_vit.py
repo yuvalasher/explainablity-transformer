@@ -182,7 +182,6 @@ class ViTSelfAttention(nn.Module):
 
     def forward(self, hidden_states, head_mask=None, output_attentions=False):
         # hidden_states.shape: [batch_size, num_patches, dim_size]
-        sigmoid_gate = nn.Sigmoid()
         mixed_query_layer = self.query(hidden_states)
 
         key_layer = self.transpose_for_scores(

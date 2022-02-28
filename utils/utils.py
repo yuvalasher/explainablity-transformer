@@ -8,6 +8,7 @@ from pathlib import Path, WindowsPath
 from typing import Any, Dict, List, Union
 from utils.consts import PICKLES_FOLDER_PATH
 
+
 def create_df_of_img_name_with_label(path: Path) -> pd.DataFrame:
     dirlist = os.listdir(path)
     dataframes = []
@@ -56,6 +57,7 @@ def save_obj_to_disk(path: Union[WindowsPath, str], obj) -> None:
 
     with open(path, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
 
 def load_obj(obj_name: str) -> Any:
     with open(Path(f"{PICKLES_FOLDER_PATH}", f"{obj_name}.pkl"), 'rb') as f:
