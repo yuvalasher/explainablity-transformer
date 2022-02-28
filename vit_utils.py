@@ -37,13 +37,23 @@ def get_head_num_heads(model) -> int:
     return model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
 
 
-def get_attention_probs_by_head(model) -> Tensor:
+def get_attention_probs(model) -> List[Tensor]:
     """
 
     :return: Tensor of size (num_heads, num_tokens)
     """
     num_heads = get_head_num_heads(model=model)
-    attentions = model.vit.encoder.layer[-1].attention.attention.attention_probs[0, :, 0, 1:].reshape(
+    attentions = [model.vit.encoder.layer[head].attention.attention.attention_probs for head in range(num_heads)]
+    return attentions
+
+
+def get_attention_probs_by_head_of_the_CLS(model, head: int = -1) -> Tensor:
+    """
+
+    :return: Tensor of size (num_heads, num_tokens)
+    """
+    num_heads = get_head_num_heads(model=model)
+    attentions = model.vit.encoder.layer[head].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
     return attentions
 
@@ -55,20 +65,34 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
     image_dino_plots_folder = Path(path, 'dino')
     os.makedirs(image_dino_plots_folder, exist_ok=True)
     num_heads = get_head_num_heads(model=vit_sigmoid_model)
-    attentions = get_attention_probs_by_head(model=vit_sigmoid_model)
+    attentions = get_attention_probs_by_head_of_the_CLS(model=vit_sigmoid_model)
     save_obj_to_disk(path=Path(image_dino_plots_folder, 'attentions.pkl'), obj=attentions)
     plot_attn_probs(attentions=attentions, image_size=image_size, patch_size=patch_size, num_heads=num_heads,
-                    path=image_dino_plots_folder)
+                    path=image_dino_plots_folder, only_fusion=False)
 
 
-def plot_attn_probs(attentions: Tensor, image_size: int, patch_size: int, num_heads: int, path: Path, iteration_idx:int=None, only_fusion: bool=True) -> None:
+def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx: int,
+                           head_fusion: str = 'max') -> None:
+    image_rollout_plots_folder = Path(path, 'rollout')
+    os.makedirs(image_rollout_plots_folder, exist_ok=True)
+    mask_rollout = rollout(attentions=attention_probs, head_fusion=head_fusion)
+    attention_rollout_original_size = \
+        nn.functional.interpolate(torch.tensor(mask_rollout).unsqueeze(0).unsqueeze(0), scale_factor=patch_size,
+                                  mode="nearest")[0].cpu().detach().numpy()
+    plt.imsave(fname=Path(image_rollout_plots_folder, f'rollout_{head_fusion}_iter_{iteration_idx}.png'),
+               arr=attention_rollout_original_size[0],
+               format='png')
+
+
+def plot_attn_probs(attentions: Tensor, image_size: int, patch_size: int, num_heads: int, path: Path,
+                    iteration_idx: int = None, only_fusion: bool = True) -> None:
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
         0].cpu().detach().numpy()
 
-    plt.imsave(fname=Path(path, f'iter_{iteration_idx}_max_fusion.png'), arr=attentions.max(axis=0), format='png')
-    plt.imsave(fname=Path(path, f'iter_{iteration_idx}_min_fusion.png'), arr=attentions.min(axis=0), format='png')
+    # plt.imsave(fname=Path(path, f'iter_{iteration_idx}_max_fusion.png'), arr=attentions.max(axis=0), format='png')
+    # plt.imsave(fname=Path(path, f'iter_{iteration_idx}_min_fusion.png'), arr=attentions.min(axis=0), format='png')
     plt.imsave(fname=Path(path, f'iter_{iteration_idx}_mean_fusion.png'), arr=attentions.mean(axis=0), format='png')
 
     if not only_fusion:
@@ -273,12 +297,15 @@ def check_stop_criterion(x_attention: Tensor) -> bool:
     return False
 
 
-def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_name: str, image_name: str) -> Path:
+def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_name: str, image_name: str,
+                                          is_contrastive_run: bool = False) -> Path:
     """
     Also saving the original picture in the models' resolution (img_size, img_size)
     """
     print(image_name)
     image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
+    if is_contrastive_run:
+        image_plot_folder_path = Path(image_plot_folder_path, 'contrastive')
     os.makedirs(name=image_plot_folder_path, exist_ok=True)
     save_resized_original_picture(image_size=config['vit']['img_size'],
                                   picture_path=Path(images_folder_path, image_name),
@@ -290,11 +317,49 @@ def get_vector_to_print(model, vit_config: Dict):
     return model.vit.encoder.sampled_binary_patches if vit_config['objective'] in vit_config[
         'gumble_objectives'] else F.relu(model.vit.encoder.x_attention)
 
-def get_top_k_mimimum_values_indices(array: List[float], k: int=5):
-    return torch.topk(torch.tensor(array), k=k, largest=False)[1]
+
+def get_top_k_mimimum_values_indices(array: List[float], k: int = 5):
+    return torch.topk(torch.tensor(array), k=min(len(array), k), largest=False)[1]
+
 
 def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool = True) -> Tensor:
     k = int(array.shape[-1] * discard_ratio)
     _, indices = torch.topk(array, k, largest=bool(1 - top))
     array[indices] = 0
     return array
+
+
+def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
+    result = torch.eye(attentions[0].size(-1))
+    with torch.no_grad():
+        for attention in attentions:
+            if head_fusion == "mean":
+                attention_heads_fused = attention.mean(axis=1)
+            elif head_fusion == "max":
+                attention_heads_fused = attention.max(axis=1)[0]
+            elif head_fusion == "min":
+                attention_heads_fused = attention.min(axis=1)[0]
+            else:
+                raise ("Attention head fusion type Not supported")
+
+            # Drop the lowest attentions, but
+            # don't drop the class token
+            flat = attention_heads_fused.view(attention_heads_fused.size(0), -1)
+            _, indices = flat.topk(int(flat.size(-1) * discard_ratio), -1, False)
+            indices = indices[indices != 0]
+            flat[0, indices] = 0
+
+            I = torch.eye(attention_heads_fused.size(-1))
+            a = (attention_heads_fused + 1.0 * I) / 2
+            a = a / a.sum(dim=-1)
+
+            result = torch.matmul(a, result)
+
+    # Look at the total attention between the class token,
+    # and the image patches
+    mask = result[0, 0, 1:]
+    # In case of 224x224 image, this brings us from 196 to 14
+    width = int(mask.size(-1) ** 0.5)
+    mask = mask.reshape(width, width).numpy()
+    mask = mask / np.max(mask)
+    return mask
