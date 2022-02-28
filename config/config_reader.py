@@ -1,7 +1,8 @@
 import yaml
 from pathlib import Path
 
-CONFIG_PATH: Path = Path(Path.cwd(), '..', 'config', 'config.yaml')
+CONFIG_PATH: Path = Path(Path(__file__).parent.parent, 'config', 'config.yaml')
+
 
 def read_config():
     with open(CONFIG_PATH, "r") as stream:
