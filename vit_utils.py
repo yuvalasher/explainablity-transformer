@@ -79,7 +79,7 @@ def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx
     attention_rollout_original_size = \
         nn.functional.interpolate(torch.tensor(mask_rollout).unsqueeze(0).unsqueeze(0), scale_factor=patch_size,
                                   mode="nearest")[0].cpu().detach().numpy()
-    plt.imsave(fname=Path(image_rollout_plots_folder, f'rollout_{head_fusion}_iter_{iteration_idx}.png'),
+    plt.imsave(fname=Path(image_rollout_plots_folder, f'{head_fusion}_rollout_iter_{iteration_idx}.png'),
                arr=attention_rollout_original_size[0],
                format='png')
 
