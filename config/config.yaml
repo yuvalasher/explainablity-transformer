@@ -4,6 +4,7 @@ general:
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
 
 vit:
+  n_heads: 12
   gumble_objectives:
     - objective_gumble_softmax
     - objective_gumble_minimize_softmax
@@ -14,12 +15,16 @@ vit:
   model_name: google/vit-base-patch16-384
   img_size: 384
   patch_size: 16
-  save_every: 10
+  save_every: 30
   stop_prob_criterion: 0.3
   sample_picture_name: 00000001.JPEG
   sample_images:
+    - 0000000001.JPEG # parrot (88) and dog (161)
+  #    - 0000000002.JPEG # zebra and elephant
+  #    - 0000000003.JPEG # dog and cat
+  #    - 0000000004.JPEG # zebras and elephants
 #    - 00000000.JPEG # plane
-    - 00000001.JPEG # snake
+#    - 00000001.JPEG # snake
 #    - 00000003.JPEG # dog
 #    - 00000009.JPEG # mousetrap
 #    - 00000018.JPEG # bird
@@ -27,16 +32,20 @@ vit:
 #    - 00000151.JPEG # computer (0.751)
 #    - 00000279.JPEG # Dandie Dinmont terrier (0.82)
 #    - 00000327.JPEG # Rottweiler (0.813)
-  lr: 3.0e-4
-  num_steps: 500
-  print_every: 1
+#    - 00000082.JPEG # Afghan hound, Afghan
+#    - 00000032.JPEG # go-kart
+#    - 00000052.JPEG # fish
+#    - 00000069.JPEG # tricycle, trike, velocipede
+  lr: 3.0e-3
+  num_steps: 100
+  print_every: 5
   discard_ratio: 0.6
-  log: True
+  log: False
   verbose: True
   temperature: 1
   objective: temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 10
+    entropy_loss_multiplier: 1000
     l1_loss_multiplier: 0
