@@ -134,3 +134,4 @@ wandb/
 *.pkl/
 pickles/
 *.JPEG
+*.png
