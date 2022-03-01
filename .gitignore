@@ -135,3 +135,5 @@ wandb/
 pickles/
 *.JPEG
 *.png
+metrics_url.txt
+*.pkl
