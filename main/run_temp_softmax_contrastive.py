@@ -11,7 +11,7 @@ from typing import Callable
 
 vit_config = config['vit']
 loss_config = vit_config['loss']
-CONTRASTIVE_CLASS_IDX = torch.tensor(88)
+CONTRASTIVE_CLASS_IDX = torch.tensor(243)
 
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
@@ -43,11 +43,9 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
     print(f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][CONTRASTIVE_CLASS_IDX.item()]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-    if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
+    # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
         # print('temp')
         # print(prev_x_attention)
-        if sampled_binary_patches is not None and vit_config['objective'] != 'objective_gumble_minimize_softmax':
-            print(sampled_binary_patches)
 
 
 def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
@@ -82,7 +80,7 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor) -> Tens
     print(f'loss: {loss}, max_temp: {torch.max(temp)}, min_temp: {torch.min(temp)}')
 
     log(loss=loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=temp, output=output,
-        target=target)
+        target=target, contrastive_class_idx=CONTRASTIVE_CLASS_IDX.item())
     return loss
 
 
@@ -127,10 +125,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                 iteration_idx=iteration_idx, num_heads=vit_config['n_heads'])
 
                 optimizer.step()
-                if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=prediction_losses)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'total_losses'), obj=total_losses)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
+                # if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
+                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=prediction_losses)
+                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'total_losses'), obj=total_losses)
+                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
                     # save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
 
             print(
