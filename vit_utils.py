@@ -11,6 +11,7 @@ from models.modeling_dino_vit import ViTBasicForDinoForImageClassification
 from models.modeling_infer_vit import ViTInferForImageClassification
 from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from models.modeling_temp_softmax_vit import ViTTempSoftmaxForImageClassification
+from models.modeling_temp_bias_softmax_vit import ViTTempBiasSoftmaxForImageClassification
 from models.modeling_vit_gumble_resolutions import ViTGumbleResolutionsForImageClassification
 from PIL import Image
 import cv2
@@ -29,6 +30,7 @@ vit_model_types = {'vit': ViTForImageClassification,
                    'infer': ViTInferForImageClassification,
                    'per-layer-head': ViTSigmoidPerLayerHeadForImageClassification,
                    'softmax_temp': ViTTempSoftmaxForImageClassification,
+                   'softmax_bias_temp': ViTTempBiasSoftmaxForImageClassification,
                    'gumble_resolutions': ViTGumbleResolutionsForImageClassification,
                    }
 
