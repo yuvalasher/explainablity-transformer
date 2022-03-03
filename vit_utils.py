@@ -110,11 +110,11 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     if len(scores.shape) == 1:
         scores = scores.unsqueeze(0)
     if scores.shape[-1] == num_patches + 1:
-        scores = scores[:, 1:]
+        scores = scores[:, 1:]  # not include the cls token
 
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     scores = scores.reshape(1, w_featmap, h_featmap)
-    scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
+    scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="bilinear")[
         0].cpu().detach().numpy()
     scores_image = scores[0]
     #     plt.imsave(fname=Path(image_plot_folder_path, f'{file_name.replace(" ", "")[:45]}_iter_{iteration_idx}.png'), arr=scores_image,
@@ -124,7 +124,8 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     return scores_image
 
 
-def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: True) -> None:
+def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: bool=True,
+                      image_size: int = 224) -> None:
     """
     Save saliency map on image.
     Args:
@@ -133,20 +134,20 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbo
         filename: string with complete path and file extension
     """
     image = image.data.numpy()
-    saliency_map = saliency_map
-
-    saliency_map = saliency_map - saliency_map.min()
-    saliency_map = saliency_map / saliency_map.max()
-    saliency_map = saliency_map.clip(0, 1)
-
-    saliency_map = np.uint8(saliency_map * 255).transpose(1, 2, 0)
-    saliency_map = cv2.resize(saliency_map, (384, 384))
-
     image = np.uint8(image * 255).transpose(1, 2, 0)
-    image = cv2.resize(image, (384, 384))
+    image = cv2.resize(image, (image_size, image_size))
+
+    heatmap = saliency_map
+
+    heatmap = heatmap - heatmap.min()
+    heatmap = heatmap / heatmap.max()
+    heatmap = heatmap.clip(0, 1)
+
+    heatmap = np.uint8(heatmap * 255).transpose(1, 2, 0)
+    heatmap = cv2.resize(heatmap, (image_size, image_size))
 
     # Apply JET colormap
-    color_heatmap = cv2.applyColorMap(saliency_map, cv2.COLORMAP_JET)
+    color_heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET) # / 255
 
     # Combine image with heatmap
     img_with_heatmap = np.float32(color_heatmap) + np.float32(image)
@@ -268,7 +269,7 @@ def verify_transformer_params_not_changed(vit_model: ViTForImageClassification,
 
 
 def plot_scores(scores: torch.Tensor, file_name: str, iteration_idx: int, image_plot_folder_path: Union[str, Path],
-                image_size: int = 384, patch_size: int = 16) -> None:
+                image_size: int = 224, patch_size: int = 16) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 
     if len(scores.shape) == 1:
