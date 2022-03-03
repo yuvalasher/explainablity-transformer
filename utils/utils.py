@@ -67,3 +67,7 @@ def load_obj(obj_name: str) -> Any:
 def save_url_to_text_file(path: Path, log_run):
     with open(Path(path, 'metrics_url.txt'), 'w') as f:
         f.write(log_run.url)
+
+def save_text_to_file(path: Path, file_name:str, text: str):
+    with open(Path(path, f'{file_name}.txt'), 'w') as f:
+        f.write(text)

@@ -11,7 +11,6 @@ from typing import Callable
 
 vit_config = config['vit']
 loss_config = vit_config['loss']
-CONTRASTIVE_CLASS_IDX = torch.tensor(243)
 
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
@@ -37,10 +36,10 @@ def load_model(path: str) -> nn.Module:
 
 
 def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
-                                 sampled_binary_patches: Tensor = None):
+                                 sampled_binary_patches: Tensor = None, contrastive_class_idx: Tensor = None):
     is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
-        vit_logits=target, vit_s_logits=output)
-    print(f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][CONTRASTIVE_CLASS_IDX.item()]}')
+        vit_logits=target, vit_s_logits=output, contrastive_class_idx=contrastive_class_idx)
+    print(f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][contrastive_class_idx.item()]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
@@ -48,8 +47,8 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
         # print(prev_x_attention)
 
 
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
-    original_predicted_idx = CONTRASTIVE_CLASS_IDX.item()
+def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Tensor=None) -> Tuple[bool, float]:
+    original_predicted_idx = contrastive_class_idx.item()
     original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
     is_predicted_same_class = original_predicted_idx == torch.argmax(vit_s_logits[0]).item()
     return is_predicted_same_class, original_idx_logits_diff
@@ -72,21 +71,24 @@ def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
     return bernoulli_p
 
 
-def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor) -> Tensor:
-    prediction_loss = ce_loss(output, CONTRASTIVE_CLASS_IDX.unsqueeze(0)) * loss_config['pred_loss_multiplier']
+def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor, contrastive_class_idx: Tensor=None) -> Tensor:
+    prediction_loss = ce_loss(output, contrastive_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier']
     entropy_loss = entropy(F.softmax(temp, dim=-1)) * loss_config['entropy_loss_multiplier']
     print(f'entropy: {entropy_loss}, prediction_loss: {prediction_loss}')
     loss = entropy_loss + prediction_loss
     print(f'loss: {loss}, max_temp: {torch.max(temp)}, min_temp: {torch.min(temp)}')
 
     log(loss=loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=temp, output=output,
-        target=target, contrastive_class_idx=CONTRASTIVE_CLASS_IDX.item())
+        target=target, contrastive_class_idx=contrastive_class_idx.item())
     return loss
 
 
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, log_run):
-    for idx, image_name in enumerate(os.listdir(IMAGES_FOLDER_PATH)):
-        if image_name in vit_config['sample_images']:
+    for idx, image_dict in enumerate(vit_config['images']):
+        image_name, correct_class_idx, contrastive_class_idx = image_dict['image_name'], image_dict['correct_class'], \
+                                                               image_dict['contrastive_class']
+        if contrastive_class_idx is not None:
+            contrastive_class_idx = torch.tensor(contrastive_class_idx)
             vit_sigmoid_model = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='softmax_temp'),
                 freezing_transformer=vit_config['freezing_transformer'])
@@ -108,36 +110,37 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
-                prediction_losses.append(ce_loss(output.logits, CONTRASTIVE_CLASS_IDX.unsqueeze(0)) * loss_config['pred_loss_multiplier'])
+                prediction_losses.append(ce_loss(output.logits, contrastive_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier'])
                 x_attention.append(vit_sigmoid_model.vit.encoder.x_attention.clone())
                 loss = criterion(output=output.logits, target=target.logits,
-                                 temp=vit_sigmoid_model.vit.encoder.x_attention)
+                                 temp=vit_sigmoid_model.vit.encoder.x_attention, contrastive_class_idx=contrastive_class_idx)
                 loss.backward()
                 total_losses.append(loss.item())
                 cls_attentions_probs = get_attention_probs_by_head_of_the_CLS(model=vit_sigmoid_model)
                 tokens_mask.append(cls_attentions_probs.clone())
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
-                                             sampled_binary_patches=None)
+                                             sampled_binary_patches=None, contrastive_class_idx=contrastive_class_idx)
 
-                plot_attn_probs(attentions=cls_attentions_probs, image_size=vit_config['img_size'],
-                                patch_size=vit_config['patch_size'], path=image_plot_folder_path,
-                                iteration_idx=iteration_idx, num_heads=vit_config['n_heads'])
+                save_saliency_map(image=original_transformed_image,
+                                  saliency_map=torch.tensor(
+                                      get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
+                                  filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
+                                  verbose=False)
 
                 optimizer.step()
-                # if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=prediction_losses)
-                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'total_losses'), obj=total_losses)
-                    # save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
+                if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
+                    save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=prediction_losses)
+                    save_obj_to_disk(path=Path(image_plot_folder_path, 'total_losses'), obj=total_losses)
+                    save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
                     # save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
 
-            print(
-                f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=10)}')
-            print(
-                f'Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=10)}')
+            minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses, prediction_losses=prediction_losses)
+            save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
+            print(minimum_predictions)
 
-            save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
-                             obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
+            # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
+            #                  obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
 
 experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 

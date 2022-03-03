@@ -365,3 +365,6 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
     mask = mask.reshape(width, width).numpy()
     mask = mask / np.max(mask)
     return mask
+
+def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, k: int=10) -> str:
+    return f'{image_name} - Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\n {image_name} - Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}'
