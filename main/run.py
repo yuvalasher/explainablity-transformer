@@ -192,13 +192,14 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                              sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if
                                              vit_config['objective'] in vit_config['gumble_objectives'] else None)
                 if vit_config['verbose']:
-                    plot_attn_probs(attentions=attentions_probs, image_size=config['vit']['img_size'], patch_size= config['vit']['patch_size'], path=image_plot_folder_path, iteration_idx=iteration_idx, num_heads=12, only_fusion=False)
+                    # plot_attn_probs(attentions=attentions_probs, image_size=config['vit']['img_size'], patch_size= config['vit']['patch_size'], path=image_plot_folder_path, iteration_idx=iteration_idx, num_heads=12, only_fusion=False)
                     printed_vector = get_vector_to_print(model=vit_sigmoid_model, vit_config=vit_config)
                     save_saliency_map(image=original_transformed_image,
                                       saliency_map=torch.tensor(
                                           get_scores(printed_vector)).unsqueeze(0),
-                                      filename=Path(image_plot_folder_path, f'relu_x_iter_idx_{iteration_idx}'),
-                                      verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                                      filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
+                                      verbose=False)
+                                      # verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
 
                     # save_saliency_map(image=original_transformed_image,
                     #                   saliency_map=torch.tensor(
