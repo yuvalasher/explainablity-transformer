@@ -345,7 +345,7 @@ class ViTEncoder(nn.Module):
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        self.x_attention = nn.Parameter(torch.ones(12, 12, num_patches + 1, requires_grad=True))
+        self.x_attention = nn.Parameter(torch.ones(config.num_hidden_layers, config.num_attention_heads, num_patches + 1, requires_grad=True))
 
     def forward(
             self,
