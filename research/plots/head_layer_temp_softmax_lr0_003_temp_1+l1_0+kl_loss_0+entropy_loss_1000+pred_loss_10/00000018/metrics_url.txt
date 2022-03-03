@@ -1,1 +1,0 @@
-https://wandb.ai/yuvalasher/vit-sigmoid-1/runs/ev2n5fcy
