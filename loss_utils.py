@@ -27,7 +27,7 @@ def entropy(p_dist: Tensor) -> Tensor:
     return torch.sum(torch.nan_to_num_(-torch.log2(p_dist) * p_dist, nan=0.0))
 
 
-def log(loss, x_attention, output, target, sampled_binary_patches=None, kl_loss=None, l1_loss=None, entropy_loss=None,
+def log(loss, output, target, x_attention=None, sampled_binary_patches=None, kl_loss=None, l1_loss=None, entropy_loss=None,
         prediction_loss=None, other_loss=None, contrastive_class_idx: int=None) -> None:
     target_class_idx = contrastive_class_idx if contrastive_class_idx is not None else torch.argmax(F.softmax(target, dim=-1)).item()
     if vit_config['log']:
