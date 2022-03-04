@@ -186,7 +186,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
-                attentions_probs = get_attention_probs_by_head_of_the_CLS(model=vit_sigmoid_model)
+                attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches.clone() if

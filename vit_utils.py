@@ -49,13 +49,13 @@ def get_attention_probs(model) -> List[Tensor]:
     return attentions
 
 
-def get_attention_probs_by_head_of_the_CLS(model, head: int = -1) -> Tensor:
+def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
     """
 
     :return: Tensor of size (num_heads, num_tokens)
     """
     num_heads = get_head_num_heads(model=model)
-    attentions = model.vit.encoder.layer[head].attention.attention.attention_probs[0, :, 0, 1:].reshape(
+    attentions = model.vit.encoder.layer[layer].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
     return attentions
 
@@ -67,7 +67,7 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
     image_dino_plots_folder = Path(path, 'dino')
     os.makedirs(image_dino_plots_folder, exist_ok=True)
     num_heads = get_head_num_heads(model=vit_sigmoid_model)
-    attentions = get_attention_probs_by_head_of_the_CLS(model=vit_sigmoid_model)
+    attentions = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
     save_obj_to_disk(path=Path(image_dino_plots_folder, 'attentions.pkl'), obj=attentions)
     plot_attn_probs(attentions=attentions, image_size=image_size, patch_size=patch_size, num_heads=num_heads,
                     path=image_dino_plots_folder, only_fusion=False)
