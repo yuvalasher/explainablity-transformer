@@ -63,12 +63,12 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                  temp=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
                 total_losses.append(loss.item())
-                cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
                 tokens_mask.append(cls_attentions_probs.clone())
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=None)
 
+                cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
                 save_saliency_map(image=original_transformed_image,
                                   saliency_map=torch.tensor(
                                       get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
@@ -84,11 +84,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                                                  prediction_losses=prediction_losses)
             print(minimum_predictions)
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
-            # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
-            #                  obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
-
-
-
 
 
 experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
