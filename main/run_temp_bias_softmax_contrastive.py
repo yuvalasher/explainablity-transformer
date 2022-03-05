@@ -53,10 +53,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
-            total_losses = []
-            prediction_losses = []
-            tokens_mask = []
-            x_attention = []
+            total_losses, prediction_losses, tokens_mask, x_attention = [], [], [], []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)

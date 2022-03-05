@@ -110,8 +110,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
             dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_basic_for_dino,
                                                                  path=image_plot_folder_path)
-            prediction_losses = []
-            total_losses = []
+            prediction_losses, total_losses = [], []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)

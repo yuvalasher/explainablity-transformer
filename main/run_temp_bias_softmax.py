@@ -1,4 +1,3 @@
-from transformers import ViTConfig
 from tqdm import tqdm
 from torch import optim
 from utils import *
@@ -48,10 +47,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
         inputs = feature_extractor(images=image, return_tensors="pt")
         original_transformed_image = pil_to_resized_tensor_transform(image)
         target = vit_model(**inputs)
-        total_losses = []
-        prediction_losses = []
-        tokens_mask = []
-        x_attention = []
+        total_losses, prediction_losses, tokens_mask, x_attention = [], [], [], []
+
         for iteration_idx in tqdm(range(vit_config['num_steps'])):
             optimizer.zero_grad()
             output = vit_sigmoid_model(**inputs)
@@ -82,9 +79,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                                              prediction_losses=prediction_losses)
         save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
         print(minimum_predictions)
-
-        # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
-        #                  obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
 
 
 experiment_name = f"bias_mean_t_h_l_lr_{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}+other_loss_mul_{loss_config['other_loss_multiplier']}"
