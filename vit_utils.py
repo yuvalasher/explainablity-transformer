@@ -18,7 +18,7 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import os
-from typing import Dict, Tuple, Union, NewType, List
+from typing import Dict, Tuple, Union, NewType, List, Optional
 from pathlib import Path, WindowsPath
 from utils.consts import PLOTS_PATH
 from utils import save_obj_to_disk
@@ -59,6 +59,14 @@ def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
     attentions = model.vit.encoder.layer[layer].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
     return attentions
+
+
+def generate_grad_cam_vector(vit_sigmoid_model, cls_attentions_probs):
+    grads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.grad[0, :, 0, 1:].reshape(12,
+                                                                                                                  -1)
+    grads_relu = F.relu(grads)
+    # v = cls_attentions_probs * grads_relu
+    return grads_relu
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
@@ -390,10 +398,9 @@ def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
     return bernoulli_p
 
 
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Tensor = None) -> \
+def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Optional[Tensor] = None) -> \
         Tuple[bool, float]:
-    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(
-        vit_logits[0]).item()
+    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(vit_logits[0]).item()
     original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][target_class_idx].item()))
     is_predicted_same_class = target_class_idx == torch.argmax(vit_s_logits[0]).item()
     return is_predicted_same_class, original_idx_logits_diff
@@ -401,10 +408,11 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, 
 
 def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
                                  sampled_binary_patches: Tensor = None, contrastive_class_idx: Tensor = None):
+    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(target[0]).item()
     is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
         vit_logits=target, vit_s_logits=output, contrastive_class_idx=contrastive_class_idx)
     print(
-        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][contrastive_class_idx.item()]}')
+        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][target_class_idx]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
@@ -434,3 +442,18 @@ def save_model(model: nn.Module, path: str) -> None:
 def save_objects(path: Path, objects_dict: Dict) -> None:
     for obj_name, obj in objects_dict.items():
         save_obj_to_disk(path=Path(path, obj_name), obj=obj)
+
+def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vit_config: Dict) -> None:
+    """
+    Plotting Dino supervise, & rollout methods
+    """
+    vit_basic_for_dino = handle_model_config_and_freezing_for_task(
+        model=load_ViTModel(vit_config, model_type='vit-for-dino'))
+    _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
+    dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_basic_for_dino,
+                                                         path=path)
+    attention_probs = get_attention_probs(model=vit_basic_for_dino)
+    plot_attention_rollout(attention_probs=attention_probs, path=path,
+                           patch_size=patch_size, iteration_idx=0, head_fusion='max')
+    plot_attention_rollout(attention_probs=attention_probs, path=path,
+                           patch_size=patch_size, iteration_idx=0, head_fusion='mean')
