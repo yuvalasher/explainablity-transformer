@@ -1,4 +1,3 @@
-import re
 from config import config
 import numpy as np
 import torch
@@ -133,7 +132,7 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     return scores_image
 
 
-def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: bool = True,
+def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: bool = False,
                       image_size: int = 224) -> None:
     """
     Save saliency map on image.
@@ -416,7 +415,6 @@ def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Ten
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
     # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
-    # print('temp')
     # print(prev_x_attention)
 
 
