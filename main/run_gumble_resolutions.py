@@ -16,47 +16,6 @@ seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
 
-def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
-                                 sampled_binary_patches: Tensor = None):
-    is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
-        vit_logits=target, vit_s_logits=output)
-    print(
-        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output)[0][torch.argmax(F.softmax(target)).item()]}')
-    if is_predicted_same_class is False:
-        print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-    """
-    if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
-        # print(nn.functional.softmax(prev_x_attention))
-        print(F.sigmoid(prev_x_attention))
-        if sampled_binary_patches is not None:
-            print(sampled_binary_patches)
-        # print(prev_x_attention.grad)
-    """
-
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
-    original_predicted_idx = torch.argmax(vit_logits[0]).item()
-    original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
-    is_predicted_same_class = original_predicted_idx == torch.argmax(vit_s_logits[0]).item()
-    return is_predicted_same_class, original_idx_logits_diff
-
-
-def js_kl(p, q):
-    m = 0.5 * (p + q)
-    return 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
-
-
-def kl_div(p: Tensor, q: Tensor, eps: float = 1e-7):
-    q += eps
-    q /= torch.sum(q, axis=1, keepdims=True)
-    mask = p > 0
-    return torch.sum(p[mask] * torch.log(p[mask] / q[mask])) / len(p)
-
-
-def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
-    bernoulli_p = torch.stack((p, 1 - p)).T
-    return bernoulli_p
-
-
 def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor,
                              sampled_binary_patches: Tensor = None) -> Tensor:
     prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
@@ -110,6 +69,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 optimizer.step()
 
             print(f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses)}')
+
 
 experiment_name = f"gumble_resolutions_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 
