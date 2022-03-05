@@ -1,2 +1,0 @@
-00000009.JPEG - Minimum prediction_loss at iteration: tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
- 00000009.JPEG - Minimum total loss at iteration: tensor([99, 98, 97, 96, 95, 94, 93, 92, 91, 90])
