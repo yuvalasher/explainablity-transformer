@@ -48,7 +48,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                                                            experiment_name=experiment_name,
                                                                            image_name=image_name,
                                                                            is_contrastive_run=True)
-            save_url_to_text_file(path=image_plot_folder_path, log_run=log_run) if log_run is not None else []
+            save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
+                              text=log_run.url) if log_run is not None else ''
             image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
@@ -87,9 +88,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
                                                                  prediction_losses=prediction_losses)
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
-            print(minimum_predictions)
-            # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
-            #                  obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
 
 
 experiment_name = f"bias_mean_t_h_l_lr_{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}+other_loss_mul_{loss_config['other_loss_multiplier']}"

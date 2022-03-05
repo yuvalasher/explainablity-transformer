@@ -81,7 +81,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
         minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
                                                              prediction_losses=prediction_losses)
-        print(minimum_predictions)
         save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
 
 

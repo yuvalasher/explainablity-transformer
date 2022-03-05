@@ -44,7 +44,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=IMAGES_FOLDER_PATH,
                                                                            experiment_name=experiment_name,
                                                                            image_name=image_name)
-            save_url_to_text_file(path=image_plot_folder_path, log_run=run) if run is not None else []
+            save_text_to_file(path=image_plot_folder_path, file_name='metrics_url', text=run.url) if run is not None else ''
             image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
@@ -62,8 +62,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 loss = criterion(output=output.logits, target=target.logits,
                                  temp=vit_sigmoid_model.vit.encoder.x_attention)
                 loss.backward()
-                total_losses.append(loss.item())
-                tokens_mask.append(cls_attentions_probs.clone())
+
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                              prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                              sampled_binary_patches=None)
@@ -74,7 +73,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                       get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
                                   filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
                                   verbose=False)
+                total_losses.append(loss.item())
+                tokens_mask.append(cls_attentions_probs.clone())
                 optimizer.step()
+
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
                     objects_dict = {'losses': prediction_losses, 'total_losses': total_losses,
                                     'tokens_mask': tokens_mask}
@@ -82,7 +84,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
             minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
                                                                  prediction_losses=prediction_losses)
-            print(minimum_predictions)
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
 
 
