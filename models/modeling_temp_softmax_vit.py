@@ -204,8 +204,8 @@ class ViTSelfAttention(nn.Module):
             attention_probs = nn.functional.softmax(attention_scores / temp.unsqueeze(0).unsqueeze(2), dim=-1)
         else:
             attention_probs = nn.functional.softmax(attention_scores / temp[layer_idx].unsqueeze(0).unsqueeze(2), dim=-1)
-
         self.attention_probs = attention_probs
+        # self.attention_probs.retain_grad()
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
