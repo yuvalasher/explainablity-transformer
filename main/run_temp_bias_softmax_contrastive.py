@@ -1,4 +1,3 @@
-from transformers import ViTConfig
 from tqdm import tqdm
 from torch import optim
 from utils import *

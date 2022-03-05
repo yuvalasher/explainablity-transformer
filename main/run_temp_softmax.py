@@ -44,13 +44,15 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=IMAGES_FOLDER_PATH,
                                                                            experiment_name=experiment_name,
                                                                            image_name=image_name)
-            save_text_to_file(path=image_plot_folder_path, file_name='metrics_url', text=run.url) if run is not None else ''
+            save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
+                              text=run.url) if run is not None else ''
             image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
 
-            plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs, patch_size=vit_config['patch_size'], vit_config=vit_config)
+            plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
+                                                 patch_size=vit_config['patch_size'], vit_config=vit_config)
 
             total_losses, prediction_losses, tokens_mask, x_attention = [], [], [], []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
@@ -69,10 +71,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
                 cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
                 save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(
-                                      get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
-                                  filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
-                                  verbose=False)
+                                  saliency_map=torch.tensor(get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
+                                  filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'))
                 total_losses.append(loss.item())
                 tokens_mask.append(cls_attentions_probs.clone())
                 optimizer.step()
