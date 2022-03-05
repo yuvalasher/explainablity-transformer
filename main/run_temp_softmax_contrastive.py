@@ -101,7 +101,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
 
 
-experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 
 if __name__ == '__main__':
     log_run = configure_log(vit_config=vit_config, experiment_name=experiment_name)
