@@ -5,7 +5,8 @@ import torch
 from torch import Tensor
 from torch import nn
 from torch.functional import F
-from transformers import ViTFeatureExtractor, ViTForImageClassification
+from transformers import ViTForImageClassification
+from feature_extractor import ViTFeatureExtractor
 from models.modeling_vit_sigmoid import ViTSigmoidForImageClassification
 from models.modeling_dino_vit import ViTBasicForDinoForImageClassification
 from models.modeling_infer_vit import ViTInferForImageClassification
