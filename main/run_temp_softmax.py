@@ -87,8 +87,15 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
 
 
-experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
 
 if __name__ == '__main__':
-    os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
-    optimize_params(vit_model=vit_model, criterion=objective_temp_softmax)
+    prediction_loss_multipliers = [1, 10, 100, 1000]
+    entropy_loss_multipliers = [1, 10, 100, 1000]
+    for pred_loss_multiplier in prediction_loss_multipliers:
+        for entropy_loss_multiplier in entropy_loss_multipliers:
+            loss_config['pred_loss_multiplier'] = pred_loss_multiplier
+            loss_config['entropy_loss_multiplier'] = entropy_loss_multiplier
+            experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+            print(experiment_name)
+            os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
+            optimize_params(vit_model=vit_model, criterion=objective_temp_softmax)
