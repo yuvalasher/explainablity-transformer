@@ -136,5 +136,5 @@ pickles/
 *.JPEG
 *.png
 metrics_url.txt
-*/minimum_predictions.txt
+minimum_predictions.txt
 *.pkl
