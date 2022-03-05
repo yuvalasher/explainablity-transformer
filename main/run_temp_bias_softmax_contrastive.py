@@ -17,19 +17,6 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=v
 vit_infer = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='infer'))
 
 
-def load_model(path: str) -> nn.Module:
-    if path[-3:] == '.pt':
-        path = Path(f'{path}')
-    else:
-        path = Path(f'{path}.pt')
-    c = ViTConfig()
-    c.image_size = vit_config['img_size']
-    c.num_labels = vit_config['num_labels']
-    model = ViTSigmoidForImageClassification(config=c)
-    model.load_state_dict(torch.load(path))
-    return model
-
-
 def objective_temp_bias_softmax(output: Tensor, target: Tensor, temp: Tensor,
                                 contrastive_class_idx: Tensor = None) -> Tensor:
     prediction_loss = ce_loss(output, contrastive_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier']
@@ -73,9 +60,11 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
-                prediction_losses.append(ce_loss(output.logits, contrastive_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier'])
+                prediction_losses.append(
+                    ce_loss(output.logits, contrastive_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier'])
                 x_attention.append(vit_sigmoid_model.vit.encoder.x_attention.clone())
-                loss = criterion(output=output.logits, target=target.logits, temp=vit_sigmoid_model.vit.encoder.x_attention,
+                loss = criterion(output=output.logits, target=target.logits,
+                                 temp=vit_sigmoid_model.vit.encoder.x_attention,
                                  contrastive_class_idx=contrastive_class_idx)
                 loss.backward()
                 total_losses.append(loss.item())
@@ -98,7 +87,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                     'tokens_mask': tokens_mask}
                     save_objects(path=image_plot_folder_path, objects_dict=objects_dict)
 
-            minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses, prediction_losses=prediction_losses)
+            minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
+                                                                 prediction_losses=prediction_losses)
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
             print(minimum_predictions)
             # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),

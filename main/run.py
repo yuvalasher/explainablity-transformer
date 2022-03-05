@@ -16,19 +16,6 @@ loss_config = vit_config['loss']
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
-def load_model(path: str) -> nn.Module:
-    # path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
-    if path[-3:] == '.pt':
-        path = Path(f'{path}')
-    else:
-        path = Path(f'{path}.pt')
-    c = ViTConfig()
-    c.image_size = vit_config['img_size']
-    c.num_labels = vit_config['num_labels']
-    model = ViTSigmoidForImageClassification(config=c)
-    model.load_state_dict(torch.load(path))
-    return model
-
 
 def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     prediction_loss = output[0][torch.argmax(F.softmax(target)).item()] * loss_config['pred_loss_multiplier']
@@ -132,8 +119,9 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
 
                 if vit_config['objective'] in vit_config['gumble_objectives'] or vit_config[
                     'objective'] == 'objective_1':
-                    prediction_losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
-                        'pred_loss_multiplier'])
+                    prediction_losses.append(
+                        ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
+                            'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                      sampled_binary_patches=vit_sigmoid_model.vit.encoder.sampled_binary_patches)

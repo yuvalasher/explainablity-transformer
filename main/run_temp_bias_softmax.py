@@ -17,25 +17,10 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=v
 vit_infer = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='infer'))
 
 
-def load_model(path: str) -> nn.Module:
-    # path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
-    if path[-3:] == '.pt':
-        path = Path(f'{path}')
-    else:
-        path = Path(f'{path}.pt')
-    c = ViTConfig()
-    c.image_size = vit_config['img_size']
-    c.num_labels = vit_config['num_labels']
-    model = ViTSigmoidForImageClassification(config=c)
-    model.load_state_dict(torch.load(path))
-    return model
-
-
 def objective_temp_bias_softmax(output: Tensor, target: Tensor, temp: Tensor) -> Tensor:
     prediction_loss = ce_loss(output, torch.argmax(target).unsqueeze(0)) * loss_config['pred_loss_multiplier']
     entropy_loss = entropy(F.softmax(temp, dim=-1)) * loss_config['entropy_loss_multiplier']
     other_loss = torch.mean(temp) * loss_config['other_loss_multiplier']
-    # print(f'prediction_loss: {prediction_loss}')
     loss = prediction_loss + other_loss + entropy_loss
     print(f'loss: {loss}, max_temp: {torch.max(temp)}, min_temp: {torch.min(temp)}')
 

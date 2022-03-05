@@ -417,6 +417,20 @@ def save_model(model: nn.Module, path: str) -> None:
     torch.save(model.state_dict(), path)
     print(f'Model Saved at {path}')
 
+
+# def load_model(path: str) -> nn.Module:
+#     if path[-3:] == '.pt':
+#         path = Path(f'{path}')
+#     else:
+#         path = Path(f'{path}.pt')
+#     c = ViTConfig()
+#     c.image_size = vit_config['img_size']
+#     c.num_labels = vit_config['num_labels']
+#     model = ViTSigmoidForImageClassification(config=c)
+#     model.load_state_dict(torch.load(path))
+#     return model
+
+
 def save_objects(path: Path, objects_dict: Dict) -> None:
     for obj_name, obj in objects_dict.items():
         save_obj_to_disk(path=Path(path, obj_name), obj=obj)
