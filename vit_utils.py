@@ -125,7 +125,7 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     return scores_image
 
 
-def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: bool=True,
+def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbose: bool = True,
                       image_size: int = 224) -> None:
     """
     Save saliency map on image.
@@ -368,5 +368,55 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
     mask = mask / np.max(mask)
     return mask
 
-def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, k: int=10) -> str:
+
+def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, k: int = 10) -> str:
     return f'{image_name} - Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\n {image_name} - Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}'
+
+
+def js_kl(p, q):
+    m = 0.5 * (p + q)
+    return 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
+
+
+def kl_div(p: Tensor, q: Tensor, eps: float = 1e-7):
+    q += eps
+    q /= torch.sum(q, axis=1, keepdims=True)
+    mask = p > 0
+    return torch.sum(p[mask] * torch.log(p[mask] / q[mask])) / len(p)
+
+
+def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
+    bernoulli_p = torch.stack((p, 1 - p)).T
+    return bernoulli_p
+
+
+def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Tensor = None) -> \
+        Tuple[bool, float]:
+    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(
+        vit_logits[0]).item()
+    original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][target_class_idx].item()))
+    is_predicted_same_class = target_class_idx == torch.argmax(vit_s_logits[0]).item()
+    return is_predicted_same_class, original_idx_logits_diff
+
+
+def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
+                                 sampled_binary_patches: Tensor = None, contrastive_class_idx: Tensor = None):
+    is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
+        vit_logits=target, vit_s_logits=output, contrastive_class_idx=contrastive_class_idx)
+    print(
+        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][contrastive_class_idx.item()]}')
+    if is_predicted_same_class is False:
+        print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
+    # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
+    # print('temp')
+    # print(prev_x_attention)
+
+
+def save_model(model: nn.Module, path: str) -> None:
+    path = Path(f'{path}.pt')
+    torch.save(model.state_dict(), path)
+    print(f'Model Saved at {path}')
+
+def save_objects(path: Path, objects_dict: Dict) -> None:
+    for obj_name, obj in objects_dict.items():
+        save_obj_to_disk(path=Path(path, obj_name), obj=obj)

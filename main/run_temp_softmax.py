@@ -4,7 +4,7 @@ from torch import optim
 from utils import *
 from loss_utils import *
 import wandb
-from log_utils import configure_log, get_wandb_config
+from log_utils import get_wandb_config
 from utils.consts import *
 from pytorch_lightning import seed_everything
 from utils.transformation import pil_to_resized_tensor_transform
@@ -16,12 +16,6 @@ loss_config = vit_config['loss']
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 vit_infer = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='infer'))
-
-
-def save_model(model: nn.Module, path: str) -> None:
-    path = Path(f'{path}.pt')
-    torch.save(model.state_dict(), path)
-    print(f'Model Saved at {path}')
 
 
 def load_model(path: str) -> nn.Module:
@@ -36,40 +30,6 @@ def load_model(path: str) -> nn.Module:
     model = ViTSigmoidForImageClassification(config=c)
     model.load_state_dict(torch.load(path))
     return model
-
-
-def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
-                                 sampled_binary_patches: Tensor = None):
-    is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
-        vit_logits=target, vit_s_logits=output)
-    print(
-        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][torch.argmax(F.softmax(target, dim=-1)).item()]}')
-    if is_predicted_same_class is False:
-        print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-
-
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
-    original_predicted_idx = torch.argmax(vit_logits[0]).item()
-    original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
-    is_predicted_same_class = original_predicted_idx == torch.argmax(vit_s_logits[0]).item()
-    return is_predicted_same_class, original_idx_logits_diff
-
-
-def js_kl(p, q):
-    m = 0.5 * (p + q)
-    return 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
-
-
-def kl_div(p: Tensor, q: Tensor, eps: float = 1e-7):
-    q += eps
-    q /= torch.sum(q, axis=1, keepdims=True)
-    mask = p > 0
-    return torch.sum(p[mask] * torch.log(p[mask] / q[mask])) / len(p)
-
-
-def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
-    bernoulli_p = torch.stack((p, 1 - p)).T
-    return bernoulli_p
 
 
 def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor) -> Tensor:
@@ -104,6 +64,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             inputs = feature_extractor(images=image, return_tensors="pt")
             original_transformed_image = pil_to_resized_tensor_transform(image)
             target = vit_model(**inputs)
+            """
             vit_basic_for_dino = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='vit-for-dino'))
             _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
@@ -114,6 +75,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                    patch_size=vit_config['patch_size'], iteration_idx=0, head_fusion='max')
             plot_attention_rollout(attention_probs=attention_probs, path=image_plot_folder_path,
                                    patch_size=vit_config['patch_size'], iteration_idx=0, head_fusion='mean')
+            """
             total_losses = []
             prediction_losses = []
             tokens_mask = []
@@ -143,13 +105,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                   filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
                                   verbose=False)
                 # verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
-
                 optimizer.step()
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=prediction_losses)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'total_losses'), obj=total_losses)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
-                    # save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
+                    objects_dict = {'losses': prediction_losses, 'total_losses': total_losses, 'tokens_mask': tokens_mask}
+                    save_objects(path=image_plot_folder_path, objects_dict=objects_dict)
 
             minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
                                                                  prediction_losses=prediction_losses)
@@ -157,6 +116,9 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
             # save_obj_to_disk(path=Path(image_plot_folder_path, 'temp'),
             #                  obj=x_attention[get_top_k_mimimum_values_indices(array=prediction_losses, k=1)])
+
+
+
 
 
 experiment_name = f"head_layer_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}_temp_{vit_config['temperature']}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"

@@ -16,13 +16,6 @@ loss_config = vit_config['loss']
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
-
-def save_model(model: nn.Module, path: str) -> None:
-    path = Path(f'{path}.pt')
-    torch.save(model.state_dict(), path)
-    print(f'Model Saved at {path}')
-
-
 def load_model(path: str) -> nn.Module:
     # path = Path(f'{PICKLES_FOLDER_PATH}', f'{model_name}.pt')
     if path[-3:] == '.pt':
@@ -35,28 +28,6 @@ def load_model(path: str) -> nn.Module:
     model = ViTSigmoidForImageClassification(config=c)
     model.load_state_dict(torch.load(path))
     return model
-
-
-def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
-                                 sampled_binary_patches: Tensor = None):
-    is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
-        vit_logits=target, vit_s_logits=output)
-    print(
-        f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output)[0][torch.argmax(F.softmax(target)).item()]}')
-    if is_predicted_same_class is False:
-        print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
-    if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
-        # print(nn.functional.softmax(prev_x_attention))
-        print(F.sigmoid(prev_x_attention))
-        if sampled_binary_patches is not None and vit_config['objective'] != 'objective_gumble_minimize_softmax':
-            print(sampled_binary_patches)
-        # print(prev_x_attention.grad)
-
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor) -> Tuple[bool, float]:
-    original_predicted_idx = torch.argmax(vit_logits[0]).item()
-    original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][original_predicted_idx].item()))
-    is_predicted_same_class = original_predicted_idx == torch.argmax(vit_s_logits[0]).item()
-    return is_predicted_same_class, original_idx_logits_diff
 
 
 def objective_2(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
@@ -97,23 +68,6 @@ def objective_1(output: Tensor, target: Tensor, x_attention: Tensor) -> Tensor:
     log(loss=loss, l1_loss=l1_loss, entropy_loss=entropy_loss, prediction_loss=prediction_loss, x_attention=x_attention,
         output=output, target=target)
     return loss
-
-
-def js_kl(p, q):
-    m = 0.5 * (p + q)
-    return 0.5 * kl_div(p, m) + 0.5 * kl_div(q, m)
-
-
-def kl_div(p: Tensor, q: Tensor, eps: float = 1e-7):
-    q += eps
-    q /= torch.sum(q, axis=1, keepdims=True)
-    mask = p > 0
-    return torch.sum(p[mask] * torch.log(p[mask] / q[mask])) / len(p)
-
-
-def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
-    bernoulli_p = torch.stack((p, 1 - p)).T
-    return bernoulli_p
 
 
 def objective_gumble_softmax(output: Tensor, target: Tensor, x_attention: Tensor,
@@ -170,14 +124,15 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
             dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model=vit_basic_for_dino,
                                                                  path=image_plot_folder_path)
-            losses = []
+            prediction_losses = []
+            total_losses = []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_sigmoid_model(**inputs)
 
                 if vit_config['objective'] in vit_config['gumble_objectives'] or vit_config[
                     'objective'] == 'objective_1':
-                    losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
+                    prediction_losses.append(ce_loss(output.logits, torch.argmax(target.logits).unsqueeze(0)) * loss_config[
                         'pred_loss_multiplier'])
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention,
@@ -185,6 +140,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 else:
                     loss = criterion(output=output.logits, target=target.logits,
                                      x_attention=vit_sigmoid_model.vit.encoder.x_attention)
+                total_losses.append(loss)
                 loss.backward()
                 attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
                 compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
@@ -199,7 +155,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                           get_scores(printed_vector)).unsqueeze(0),
                                       filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
                                       verbose=False)
-                                      # verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
+                    # verbose=is_iteration_to_action(iteration_idx=iteration_idx, action='print'))
 
                     # save_saliency_map(image=original_transformed_image,
                     #                   saliency_map=torch.tensor(
@@ -214,14 +170,13 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                 else:
                     tokens_mask.append(F.sigmoid(vit_sigmoid_model.vit.encoder.x_attention.clone()))
                 if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'x_gradients'), obj=x_gradients)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'losses'), obj=losses)
-                    save_obj_to_disk(path=Path(image_plot_folder_path, 'tokens_mask'), obj=tokens_mask)
+                    objects_dict = {'losses': prediction_losses, 'total_losses': total_losses,
+                                    'tokens_mask': tokens_mask}
+                    save_objects(path=image_plot_folder_path, objects_dict=objects_dict)
                     save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
             if vit_config['log']:
                 log_run.finish()
                 vit_config['log'] = False
-            save_model(model=vit_sigmoid_model, path=Path(f'{image_plot_folder_path}', 'vit_sigmoid_model'))
 
 
 OBJECTIVES = {'objective_gumble_softmax': objective_gumble_softmax,  # x_attention as rand
