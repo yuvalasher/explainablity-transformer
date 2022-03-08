@@ -125,10 +125,6 @@ def get_scores(scores: torch.Tensor, image_size: int = config['vit']['img_size']
     scores = nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="bilinear")[
         0].cpu().detach().numpy()
     scores_image = scores[0]
-    #     plt.imsave(fname=Path(image_plot_folder_path, f'{file_name.replace(" ", "")[:45]}_iter_{iteration_idx}.png'), arr=scores_image,
-    #                format='png')
-    #     plt.imshow(scores_image, interpolation='nearest')
-    #     plt.show()
     return scores_image
 
 
@@ -376,8 +372,8 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
     return mask
 
 
-def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, k: int = 10) -> str:
-    return f'{image_name} - Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\n {image_name} - Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}'
+def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, logits, correct_class_probs, k: int = 25) -> str:
+    return f'{image_name} - Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\n{image_name} - Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}\n{image_name} - Maximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\n{image_name} - Maximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
 
 
 def js_kl(p, q):
