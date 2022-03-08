@@ -137,14 +137,13 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
             images = [images]
 
         # transformations (resizing + normalization)
-        # """
+        # images = [self.resize(image=image, size=(341,256), resample=self.resample) for image in images]
+        # images = [self.center_crop(image=image, size=self.size) for image in images]
         if self.do_resize and self.size is not None:
-            # images = [self.resize(image=image, size=self.size, resample=self.resample) for image in images]
-            images = [self.resize(image=image, size=(341,256), resample=self.resample) for image in images]
-        images = [self.center_crop(image=image, size=self.size) for image in images]
+            images = [self.resize(image=image, size=self.size, resample=self.resample) for image in images]
         if self.do_normalize:
             images = [self.normalize(image=image, mean=self.image_mean, std=self.image_std) for image in images]
-        # """
+
         # return as BatchFeature
         data = {"pixel_values": images}
         encoded_inputs = BatchFeature(data=data, tensor_type=return_tensors)
