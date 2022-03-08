@@ -329,8 +329,8 @@ def get_vector_to_print(model, vit_config: Dict):
         'gumble_objectives'] else F.relu(model.vit.encoder.x_attention)
 
 
-def get_top_k_mimimum_values_indices(array: List[float], k: int = 5):
-    return torch.topk(torch.tensor(array), k=min(len(array), k), largest=False)[1]
+def get_top_k_mimimum_values_indices(array: List[float], k: int = 5, is_largest: bool = False):
+    return torch.topk(torch.tensor(array), k=min(len(array), k), largest=is_largest)[1]
 
 
 def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool = True) -> Tensor:
