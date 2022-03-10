@@ -12,6 +12,7 @@ from models.modeling_infer_vit import ViTInferForImageClassification
 from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from models.modeling_temp_softmax_vit import ViTTempSoftmaxForImageClassification
 from models.modeling_temp_bias_softmax_vit import ViTTempBiasSoftmaxForImageClassification
+from models.modeling_temp_softmax_vit_only_head import ViTTempSoftmaxForHeadForImageClassification
 from models.modeling_vit_gumble_resolutions import ViTGumbleResolutionsForImageClassification
 from PIL import Image
 import cv2
@@ -31,6 +32,7 @@ vit_model_types = {'vit': ViTForImageClassification,
                    'per-layer-head': ViTSigmoidPerLayerHeadForImageClassification,
                    'softmax_temp': ViTTempSoftmaxForImageClassification,
                    'softmax_bias_temp': ViTTempBiasSoftmaxForImageClassification,
+                   'softmax_for_head_temp': ViTTempSoftmaxForHeadForImageClassification,
                    'gumble_resolutions': ViTGumbleResolutionsForImageClassification,
                    }
 
@@ -39,13 +41,18 @@ def get_head_num_heads(model) -> int:
     return model.vit.encoder.layer[-1].attention.attention.attention_probs.shape[1]
 
 
+def get_num_layers(model) -> int:
+    return len(model.vit.encoder.layer)
+
+
 def get_attention_probs(model) -> List[Tensor]:
     """
 
     :return: Tensor of size (num_heads, num_tokens)
     """
-    num_heads = get_head_num_heads(model=model)
-    attentions = [model.vit.encoder.layer[head].attention.attention.attention_probs for head in range(num_heads)]
+    num_layers = get_num_layers(model=model)
+    attentions = [model.vit.encoder.layer[layer_idx].attention.attention.attention_probs for layer_idx in
+                  range(num_layers)]
     return attentions
 
 
@@ -151,7 +158,7 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbo
     heatmap = cv2.resize(heatmap, (image_size, image_size))
 
     # Apply JET colormap
-    color_heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET) # / 255
+    color_heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)  # / 255
 
     # Combine image with heatmap
     img_with_heatmap = np.float32(color_heatmap) + np.float32(image)
@@ -160,6 +167,31 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbo
         plt.imshow(img_with_heatmap, interpolation='nearest')
         plt.show()
     cv2.imwrite(f'{filename.resolve()}.png', np.uint8(255 * img_with_heatmap))
+
+
+def show_cam_on_image(img, mask):
+    heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap) / 255
+    cam = heatmap + np.float32(img)
+    cam = cam / np.max(cam)
+    return cam
+
+
+def visu(original_image, transformer_attribution, file_name: str):
+    transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
+    transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16, mode='bilinear')
+    transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
+    transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
+            transformer_attribution.max() - transformer_attribution.min())
+    image_transformer_attribution = original_image.permute(1, 2, 0).data.cpu().numpy()
+    image_transformer_attribution = (image_transformer_attribution - image_transformer_attribution.min()) / (
+            image_transformer_attribution.max() - image_transformer_attribution.min())
+    vis = show_cam_on_image(image_transformer_attribution, transformer_attribution)
+    vis = np.uint8(255 * vis)
+    vis = cv2.cvtColor(np.array(vis), cv2.COLOR_RGB2BGR)
+    plt.imsave(fname=Path(f'{file_name}.png'),
+               arr=vis,
+               format='png')
 
 
 def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClassification:
@@ -372,8 +404,9 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
     return mask
 
 
-def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, logits, correct_class_probs, k: int = 25) -> str:
-    return f'{image_name} - Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\n{image_name} - Minimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}\n{image_name} - Maximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\n{image_name} - Maximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
+def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, logits, correct_class_probs,
+                                   k: int = 25) -> str:
+    return f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\nMinimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}\nMaximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\nMaximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
 
 
 def js_kl(p, q):
@@ -393,9 +426,11 @@ def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
     return bernoulli_p
 
 
-def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Optional[Tensor] = None) -> \
+def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor,
+                                      contrastive_class_idx: Optional[Tensor] = None) -> \
         Tuple[bool, float]:
-    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(vit_logits[0]).item()
+    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(
+        vit_logits[0]).item()
     original_idx_logits_diff = (abs(max(vit_logits[0]).item() - vit_s_logits[0][target_class_idx].item()))
     is_predicted_same_class = target_class_idx == torch.argmax(vit_s_logits[0]).item()
     return is_predicted_same_class, original_idx_logits_diff
@@ -403,13 +438,15 @@ def compare_between_predicted_classes(vit_logits: Tensor, vit_s_logits: Tensor, 
 
 def compare_results_each_n_steps(iteration_idx: int, target: Tensor, output: Tensor, prev_x_attention: Tensor,
                                  sampled_binary_patches: Tensor = None, contrastive_class_idx: Tensor = None):
-    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(target[0]).item()
+    target_class_idx = contrastive_class_idx.item() if contrastive_class_idx is not None else torch.argmax(
+        target[0]).item()
     is_predicted_same_class, original_idx_logits_diff = compare_between_predicted_classes(
         vit_logits=target, vit_s_logits=output, contrastive_class_idx=contrastive_class_idx)
     print(
         f'Is predicted same class: {is_predicted_same_class}, Correct Class Prob: {F.softmax(output, dim=-1)[0][target_class_idx]}')
     if is_predicted_same_class is False:
         print(f'Predicted class change at {iteration_idx} iteration !!!!!!')
+    # print(prev_x_attention)
     # if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
     # print(prev_x_attention)
 
@@ -437,6 +474,7 @@ def save_objects(path: Path, objects_dict: Dict) -> None:
     for obj_name, obj in objects_dict.items():
         save_obj_to_disk(path=Path(path, obj_name), obj=obj)
 
+
 def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vit_config: Dict) -> None:
     """
     Plotting Dino supervise, & rollout methods
@@ -451,3 +489,155 @@ def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vi
                            patch_size=patch_size, iteration_idx=0, head_fusion='max')
     plot_attention_rollout(attention_probs=attention_probs, path=path,
                            patch_size=patch_size, iteration_idx=0, head_fusion='mean')
+
+
+def get_temp_to_visualize(temp):
+    if len(temp.shape) == 1:  # [n_tokens]
+        return temp[1:]
+    elif len(temp.shape) == 2:  # [n_heads, n_tokens]
+        return temp[:, 1:].reshape(12, -1)
+    else:  # [n_layers, n_heads, n_tokens]
+        return temp[-1, :, 1:].reshape(12, -1)
+
+
+def save_text_to_file(path: Path, file_name: str, text: str):
+    print(text)
+    with open(Path(path, f'{file_name}.txt'), 'w') as f:
+        f.write(text)
+
+
+def get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path, image_name, total_losses, prediction_losses,
+                                                    correct_class_logits, correct_class_probs):
+    minimum_predictions = get_minimum_predictions_string(image_name=image_name, total_losses=total_losses,
+                                                         prediction_losses=prediction_losses,
+                                                         logits=correct_class_logits,
+                                                         correct_class_probs=correct_class_probs)
+    save_text_to_file(path=image_plot_folder_path, file_name='minimum_predictions', text=minimum_predictions)
+
+
+def visualize_attentions_and_temps(cls_attentions_probs, iteration_idx, mean_folder, median_folder, max_folder,
+                                   min_folder, original_transformed_image, temp,
+                                   temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder,
+                                   temp_tokens_min_folder, temp_tokens_folder=None):
+    if iteration_idx == 149:
+        print(1)
+    visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
+                               max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
+                               min_folder=min_folder, original_transformed_image=original_transformed_image)
+
+    visualize_temp(iteration_idx=iteration_idx, original_transformed_image=original_transformed_image, temp=temp,
+                   temp_tokens_folder=temp_tokens_folder, temp_tokens_max_folder=temp_tokens_max_folder,
+                   temp_tokens_mean_folder=temp_tokens_mean_folder, temp_tokens_median_folder=temp_tokens_median_folder,
+                   temp_tokens_min_folder=temp_tokens_min_folder)
+
+
+def visualize_temp(iteration_idx, original_transformed_image, temp, temp_tokens_folder, temp_tokens_max_folder,
+                   temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder):
+    if len(temp.shape) > 1:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=temp.mean(dim=0),
+             file_name=Path(temp_tokens_mean_folder, f'plot_{iteration_idx}'))
+        visu(original_image=original_transformed_image,
+             transformer_attribution=temp.median(dim=0)[0],
+             file_name=Path(temp_tokens_median_folder, f'plot_{iteration_idx}'))
+        visu(original_image=original_transformed_image,
+             transformer_attribution=temp.max(dim=0)[0],
+             file_name=Path(temp_tokens_max_folder, f'plot_{iteration_idx}'))
+        visu(original_image=original_transformed_image,
+             transformer_attribution=temp.min(dim=0)[0],
+             file_name=Path(temp_tokens_min_folder, f'plot_{iteration_idx}'))
+    else:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=temp,
+             file_name=Path(temp_tokens_folder, f'plot_{iteration_idx}'))
+
+
+def visualize_attention_scores(cls_attentions_probs, iteration_idx, max_folder, mean_folder, median_folder, min_folder,
+                               original_transformed_image):
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.mean(dim=0),
+         file_name=Path(mean_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.median(dim=0)[0],
+         file_name=Path(median_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.max(dim=0)[0],
+         file_name=Path(max_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.min(dim=0)[0],
+         file_name=Path(min_folder, f'plot_{iteration_idx}'))
+
+
+def create_folder(path: Path) -> Path:
+    os.makedirs(name=path, exist_ok=True)
+    return path
+
+
+def create_attention_probs_folders(image_plot_folder_path: Path):
+    mean_folder = create_folder(Path(image_plot_folder_path, 'mean'))
+    median_folder = create_folder(Path(image_plot_folder_path, 'median'))
+    max_folder = create_folder(Path(image_plot_folder_path, 'max'))
+    min_folder = create_folder(Path(image_plot_folder_path, 'min'))
+    return mean_folder, median_folder, max_folder, min_folder
+
+
+def create_temp_tokens_folders(image_plot_folder_path):
+    temp_tokens_folder = create_folder(Path(image_plot_folder_path, 'temp_tokens'))
+    temp_tokens_mean_folder = create_folder(Path(temp_tokens_folder, 'mean'))
+    temp_tokens_median_folder = create_folder(Path(temp_tokens_folder, 'median'))
+    temp_tokens_max_folder = create_folder(Path(temp_tokens_folder, 'max'))
+    temp_tokens_min_folder = create_folder(Path(temp_tokens_folder, 'min'))
+    return temp_tokens_folder, temp_tokens_max_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder
+
+
+def create_folders(image_plot_folder_path: Path):
+    mean_folder, median_folder, max_folder, min_folder = create_attention_probs_folders(image_plot_folder_path)
+    temp_tokens_folder, temp_tokens_max_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = create_temp_tokens_folders(
+        image_plot_folder_path)
+
+    return mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder
+
+
+def visualize_attention_scores_by_layer_idx(model, image_plot_folder_path, original_image, iteration_idx):
+    attention_scores_folder = create_folder(Path(image_plot_folder_path, 'attention_scores'))
+    for layer_idx in range(get_num_layers(model=model)):
+        mean_folder, median_folder, max_folder, min_folder = create_attention_probs_folders(
+            image_plot_folder_path=Path(attention_scores_folder, f'layer_{layer_idx}'))
+        attention_probs = get_attention_probs_by_layer_of_the_CLS(model=model, layer=layer_idx)
+        visualize_attention_scores(cls_attentions_probs=attention_probs, iteration_idx=iteration_idx,
+                                   max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
+                                   min_folder=min_folder, original_transformed_image=original_image)
+
+
+def visualize_temp_tokens_and_attention_scores(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
+                                               original_transformed_image, temp_tokens_max_folder,
+                                               temp_tokens_mean_folder, temp_tokens_median_folder,
+                                               temp_tokens_min_folder, vit_sigmoid_model):
+    cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
+    # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
+    #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
+    temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
+    temp = get_temp_to_visualize(temp)
+    visualize_attentions_and_temps(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
+                                   mean_folder=mean_folder, median_folder=median_folder,
+                                   max_folder=max_folder, min_folder=min_folder,
+                                   original_transformed_image=original_transformed_image,
+                                   temp=temp, temp_tokens_mean_folder=temp_tokens_mean_folder,
+                                   temp_tokens_median_folder=temp_tokens_median_folder,
+                                   temp_tokens_max_folder=temp_tokens_max_folder,
+                                   temp_tokens_min_folder=temp_tokens_min_folder)
+    return cls_attentions_probs, temp
+
+
+def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
+                                               original_transformed_image, vit_sigmoid_model):
+    cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
+    # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
+    #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
+    # temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
+    # temp = get_temp_to_visualize(temp)
+    visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
+                               max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
+                               min_folder=min_folder, original_transformed_image=original_transformed_image)
+
+    return cls_attentions_probs

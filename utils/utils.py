@@ -64,7 +64,4 @@ def load_obj(obj_name: str) -> Any:
         return pickle.load(f)
 
 
-def save_text_to_file(path: Path, file_name: str, text: str):
-    print(text)
-    with open(Path(path, f'{file_name}.txt'), 'w') as f:
-        f.write(text)
+
