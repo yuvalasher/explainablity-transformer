@@ -29,34 +29,12 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor) -> Tens
     return loss
 
 
-def handle_folders(image_plot_folder_path):
-    mean_folder = Path(image_plot_folder_path, 'mean')
-    max_folder = Path(image_plot_folder_path, 'max')
-    min_folder = Path(image_plot_folder_path, 'min')
-    median_folder = Path(image_plot_folder_path, 'median')
-    temp_tokens_folder = Path(image_plot_folder_path, 'temp_tokens')
-    os.makedirs(name=temp_tokens_folder, exist_ok=True)
-    temp_tokens_mean_folder = Path(temp_tokens_folder, 'mean')
-    temp_tokens_max_folder = Path(temp_tokens_folder, 'max')
-    temp_tokens_min_folder = Path(temp_tokens_folder, 'min')
-    temp_tokens_median_folder = Path(temp_tokens_folder, 'median')
-    os.makedirs(name=mean_folder, exist_ok=True)
-    os.makedirs(name=max_folder, exist_ok=True)
-    os.makedirs(name=min_folder, exist_ok=True)
-    os.makedirs(name=median_folder, exist_ok=True)
-    os.makedirs(name=temp_tokens_mean_folder, exist_ok=True)
-    os.makedirs(name=temp_tokens_max_folder, exist_ok=True)
-    os.makedirs(name=temp_tokens_min_folder, exist_ok=True)
-    os.makedirs(name=temp_tokens_median_folder, exist_ok=True)
-    return mean_folder, max_folder, min_folder, median_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_max_folder, temp_tokens_min_folder, temp_tokens_median_folder
-
-
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
     for idx, image_dict in enumerate(vit_config['images']):
         image_name, correct_class_idx, contrastive_class_idx = image_dict['image_name'], image_dict['correct_class'], \
                                                                image_dict['contrastive_class']
         wandb_config = get_wandb_config(vit_config=vit_config, experiment_name=experiment_name, image_name=image_name)
-        with wandb.init(project="vit-temp-softmax", entity="yuvalasher", config=wandb_config) as run:
+        with wandb.init(project=config['general']['wandb_project'], entity=config['general']['wandb_entity'], config=wandb_config) as run:
             vit_sigmoid_model = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='softmax_temp'),
                 freezing_transformer=vit_config['freezing_transformer'])
@@ -78,7 +56,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
             total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, x_attention = [], [], [], [], [], []
             target_class_idx = torch.argmax(target.logits[0]).item()
-            mean_folder, max_folder, min_folder, median_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_max_folder, temp_tokens_min_folder, temp_tokens_median_folder = handle_folders(
+            mean_folder, max_folder, min_folder, median_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_max_folder, temp_tokens_min_folder, temp_tokens_median_folder = create_folders(
                 image_plot_folder_path)
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
@@ -99,35 +77,40 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
 
                 temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
-                temp = temp[:, 0, 1:].reshape(12, -1)
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(temp.mean(dim=0))).unsqueeze(0),
-                                  filename=Path(temp_tokens_mean_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(temp.max(dim=0)[0])).unsqueeze(0),
-                                  filename=Path(temp_tokens_max_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(temp.min(dim=0)[0])).unsqueeze(0),
-                                  filename=Path(temp_tokens_min_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(temp.median(dim=0)[0])).unsqueeze(0),
-                                  filename=Path(temp_tokens_median_folder, f'plot_{iteration_idx}'))
+                temp = get_temp_to_visualize(temp)
+                if len(temp.shape) == 1:
+                    temp_tokens_1d_folder = Path(temp_tokens_folder, '1d_tokens')
+                    os.makedirs(name=temp_tokens_1d_folder, exist_ok=True)
+                    save_saliency_map(image=original_transformed_image,
+                                      saliency_map=torch.tensor(get_scores(temp)).unsqueeze(0),
+                                      filename=Path(temp_tokens_1d_folder, f'plot_{iteration_idx}'))
+                else:
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=cls_attentions_probs.mean(dim=0),
+                         file_name=Path(mean_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=cls_attentions_probs.max(dim=0)[0],
+                         file_name=Path(max_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=cls_attentions_probs.min(dim=0)[0],
+                         file_name=Path(min_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=cls_attentions_probs.median(dim=0)[0],
+                         file_name=Path(median_folder, f'plot_{iteration_idx}'))
 
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
-                                  filename=Path(mean_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(cls_attentions_probs.max(dim=0)[0])).unsqueeze(
-                                      0),
-                                  filename=Path(max_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(get_scores(cls_attentions_probs.min(dim=0)[0])).unsqueeze(
-                                      0),
-                                  filename=Path(min_folder, f'plot_{iteration_idx}'))
-                save_saliency_map(image=original_transformed_image,
-                                  saliency_map=torch.tensor(
-                                      get_scores(cls_attentions_probs.median(dim=0)[0])).unsqueeze(0),
-                                  filename=Path(median_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=temp.mean(dim=0),
+                         file_name=Path(temp_tokens_mean_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=temp.max(dim=0)[0],
+                         file_name=Path(temp_tokens_max_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=temp.min(dim=0)[0],
+                         file_name=Path(temp_tokens_min_folder, f'plot_{iteration_idx}'))
+                    visu(original_image=original_transformed_image,
+                         transformer_attribution=temp.median(dim=0)[0],
+                         file_name=Path(temp_tokens_median_folder, f'plot_{iteration_idx}'))
+
                 total_losses.append(loss.item())
                 tokens_mask.append(cls_attentions_probs.clone())
                 optimizer.step()
@@ -145,7 +128,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
 
 if __name__ == '__main__':
-    experiment_name = f"exp_fusion_temp_softmax_entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+    experiment_name = f"exp_fusion_per_token_mul_temp_entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
     print(experiment_name)
     os.makedirs(name=Path(PLOTS_PATH, experiment_name), exist_ok=True)
     optimize_params(vit_model=vit_model, criterion=objective_temp_softmax)
