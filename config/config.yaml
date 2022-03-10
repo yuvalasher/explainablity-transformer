@@ -2,6 +2,8 @@ general:
   seed: 42
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
+  wandb_project: vit-temp-softmax2
+  wandb_entity: yuvalasher
 
 vit:
   model_name: google/vit-base-patch16-224
@@ -14,7 +16,7 @@ vit:
     - objective_opposite_gumble_softmax
   freezing_transformer: True
   num_labels: 1000
-  save_every: 30
+  save_every: 50
   images:
     - image_name: 00000555.JPEG # pill bottle
       correct_class:
@@ -109,7 +111,7 @@ vit:
 #    - 00000052.JPEG # fish
 #    - 00000069.JPEG # tricycle, trike, velocipede
   lr: 3.0e-3
-  num_steps: 180
+  num_steps: 150
   print_every: 1
   discard_ratio: 0.6
   log: True
