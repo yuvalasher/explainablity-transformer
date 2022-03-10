@@ -71,6 +71,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 target = vit_model(**inputs)
                 total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, x_attention = [], [], [], [], [], []
                 target_class_idx = contrastive_class_idx
+
+                mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder = create_folders(
+                    image_plot_folder_path=image_plot_folder_path)
+
                 for iteration_idx in tqdm(range(vit_config['num_steps'])):
                     optimizer.zero_grad()
                     output = vit_sigmoid_model(**inputs)
@@ -92,12 +96,18 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                                  prev_x_attention=vit_sigmoid_model.vit.encoder.x_attention,
                                                  sampled_binary_patches=None,
                                                  contrastive_class_idx=contrastive_class_idx)
+                    temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
+                    temp = get_temp_to_visualize(temp)
 
-                    save_saliency_map(image=original_transformed_image,
-                                      saliency_map=torch.tensor(
-                                          get_scores(cls_attentions_probs.mean(dim=0))).unsqueeze(0),
-                                      filename=Path(image_plot_folder_path, f'plot_{iteration_idx}'),
-                                      verbose=False)
+                    visualize_attentions_and_temps(cls_attentions_probs=cls_attentions_probs,
+                                                   iteration_idx=iteration_idx,
+                                                   mean_folder=mean_folder, median_folder=median_folder,
+                                                   max_folder=max_folder, min_folder=min_folder,
+                                                   original_transformed_image=original_transformed_image,
+                                                   temp=temp, temp_tokens_mean_folder=temp_tokens_mean_folder,
+                                                   temp_tokens_median_folder=temp_tokens_median_folder,
+                                                   temp_tokens_max_folder=temp_tokens_max_folder,
+                                                   temp_tokens_min_folder=temp_tokens_min_folder)
 
                     optimizer.step()
                     if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
