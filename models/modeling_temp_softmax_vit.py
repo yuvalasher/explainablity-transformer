@@ -199,11 +199,12 @@ class ViTSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         if len(temp.shape) == 1:
-            attention_probs = nn.functional.softmax(attention_scores / temp, dim=-1)
+            attention_probs = nn.functional.softmax(attention_scores * temp, dim=-1)
         elif len(temp.shape) == 2:
-            attention_probs = nn.functional.softmax(attention_scores / temp.unsqueeze(0).unsqueeze(2), dim=-1)
+            attention_probs = nn.functional.softmax(attention_scores * temp.unsqueeze(0).unsqueeze(2), dim=-1)
         else:
-            attention_probs = nn.functional.softmax(attention_scores / temp[layer_idx].unsqueeze(0).unsqueeze(2), dim=-1)
+            attention_probs = nn.functional.softmax(attention_scores * temp[layer_idx].unsqueeze(0).unsqueeze(2),
+                                                    dim=-1)
         self.attention_probs = attention_probs
         # self.attention_probs.retain_grad()
 
@@ -367,7 +368,9 @@ class ViTEncoder(nn.Module):
         self.layer = nn.ModuleList([ViTLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
-        self.x_attention = nn.Parameter(torch.ones(12, 12, num_patches + 1, requires_grad=True))
+        self.x_attention = nn.Parameter(
+            torch.ones(config.num_hidden_layers, config.num_attention_heads, num_patches + 1, requires_grad=True))
+        # self.x_attention = nn.Parameter(torch.ones(num_patches + 1, requires_grad=True))
 
     def forward(
             self,
