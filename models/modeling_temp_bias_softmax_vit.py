@@ -182,7 +182,7 @@ class ViTSelfAttention(nn.Module):
 
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
 
-        attention_probs = nn.functional.softmax(attention_scores + temp[layer_idx].unsqueeze(0).unsqueeze(2), dim=-1)
+        attention_probs = nn.functional.softmax(attention_scores - temp[layer_idx].unsqueeze(0).unsqueeze(2), dim=-1)
         self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
