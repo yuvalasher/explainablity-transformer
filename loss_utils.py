@@ -49,14 +49,6 @@ def log(loss, output, target, x_attention=None, sampled_binary_patches=None, kl_
 
 
 
-def is_iteration_to_action(iteration_idx: int, action:str= 'print') -> bool:
-    """
-    :param action: 'print' / 'save'
-    """
-    is_iter_to_action = iteration_idx > 0 and iteration_idx % vit_config[f'{action}_every'] == 0 or iteration_idx == vit_config['num_steps'] - 1
-    if action == 'print':
-        return vit_config['verbose'] and is_iter_to_action
-    return is_iter_to_action
 
 
 def print_objective_every(a: Tensor, b: Tensor, iteration_idx: int, output: Tensor, target: Tensor) -> None:
