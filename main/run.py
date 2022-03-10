@@ -6,7 +6,7 @@ from loss_utils import *
 from log_utils import configure_log
 from utils.consts import *
 from pytorch_lightning import seed_everything
-from utils.transformation import pil_to_resized_tensor_transform
+from utils.transformation import image_transformations
 from typing import Callable
 
 vit_config = config['vit']
@@ -101,7 +101,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                                                                            image_name=image_name)
             image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
-            original_transformed_image = pil_to_resized_tensor_transform(image)
+            original_transformed_image = image_transformations(image)
             target = vit_model(**inputs)
             x_gradients = []
             tokens_mask = []

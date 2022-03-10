@@ -5,7 +5,7 @@ from loss_utils import *
 from log_utils import configure_log
 from utils.consts import *
 from pytorch_lightning import seed_everything
-from utils.transformation import pil_to_resized_tensor_transform
+from utils.transformation import image_transformations
 from typing import Callable
 
 vit_config = config['vit']
@@ -40,7 +40,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
             vit_sigmoid_model = handle_model_config_and_freezing_for_task(
                 model=load_ViTModel(vit_config, model_type='softmax_temp'),
                 freezing_transformer=vit_config['freezing_transformer'])
-            print_number_of_trainable_and_not_trainable_params(model=vit_sigmoid_model, model_name='soft_temp')
             optimizer = optim.Adam([vit_sigmoid_model.vit.encoder.x_attention], lr=vit_config['lr'])
 
             image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=IMAGES_FOLDER_PATH,
@@ -51,7 +50,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable, l
                               text=log_run.url) if log_run is not None else ''
             image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
             inputs = feature_extractor(images=image, return_tensors="pt")
-            original_transformed_image = pil_to_resized_tensor_transform(image)
+            original_transformed_image = image_transformations(image)
             target = vit_model(**inputs)
             total_losses, prediction_losses, tokens_mask, x_attention = [], [], [], []
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
