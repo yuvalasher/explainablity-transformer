@@ -47,10 +47,6 @@ def log(loss, output, target, x_attention=None, sampled_binary_patches=None, kl_
         # f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
-
-
-
-
 def print_objective_every(a: Tensor, b: Tensor, iteration_idx: int, output: Tensor, target: Tensor) -> None:
     if is_iteration_to_action(iteration_idx=iteration_idx, action='print'):
         ic(iteration_idx, a.item(), b.item())
