@@ -2,7 +2,7 @@ general:
   seed: 42
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
-  wandb_project: vit-temp-softmax2
+  wandb_project: vit-temp-softmax2-l
   wandb_entity: yuvalasher
 
 vit:
@@ -18,51 +18,54 @@ vit:
   num_labels: 1000
   save_every: 50
   images:
-    - image_name: 00000555.JPEG # pill bottle
+#    - image_name: Bullmastiff.jpg
+#      correct_class: 282
+#      contrastive_class:
+    - image_name: 00000045.JPEG # spider
       correct_class:
       contrastive_class:
-    - image_name: 00000112.JPEG # pill bottle
-      correct_class: 720
-      contrastive_class:
-    - image_name: 00000106.JPEG # tie
-      correct_class: 906
-      contrastive_class:
-#    - image_name: 00000129.JPEG # hotdog
-#      correct_class: 934
-#      contrastive_class:
+#    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
+#      correct_class: 161
+#      contrastive_class: 88
+#    - image_name: 0000000002.JPEG # zebra and elephant
+#      correct_class: 101
+#      contrastive_class: 340
+#    - image_name: 0000000004.JPEG # zebras and elephants
+#      correct_class: 340
+#      contrastive_class: 386
 #    - image_name: 00000102.JPEG # dog
 #      correct_class: 906
+#      contrastive_class:
+#    - image_name: 0000000003.JPEG # dog and cat
+#      correct_class: 207
+#      contrastive_class: 285
+#    - image_name: 0000000005.JPEG # catdog
+#      correct_class: 282
+#      contrastive_class: 243
+#    - image_name: 00000009.JPEG # mouse, computer mouse (?)
+#      correct_class: 674
+#      contrastive_class: 673
+#    - image_name: 00000001.JPEG # snake
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000555.JPEG # trumpet
+#      correct_class:
 #      contrastive_class:
 #    - image_name: 00000024.JPEG # planetarium
 #      correct_class: 727
 #      contrastive_class:
-    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
-      correct_class: 161
-      contrastive_class: 88
-    - image_name: 0000000002.JPEG # zebra and elephant
-      correct_class: 101
-      contrastive_class: 340
-    - image_name: 0000000003.JPEG # dog and cat
-      correct_class: 207
-      contrastive_class: 285
-    - image_name: 0000000004.JPEG # zebras and elephants
-      correct_class:
-      contrastive_class:
-    - image_name: 0000000005.JPEG # catdog
-      correct_class: 282
-      contrastive_class: 243
-    - image_name: 00000009.JPEG # mouse, computer mouse (?)
-      correct_class: 674
-      contrastive_class: 673
-#    - image_name: 00000001.JPEG # snake
-#      correct_class:
+#    - image_name: 00000106.JPEG # tie
+#      correct_class: 906
+#      contrastive_class:
+#    - image_name: 00000112.JPEG # pill bottle
+#      correct_class: 720
 #      contrastive_class:
 #    - image_name: 00000003.JPEG # dog
 #      correct_class:
 #      contrastive_class:
-    - image_name: 00000018.JPEG # bird
-      correct_class:
-      contrastive_class:
+#    - image_name: 00000018.JPEG # bird
+#      correct_class:
+#      contrastive_class:
 #    - image_name: 00000061.JPEG # poncho (0.803)
 #      correct_class:
 #      contrastive_class:
@@ -87,46 +90,55 @@ vit:
 #    - image_name: 00000069.JPEG # tricycle, trike, velocipede
 #      correct_class: 870
 #      contrastive_class:
-#      - image_name: 00000061.JPEG
-#        correct_class:
-#        contrastive_class:
+#    - image_name: 00000061.JPEG
+#      correct_class:
+#      contrastive_class:
 
-  sample_images:
-#    - 0000000001.JPEG # parrot (88) and dog (161)
-#    - 0000000002.JPEG # zebra and elephant
-#    - 0000000003.JPEG # dog and cat
-#    - 0000000004.JPEG # zebras and elephants
-#    - 0000000005.JPEG # catdog
-#    - 00000000.JPEG # plane
-#    - 00000001.JPEG # snake
-#    - 00000003.JPEG # dog
-#    - 00000009.JPEG # mousetrap
-#    - 00000018.JPEG # bird
-#    - 00000061.JPEG # poncho (0.803)
-#    - 00000151.JPEG # computer (0.751)
-#    - 00000279.JPEG # Dandie Dinmont terrier (0.82)
-#    - 00000327.JPEG # Rottweiler (0.813)
-#    - 00000082.JPEG # Afghan hound, Afghan
-#    - 00000032.JPEG # go-kart
-#    - 00000052.JPEG # fish
-#    - 00000069.JPEG # tricycle, trike, velocipede
   lr: 3.0e-3
-  num_steps: 150
+  num_steps: 220
   print_every: 1
   discard_ratio: 0.6
   log: True
   verbose: False
+  plot_visualizations: True
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 1000
+    entropy_loss_multiplier: 100
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
-  #  loss:
-  #    kl_loss_multiplier: 1
-  #    pred_loss_multiplier: 3
-  #    entropy_loss_multiplier: 0
-  #    l1_loss_multiplier: 0
-  #    other_loss_multiplier: 0
+  evaluation:
+    original_image_name: 224x224.JPEG
+    batch_size: 1
+
+
+bert:
+  general:
+    - seed: 42
+  model_name: "textattack/bert-base-uncased-SST-2"
+  max_tokens: 512
+  n_heads: 12
+  n_layers: 12
+  freezing_transformer: True
+  num_labels: 2
+  save_every: 50
+  log: False
+  verbose: False
+  lr: 3.0e-3
+  num_steps: 200
+  print_every: 1
+  loss:
+    kl_loss_multiplier: 0
+    pred_loss_multiplier: 10
+    entropy_loss_multiplier: 100
+    l1_loss_multiplier: 0
+    other_loss_multiplier: 0
+  text_batch:
+#    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
+#      correct_class: 1
+#      contrastive_class: 0
+    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
+      correct_class: 0
+      contrastive_class: 1

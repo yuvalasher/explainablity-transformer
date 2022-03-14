@@ -23,7 +23,7 @@ from utils.consts import PLOTS_PATH
 from utils import save_obj_to_disk
 from config import config
 from torch import optim
-from utils.consts import  IMAGES_FOLDER_PATH
+from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations
 from utils.utils import get_image_from_path
 
@@ -269,11 +269,10 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
     return model
 
 
-def load_feature_extractor_and_vit_model(vit_config: Dict) -> Tuple[
+def load_feature_extractor_and_vit_model(vit_config: Dict, model_type: str='vit') -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
-    # vit_model, vit_sigmoid_model = load_handled_models_for_task(vit_config=vit_config)
-    vit_model = load_vit_model_by_type(vit_config=vit_config, model_type='vit')
+    vit_model = load_vit_model_by_type(vit_config=vit_config, model_type=model_type)
     return feature_extractor, vit_model
 
 
@@ -622,8 +621,7 @@ def visualize_attention_scores_by_layer_idx(model, image_plot_folder_path, origi
 def visualize_temp_tokens_and_attention_scores(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
                                                original_transformed_image, temp_tokens_max_folder,
                                                temp_tokens_mean_folder, temp_tokens_median_folder,
-                                               temp_tokens_min_folder, vit_sigmoid_model):
-    cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
+                                               temp_tokens_min_folder, vit_sigmoid_model, cls_attentions_probs):
     # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
     #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
     temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
@@ -636,7 +634,7 @@ def visualize_temp_tokens_and_attention_scores(iteration_idx, max_folder, mean_f
                                    temp_tokens_median_folder=temp_tokens_median_folder,
                                    temp_tokens_max_folder=temp_tokens_max_folder,
                                    temp_tokens_min_folder=temp_tokens_min_folder)
-    return cls_attentions_probs, temp
+    return temp
 
 
 def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
@@ -657,8 +655,9 @@ def start_run(model: nn.Module, image_plot_folder_path: Path, inputs, run):
     print_number_of_trainable_and_not_trainable_params(model=model)
     save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
                       text=run.url) if run is not None else ''
-    plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
-                                         patch_size=vit_config['patch_size'], vit_config=vit_config)
+    if vit_config['plot_visualizations']:
+        plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
+                                             patch_size=vit_config['patch_size'], vit_config=vit_config)
     mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, \
     temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder = create_folders(
         image_plot_folder_path)
@@ -667,11 +666,10 @@ def start_run(model: nn.Module, image_plot_folder_path: Path, inputs, run):
 
 
 def end_iteration(correct_class_logits, correct_class_probs, image_name, image_plot_folder_path, iteration_idx,
-                  objects_path, prediction_losses, tokens_mask, total_losses, vit_sigmoid_model):
+                  objects_path, prediction_losses, tokens_mask, total_losses, temps, vit_sigmoid_model):
     if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
         objects_dict = {'losses': prediction_losses, 'total_losses': total_losses,
-                        'tokens_mask': tokens_mask,
-                        'temp': vit_sigmoid_model.vit.encoder.x_attention.clone()}
+                        'tokens_mask': tokens_mask, 'temps': temps}
         save_objects(path=objects_path, objects_dict=objects_dict)
 
         get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path=image_plot_folder_path,

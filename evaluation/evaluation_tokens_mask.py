@@ -9,7 +9,7 @@ import pickle
 from typing import Union, Any
 from utils import *
 from tqdm import tqdm
-
+from evaluation.evaluation_utils import *
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
 
@@ -41,16 +41,6 @@ def _load_vit_models_inputs_and_target(path: str):
     infer_model.eval()
     vit_model.eval()
     return inputs, target, vit_model, infer_model
-
-
-def load_obj(path: Union[str, WindowsPath, Path]) -> Any:
-    if type(path) == str and path[-4:] != '.pkl':
-        path += '.pkl'
-    elif type(path) == WindowsPath and path.suffix != '.pkl':
-        path = path.with_suffix('.pkl')
-
-    with open(path, 'rb') as f:
-        return pickle.load(f)
 
 def dark_random_k_patches(percentage_to_dark: float, n_patches: int = 577) -> Tensor:
     k = int(n_patches * percentage_to_dark)
@@ -91,7 +81,7 @@ def generate_binary_tokens_mask_by_top_scores(distribution: Tensor, tokens_to_sh
 
 
 def get_dino_probability_per_head(path: str, tokens_to_show: int):
-    attentions = load_obj(path=Path(path, 'dino', 'attentions.pkl'))
+    attentions = load_obj_from_path(path=Path(path, 'dino', 'attentions.pkl'))
     inputs, target, vit_model, infer_model = _load_vit_models_inputs_and_target(path=path)
     print('Dino heads')
     for attention_head in attentions:
@@ -137,28 +127,9 @@ def forward_and_print_conclusions(infer_model, vit_model, inputs, tokens_mask, t
                            is_highest_class=is_highest_class)
 
 
-def get_iteration_idx_of_minimum_loss(path) -> int:
-    losses = load_obj(path=Path(path, 'losses'))
-    return torch.argmin(torch.tensor(losses)).item()
-
-
-def get_tokens_mask_by_iteration_idx(path, iteration_idx: int) -> Tensor:
-    return load_obj(path=Path(path, 'tokens_mask'))[iteration_idx]
-
-
 def is_tokens_mask_binary(tokens_mask: Tensor) -> bool:
     return torch.equal(torch.tensor(len(tokens_mask)),
                        torch.count_nonzero((tokens_mask == 0) | (tokens_mask == 1)))
-
-
-def load_tokens_mask(path, iteration_idx: int = None) -> Tuple[int, Tensor]:
-    if iteration_idx is None:
-        iteration_idx = get_iteration_idx_of_minimum_loss(path=path)
-        print(f'Minimum prediction loss at iteration: {iteration_idx}')
-    else:
-        print(f'Get tokens mask of iteration: {iteration_idx}')
-    tokens_mask = get_tokens_mask_by_iteration_idx(path=path, iteration_idx=iteration_idx)
-    return iteration_idx, tokens_mask
 
 
 def get_binary_token_mask(path, tokens_to_show: int) -> Tensor:
@@ -223,7 +194,7 @@ def get_top_k_tokens_from_mask(tokens_mask: Tensor, k: int) -> Tensor:
 
 
 def get_dino_attentions(path):
-    return load_obj(path=Path(path, 'dino', 'attentions.pkl'))
+    return load_obj_from_path(path=Path(path, 'dino', 'attentions.pkl'))
 
 
 def mkdir_evaluation_picture_folder(picture_name: str) -> None:
