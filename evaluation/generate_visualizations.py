@@ -8,26 +8,25 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 from tqdm import tqdm
 import h5py
-
+from feature_extractor import ViTFeatureExtractor
 import argparse
 from torchvision.datasets import ImageNet
 
-from evaluation.evaluation_utils import patch_score_to_image, normalize
+from evaluation.evaluation_utils import patch_score_to_image, normalize, _remove_file_if_exists
+from main.temp_softmax_opt import temp_softmax_optimization
 from utils.consts import DATA_PATH, EXPERIMENTS_FOLDER_PATH
 from config import config
-from vit_utils import load_feature_extractor_and_vit_model, get_attention_probs_by_layer_of_the_CLS
+from vit_utils import load_feature_extractor_and_vit_model, create_folder
+from torch import nn
 
 vit_config = config['vit']
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def compute_saliency_and_save(results_path):
+def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureExtractor, vit_model: nn.Module):
     first = True
-    try:
-        os.remove(results_path)
-    except FileNotFoundError:
-        pass
+    _remove_file_if_exists(path=results_path)
 
     with h5py.File(results_path, 'a') as f:
         data_cam = f.create_dataset('vis',
@@ -60,22 +59,18 @@ def compute_saliency_and_save(results_path):
             data_image[-data.shape[0]:] = data.data.cpu().numpy()
             data_target[-data.shape[0]:] = target.data.cpu().numpy()
 
-            target = target.to(device)
+            # target = target.to(device)
 
-            data = normalize(data)
+            # data = normalize(data)
             data = data.to(device)
             # data.requires_grad_()
-
-            inputs = feature_extractor(images=data.reshape(3, vit_config['img_size'], vit_config['img_size']),
-                                       return_tensors="pt")
-            output = model(**inputs)
-            cls_attention_probs = get_attention_probs_by_layer_of_the_CLS(model=model, layer=-1)  # TODO
-            """
-            # TODO - Make the optimization here and take the relevant iteration !
-            """
-            Res = patch_score_to_image(transformer_attribution=cls_attention_probs.median(dim=0)[0],
+            cls_attentions_probs = temp_softmax_optimization(vit_model=model, feature_extractor=feature_extractor,
+                                                            image=transforms.ToPILImage()(data.reshape(3, vit_config['img_size'],
+                                                                               vit_config['img_size'])),
+                                                            num_steps=vit_config['num_steps'])
+            Res = patch_score_to_image(transformer_attribution=cls_attentions_probs.median(dim=0)[0],
                                        output_2d_tensor=False)  # [1, 1, 224, 224]
-            data_cam[-data.shape[0]:] = Res.cpu().numpy()
+            data_cam[-data.shape[0]:] = Res.cpu().detach().numpy()
 
 
 if __name__ == "__main__":
@@ -124,22 +119,22 @@ if __name__ == "__main__":
 
     #
     # # Model
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
+    experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, 'test'))
     results_path = Path(experiment_path, 'results.hdf5')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
 
     # Dataset loader for sample images
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((vit_config['img_size'], vit_config['img_size'])),
         transforms.ToTensor(),
     ])
     val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
-    imagenet_ds = torch.utils.data.Subset(val_imagenet_ds, list(range(0, 20)))
+    imagenet_ds = torch.utils.data.Subset(val_imagenet_ds,
+                                          list(range(vit_config['evaluation']['num_samples_to_evaluate'])))
     sample_loader = DataLoader(
         imagenet_ds,
         batch_size=vit_config['evaluation']['batch_size'],
         shuffle=False,
         num_workers=0
     )
-
-    compute_saliency_and_save(results_path)
+    compute_saliency_and_save(results_path=results_path, feature_extractor=feature_extractor, vit_model=model)

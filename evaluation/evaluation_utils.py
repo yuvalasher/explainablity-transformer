@@ -4,7 +4,7 @@ from typing import Tuple, Union, Any
 import torch
 from torch import Tensor
 from sklearn.metrics import roc_curve, roc_auc_score
-
+import os
 
 def get_iteration_idx_of_minimum_loss(path) -> int:
     losses = load_obj_from_path(path=Path(path, 'objects' 'losses'))
@@ -62,4 +62,11 @@ def calculate_auc(y_true, y_pred) -> float:
     """
     ovr - One versus all - treat the multi-class problem to a binary
     """
-    return roc_auc_score(y_true, y_pred, multi_class='ovr', average='macro')
+    return roc_auc_score(y_true=y_true, y_score=y_pred, multi_class='ovr', average='macro')
+
+
+def _remove_file_if_exists(path: Path) -> None:
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass

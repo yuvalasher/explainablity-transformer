@@ -651,7 +651,7 @@ def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, medi
     return cls_attentions_probs
 
 
-def start_run(model: nn.Module, image_plot_folder_path: Path, inputs, run):
+def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, image_plot_folder_path: Path, inputs, run):
     print_number_of_trainable_and_not_trainable_params(model=model)
     save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
                       text=run.url) if run is not None else ''
@@ -703,8 +703,9 @@ def is_iteration_to_action(iteration_idx: int, action: str = 'print') -> bool:
     return is_iter_to_action
 
 
-def get_image_and_inputs_and_transformed_image(image_name, feature_extractor):
-    image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
+def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtractor, image_name: str=None, image = None):
+    if image is None and image_name is not None:
+        image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
     original_transformed_image = image_transformations(image)
     return inputs, original_transformed_image

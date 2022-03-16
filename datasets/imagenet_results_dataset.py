@@ -1,14 +1,15 @@
+from pathlib import Path
+
 import torch
 import h5py
 from torch.utils.data.dataset import Dataset
-import os
 
 
 class ImagenetResults(Dataset):
     def __init__(self, path):
         super(ImagenetResults, self).__init__()
 
-        self.path = os.path.join(path, 'results.hdf5')
+        self.path = Path(path, 'results.hdf5')
         self.data = None
 
         print('Reading dataset length...')

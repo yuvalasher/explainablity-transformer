@@ -24,8 +24,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-# def eval(args):
-def eval():
+def eval(experiment_dir: Path):
     num_samples = 0
     num_correct_model = np.zeros((len(imagenet_ds, )))
     dissimilarity_model = np.zeros((len(imagenet_ds, )))
@@ -90,8 +89,7 @@ def eval():
             _data = data.clone()
             _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
                                          base_size=base_size)
-            if i in [1, 2, 3, 4]:
-                plot_image(_data)
+            plot_image(_data, step_idx=i)
             inputs = feature_extractor(images=_data.squeeze(0), return_tensors="pt")
             out = model(**inputs)
 
@@ -130,15 +128,22 @@ def eval():
 
         model_index += len(target)
         perturb_index += len(target)
+    save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
+                 dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
+                 dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
+                 prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
+                 perturbation_steps=perturbation_steps, auc_pertub=auc_pertub)
     print(1)
-    """
-    np.save(os.path.join(experiment_dir, 'model_hits.npy'), num_correct_model)
-    np.save(os.path.join(experiment_dir, 'model_dissimilarities.npy'), dissimilarity_model)
-    np.save(os.path.join(experiment_dir, 'perturbations_hits.npy'), num_correct_pertub[:, :perturb_index])
-    np.save(os.path.join(experiment_dir, 'perturbations_dissimilarities.npy'), dissimilarity_pertub[:, :perturb_index])
-    np.save(os.path.join(experiment_dir, 'perturbations_logit_diff.npy'), logit_diff_pertub[:, :perturb_index])
-    np.save(os.path.join(experiment_dir, 'perturbations_prob_diff.npy'), prob_diff_pertub[:, :perturb_index])
-    """
+
+
+def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, num_correct_pertub, dissimilarity_pertub,
+                 logit_diff_pertub, prob_diff_pertub, perturb_index, perturbation_steps, auc_pertub):
+    np.save(Path(experiment_dir, 'model_hits.npy'), num_correct_model)
+    np.save(Path(experiment_dir, 'model_dissimilarities.npy'), dissimilarity_model)
+    np.save(Path(experiment_dir, 'perturbations_hits.npy'), num_correct_pertub[:, :perturb_index])
+    np.save(Path(experiment_dir, 'perturbations_dissimilarities.npy'), dissimilarity_pertub[:, :perturb_index])
+    np.save(Path(experiment_dir, 'perturbations_logit_diff.npy'), logit_diff_pertub[:, :perturb_index])
+    np.save(Path(experiment_dir, 'perturbations_prob_diff.npy'), prob_diff_pertub[:, :perturb_index])
     print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
     print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
     print(f'Perturbation Steps: {perturbation_steps}')
@@ -149,10 +154,11 @@ def eval():
         f'Mean dissimilarity_pertub : {np.mean(dissimilarity_pertub, axis=1)}, std dissimilarity_pertub {np.std(dissimilarity_pertub, axis=1)}')
 
 
-def plot_image(data) -> None:
-    im = transforms.ToPILImage()(data.squeeze(0))
-    plt.imshow(im)
-    plt.show()
+def plot_image(data, step_idx: int = None) -> None:
+    if (step_idx in [1, 2, 3, 4] or step_idx is None) and not torch.cuda.is_available():
+        im = transforms.ToPILImage()(data.squeeze(0))
+        plt.imshow(im)
+        plt.show()
 
 
 def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[float, int], base_size: int):
@@ -188,111 +194,9 @@ def get_data_vis_and_target(data, target, vis):
 
 
 if __name__ == "__main__":
-    """
-    parser = argparse.ArgumentParser(description='Train a segmentation')
-    parser.add_argument('--batch-size', type=int,
-                        default=16,
-                        help='')
-    parser.add_argument('--neg', type=bool,
-                        default=True,
-                        help='')
-    parser.add_argument('--value', action='store_true',
-                        default=False,
-                        help='')
-    parser.add_argument('--scale', type=str,
-                        default='per',
-                        choices=['per', '100'],
-                        help='')
-    parser.add_argument('--method', type=str,
-                        default='grad_rollout',
-                        choices=['rollout', 'lrp', 'transformer_attribution', 'full_lrp', 'v_gradcam', 'lrp_last_layer',
-                                 'lrp_second_layer', 'gradcam',
-                                 'attn_last_layer', 'attn_gradcam', 'input_grads'],
-                        help='')
-    parser.add_argument('--vis-class', type=str,
-                        default='top',
-                        choices=['top', 'target', 'index'],
-                        help='')
-    parser.add_argument('--wrong', action='store_true',
-                        default=False,
-                        help='')
-    parser.add_argument('--class-id', type=int,
-                        default=0,
-                        help='')
-    parser.add_argument('--is-ablation', type=bool,
-                        default=False,
-                        help='')
-    args = parser.parse_args()
-
-    torch.multiprocessing.set_start_method('spawn')
-
-    # PATH variables
-    PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
-    dataset = PATH + 'dataset/'
-    os.makedirs(os.path.join(PATH, 'experiments'), exist_ok=True)
-    os.makedirs(os.path.join(PATH, 'experiments/perturbations'), exist_ok=True)
-
-    exp_name = args.method
-    exp_name += '_neg' if args.neg else '_pos'
-    print(exp_name)
-
-    if args.vis_class == 'index':
-        args.runs_dir = os.path.join(PATH, 'experiments/perturbations/{}/{}_{}'.format(exp_name,
-                                                                                       args.vis_class,
-                                                                                       args.class_id))
-    else:
-        ablation_fold = 'ablation' if args.is_ablation else 'not_ablation'
-        args.runs_dir = os.path.join(PATH, 'experiments/perturbations/{}/{}/{}'.format(exp_name,
-                                                                                       args.vis_class, ablation_fold))
-        # args.runs_dir = os.path.join(PATH, 'experiments/perturbations/{}/{}'.format(exp_name,
-        #                                                                             args.vis_class))
-
-    if args.wrong:
-        args.runs_dir += '_wrong'
-
-    experiments = sorted(glob.glob(os.path.join(args.runs_dir, 'experiment_*')))
-    experiment_id = int(experiments[-1].split('_')[-1]) + 1 if experiments else 0
-    args.experiment_dir = os.path.join(args.runs_dir, 'experiment_{}'.format(str(experiment_id)))
-    os.makedirs(args.experiment_dir, exist_ok=True)
-
-    cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if cuda else "cpu")
-
-    if args.vis_class == 'index':
-        vis_method_dir = os.path.join(PATH, 'visualizations/{}/{}_{}'.format(args.method,
-                                                                             args.vis_class,
-                                                                             args.class_id))
-    else:
-        ablation_fold = 'ablation' if args.is_ablation else 'not_ablation'
-        vis_method_dir = os.path.join(PATH, 'visualizations/{}/{}/{}'.format(args.method,
-                                                                             args.vis_class, ablation_fold))
-        # vis_method_dir = os.path.join(PATH, 'visualizations/{}/{}'.format(args.method,
-        #                                                                      args.vis_class))
-
-    # imagenet_ds = ImagenetResults('visualizations/{}'.format(args.method))
-    imagenet_ds = ImagenetResults(vis_method_dir)
-
-    # Model
-    model = vit_base_patch16_224(pretrained=True).cuda()
-    model.eval()
-
-    save_path = PATH + 'results/'
-
-    sample_loader = torch.utils.data.DataLoader(
-        imagenet_ds,
-        batch_size=args.batch_size,
-        num_workers=2,
-        shuffle=False)
-
-    eval(args)
-"""
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
-    results_path = Path(experiment_path, 'results.hdf5')
-    _ = create_folder(experiment_path)
-
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
     model.eval()
-    # torch.multiprocessing.set_start_method('spawn')
-    imagenet_ds = ImagenetResults(path=results_path)
+    imagenet_ds = ImagenetResults(path=experiment_path)
     sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
-    eval()
+    eval(experiment_dir=experiment_path)
