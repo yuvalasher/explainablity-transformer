@@ -54,8 +54,7 @@ def eval(experiment_dir: Path):
         # norm_data = normalize(data.clone()) # TODO - verify
 
         # Compute model accuracy
-
-        plot_image(data)
+        # plot_image(data)
         inputs = feature_extractor(images=data.squeeze(0), return_tensors="pt")
         pred = model(**inputs)
         pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
@@ -133,7 +132,6 @@ def eval(experiment_dir: Path):
                  dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
                  prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
                  perturbation_steps=perturbation_steps, auc_pertub=auc_pertub)
-    print(1)
 
 
 def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, num_correct_pertub, dissimilarity_pertub,
@@ -197,6 +195,6 @@ if __name__ == "__main__":
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
     model.eval()
-    imagenet_ds = ImagenetResults(path=experiment_path)
+    imagenet_ds = ImagenetResults(path=experiment_path, vis_type='vis_min_pred_loss')
     sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
     eval(experiment_dir=experiment_path)

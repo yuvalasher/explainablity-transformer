@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import os
@@ -23,54 +24,153 @@ vit_config = config['vit']
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
+VIS_SHAPE: Tuple[int, int, int, int] = (1, 1, 224, 224)
+VIS_MAX_SHAPE: Tuple[None, int, int, int] = (None, 1, 224, 224)
+
 
 def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureExtractor, vit_model: nn.Module):
-    first = True
     _remove_file_if_exists(path=results_path)
 
     with h5py.File(results_path, 'a') as f:
-        data_cam = f.create_dataset('vis',
-                                    (1, 1, 224, 224),
-                                    maxshape=(None, 1, 224, 224),
-                                    dtype=np.float32,
-                                    compression="gzip")
-        data_image = f.create_dataset('image',
-                                      (1, 3, 224, 224),
-                                      maxshape=(None, 3, 224, 224),
-                                      dtype=np.float32,
-                                      compression="gzip")
+        data_cam_min_pred_loss = f.create_dataset('vis_min_pred_loss',
+                                                  VIS_SHAPE,
+                                                  maxshape=VIS_MAX_SHAPE,
+                                                  dtype=np.float32,
+                                                  compression="gzip")
+        data_cam_max_logits = f.create_dataset('vis_max_logits',
+                                               VIS_SHAPE,
+                                               maxshape=VIS_MAX_SHAPE,
+                                               dtype=np.float32,
+                                               compression="gzip")
+        data_cam_90 = f.create_dataset('vis_90',
+                                       VIS_SHAPE,
+                                       maxshape=VIS_MAX_SHAPE,
+                                       dtype=np.float32,
+                                       compression="gzip")
+        data_cam_100 = f.create_dataset('vis_100',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_110 = f.create_dataset('vis_110',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_120 = f.create_dataset('vis_120',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_130 = f.create_dataset('vis_130',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+
+        data_cam_140 = f.create_dataset('vis_140',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_150 = f.create_dataset('vis_150',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_160 = f.create_dataset('vis_160',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_170 = f.create_dataset('vis_170',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+
+        data_cam_180 = f.create_dataset('vis_180',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_190 = f.create_dataset('vis_190',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
         data_target = f.create_dataset('target',
                                        (1,),
                                        maxshape=(None,),
                                        dtype=np.int32,
                                        compression="gzip")
+        data_image = f.create_dataset('image',
+                                      (1, 3, 224, 224),
+                                      maxshape=(None, 3, 224, 224),
+                                      dtype=np.float32,
+                                      compression="gzip")
+
         for batch_idx, (data, target) in enumerate(tqdm(sample_loader)):
-            if first:
-                first = False
-                data_cam.resize(data_cam.shape[0] + data.shape[0] - 1, axis=0)
-                data_image.resize(data_image.shape[0] + data.shape[0] - 1, axis=0)
-                data_target.resize(data_target.shape[0] + data.shape[0] - 1, axis=0)
-            else:
-                data_cam.resize(data_cam.shape[0] + data.shape[0], axis=0)
-                data_image.resize(data_image.shape[0] + data.shape[0], axis=0)
-                data_target.resize(data_target.shape[0] + data.shape[0], axis=0)
+            first = True if batch_idx == 0 else False
+            resize_array_src_to_dst_shape(src_array=data_cam_min_pred_loss, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_min_pred_loss, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_max_logits, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_90, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_100, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_110, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_120, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_130, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_140, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_150, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_160, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_170, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_180, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_190, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_image, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_target, dst_array_shape=data.shape, is_first=first)
 
             # Add data
             data_image[-data.shape[0]:] = data.data.cpu().numpy()
             data_target[-data.shape[0]:] = target.data.cpu().numpy()
 
-            # target = target.to(device)
-
             # data = normalize(data)
             data = data.to(device)
             # data.requires_grad_()
-            cls_attentions_probs = temp_softmax_optimization(vit_model=model, feature_extractor=feature_extractor,
-                                                            image=transforms.ToPILImage()(data.reshape(3, vit_config['img_size'],
-                                                                               vit_config['img_size'])),
-                                                            num_steps=vit_config['num_steps'])
-            Res = patch_score_to_image(transformer_attribution=cls_attentions_probs.median(dim=0)[0],
-                                       output_2d_tensor=False)  # [1, 1, 224, 224]
-            data_cam[-data.shape[0]:] = Res.cpu().detach().numpy()
+            d_res = {}
+            d_cls_attentions_probs = temp_softmax_optimization(vit_model=model, feature_extractor=feature_extractor,
+                                                               image=transforms.ToPILImage()(
+                                                                   data.reshape(3, vit_config['img_size'],
+                                                                                vit_config['img_size'])),
+                                                               num_steps=vit_config['num_steps'])
+
+            for iter_desc, cls_attn in d_cls_attentions_probs.items():
+                d_res[iter_desc] = patch_score_to_image(transformer_attribution=cls_attn.median(dim=0)[0],
+                                                        output_2d_tensor=False)  # [1, 1, 224, 224]
+            insert_result_to_array(d_res['max_logits'], array=data_cam_max_logits, data_shape=data.shape)
+            insert_result_to_array(d_res['min_pred_loss'], array=data_cam_min_pred_loss, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_90'], array=data_cam_90, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_100'], array=data_cam_100, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_110'], array=data_cam_110, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_120'], array=data_cam_120, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_130'], array=data_cam_130, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_140'], array=data_cam_140, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_150'], array=data_cam_150, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_160'], array=data_cam_160, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_170'], array=data_cam_170, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_180'], array=data_cam_180, data_shape=data.shape)
+            insert_result_to_array(d_res['iter_190'], array=data_cam_190, data_shape=data.shape)
+
+
+def insert_result_to_array(result, array, data_shape: Tuple):
+    array[-data_shape[0]:] = result.cpu().detach().numpy()
+
+
+def resize_array_src_to_dst_shape(src_array, dst_array_shape, is_first: bool):
+    if is_first:
+        src_array.resize(src_array.shape[0] + dst_array_shape[0] - 1, axis=0)
+    else:
+        src_array.resize(src_array.shape[0] + dst_array_shape[0], axis=0)
+    return src_array
 
 
 if __name__ == "__main__":
