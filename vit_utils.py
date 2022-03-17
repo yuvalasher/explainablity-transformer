@@ -415,7 +415,7 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
 
 def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, logits, correct_class_probs,
                                    k: int = 25) -> str:
-    return f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k)}\nMinimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k)}\nMaximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\nMaximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
+    return f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k, is_largest=False)}\nMinimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k, is_largest=False)}\nMaximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\nMaximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
 
 
 def js_kl(p, q):
@@ -528,8 +528,7 @@ def visualize_attentions_and_temps(cls_attentions_probs, iteration_idx, mean_fol
                                    min_folder, original_transformed_image, temp,
                                    temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder,
                                    temp_tokens_min_folder, temp_tokens_folder=None):
-    if iteration_idx == 149:
-        print(1)
+
     visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
                                max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
                                min_folder=min_folder, original_transformed_image=original_transformed_image)

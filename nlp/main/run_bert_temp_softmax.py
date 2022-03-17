@@ -79,7 +79,7 @@ def optimize_params(bert_model, criterion: Callable):
             print(cls_attentions_probs)
 
             correct_class_logits.append(correct_class_logit)
-            correct_class_probs.append(correct_class_logit)
+            correct_class_probs.append(correct_class_prob)
             prediction_losses.append(prediction_loss)
             total_losses.append(loss.item())
             tokens_mask.append(cls_attentions_probs.clone())

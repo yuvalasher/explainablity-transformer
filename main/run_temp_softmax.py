@@ -37,7 +37,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, temps = [], [], [], [], [], []
 
             max_folder, mean_folder, median_folder, min_folder, objects_path, temp_tokens_max_folder, \
-            temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = start_run(
+            temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = start_run_save_files_plot_visualizations_create_folders(
                 model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run)
 
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
@@ -66,10 +66,11 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                                                       temp_tokens_mean_folder=temp_tokens_mean_folder,
                                                                       temp_tokens_median_folder=temp_tokens_median_folder,
                                                                       temp_tokens_min_folder=temp_tokens_min_folder,
-                                                                      vit_sigmoid_model=vit_ours_model, cls_attentions_probs=cls_attentions_probs)
+                                                                      vit_sigmoid_model=vit_ours_model,
+                                                                      cls_attentions_probs=cls_attentions_probs)
 
                 correct_class_logits.append(correct_class_logit)
-                correct_class_probs.append(correct_class_logit)
+                correct_class_probs.append(correct_class_prob)
                 prediction_losses.append(prediction_loss)
                 total_losses.append(loss.item())
                 tokens_mask.append(cls_attentions_probs.clone())
