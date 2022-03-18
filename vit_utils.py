@@ -524,6 +524,7 @@ def get_temp_to_visualize(temp):
 
 def save_text_to_file(path: Path, file_name: str, text: str):
     print(text)
+    text = str(text) if text is None else text
     with open(Path(path, f'{file_name}.txt'), 'w') as f:
         f.write(text)
 
