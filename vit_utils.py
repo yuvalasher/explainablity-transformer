@@ -269,7 +269,7 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
     return model
 
 
-def load_feature_extractor_and_vit_model(vit_config: Dict, model_type: str='vit') -> Tuple[
+def load_feature_extractor_and_vit_model(vit_config: Dict, model_type: str = 'vit') -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(vit_config=vit_config)
     vit_model = load_vit_model_by_type(vit_config=vit_config, model_type=model_type)
@@ -413,9 +413,22 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
     return mask
 
 
-def get_minimum_predictions_string(image_name: str, total_losses, prediction_losses, logits, correct_class_probs,
-                                   k: int = 25) -> str:
-    return f'Minimum prediction_loss at iteration: {get_top_k_mimimum_values_indices(array=prediction_losses, k=k, is_largest=False)}\nMinimum total loss at iteration: {get_top_k_mimimum_values_indices(array=total_losses, k=k, is_largest=False)}\nMaximum logits at iteration: {get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)}\nMaximum probs at iteration: {get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)}'
+def get_minimum_predictions_string(image_name: str, total_losses: List[float], prediction_losses: List[float],
+                                   logits: List[float], correct_class_probs: List[float], k: int = 25) -> str:
+    min_pred_loss_iter, min_total_loss_iter, max_prob_iter, max_logits_iter = get_best_k_values_iterations(
+        prediction_losses=prediction_losses, total_losses=total_losses,
+        correct_class_probs=correct_class_probs, logits=logits, k=k)
+    return f'Minimum prediction_loss at iteration: {min_pred_loss_iter}\nMinimum total loss at iteration: {min_total_loss_iter}\nMaximum logits at iteration: {max_logits_iter}\nMaximum probs at iteration: {max_prob_iter}'
+
+
+def get_best_k_values_iterations(prediction_losses: List[float], total_losses: List[float],
+                                 correct_class_probs: List[float], logits: List[float], k: int = 3):
+    min_pred_loss_iter = get_top_k_mimimum_values_indices(array=prediction_losses, k=k, is_largest=False)
+    min_total_loss_iter = get_top_k_mimimum_values_indices(array=total_losses, k=k, is_largest=False)
+    max_logits_iter = get_top_k_mimimum_values_indices(array=logits, k=k, is_largest=True)
+    max_prob_iter = get_top_k_mimimum_values_indices(array=correct_class_probs, k=k, is_largest=True)
+
+    return min_pred_loss_iter, min_total_loss_iter, max_prob_iter, max_logits_iter
 
 
 def js_kl(p, q):
@@ -528,7 +541,6 @@ def visualize_attentions_and_temps(cls_attentions_probs, iteration_idx, mean_fol
                                    min_folder, original_transformed_image, temp,
                                    temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder,
                                    temp_tokens_min_folder, temp_tokens_folder=None):
-
     visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
                                max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
                                min_folder=min_folder, original_transformed_image=original_transformed_image)
@@ -639,10 +651,6 @@ def visualize_temp_tokens_and_attention_scores(iteration_idx, max_folder, mean_f
 def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
                                     original_transformed_image, vit_sigmoid_model):
     cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
-    # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
-    #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
-    # temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
-    # temp = get_temp_to_visualize(temp)
     visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
                                max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
                                min_folder=min_folder, original_transformed_image=original_transformed_image)
@@ -650,10 +658,11 @@ def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, medi
     return cls_attentions_probs
 
 
-def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, image_plot_folder_path: Path, inputs, run):
+def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, image_plot_folder_path: Path, inputs,
+                                                            run):
     print_number_of_trainable_and_not_trainable_params(model=model)
-    save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
-                      text=run.url) if run is not None else ''
+    if run is not None:
+        save_text_to_file(path=image_plot_folder_path, file_name='metrics_url', text=run.url)
     if vit_config['plot_visualizations']:
         plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
                                              patch_size=vit_config['patch_size'], vit_config=vit_config)
@@ -702,7 +711,8 @@ def is_iteration_to_action(iteration_idx: int, action: str = 'print') -> bool:
     return is_iter_to_action
 
 
-def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtractor, image_name: str=None, image = None):
+def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtractor, image_name: str = None,
+                                               image=None):
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")

@@ -1,7 +1,7 @@
 general:
   seed: 42
-  images_folder_name: ILSVRC2012_val - Updated-DGX
-#  images_folder_name: ILSVRC2012_val - Updated
+  images_folder_name_DGX: ILSVRC2012_val - Updated-DGX
+  images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
   wandb_project: vit-temp-softmax3
   wandb_entity: yuvalasher
