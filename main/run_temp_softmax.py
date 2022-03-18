@@ -83,7 +83,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                               iteration_idx=iteration_idx, objects_path=objects_path,
                               prediction_losses=prediction_losses, tokens_mask=tokens_mask, total_losses=total_losses,
                               temps=temps, vit_sigmoid_model=vit_ours_model)
-            print(f'Image Run Time: {(time() - start_time) / 60} minutes')
+        print(f'*********************** Image Run Time: {(time() - start_time) / 60} minutes ***********************')
 
 
 if __name__ == '__main__':
