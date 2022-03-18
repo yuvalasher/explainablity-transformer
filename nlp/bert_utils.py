@@ -15,7 +15,7 @@ from utils import save_obj_to_disk
 from config import config
 from torch import optim
 from utils.consts import IMAGES_FOLDER_PATH
-from utils.utils import get_image_from_path
+from utils.utils_functions import get_image_from_path
 
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
