@@ -42,8 +42,9 @@ def log(loss, output, target, x_attention=None, sampled_binary_patches=None, kl_
                    # 'num_of_non-zero_x_sampled_values': len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None,
                    # 'num_of_non-negative-x_attention_values': len(torch.where(nn.functional.relu(x_attention))[0])
                    })
-    print(
-        f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][target_class_idx]}, other_loss: {other_loss}')
+    if vit_config['verbose']:
+        print(
+            f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][target_class_idx]}, other_loss: {other_loss}')
         # f'pred_loss: {prediction_loss}, kl_loss: {kl_loss}, l1_loss: {l1_loss}, entropy_loss: {entropy_loss}, correct_class_logit: {output[0][torch.argmax(F.softmax(target)).item()]}, num_of_non-zero_x_sampled_values: {len(torch.where(sampled_binary_patches)[0]) if sampled_binary_patches is not None else None}, num_of_non-negative_x_attention_values: {len(torch.where(nn.functional.relu(x_attention))[0])}')
 
 
