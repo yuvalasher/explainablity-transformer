@@ -1,8 +1,9 @@
 general:
   seed: 42
-  images_folder_name: ILSVRC2012_val - Updated
+  images_folder_name: ILSVRC2012_val - Updated-DGX
+#  images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
-  wandb_project: vit-temp-softmax2-l
+  wandb_project: vit-temp-softmax3
   wandb_entity: yuvalasher
 
 vit:
@@ -21,51 +22,48 @@ vit:
 #    - image_name: Bullmastiff.jpg
 #      correct_class: 282
 #      contrastive_class:
-    - image_name: 00000045.JPEG # spider
+    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
+      correct_class: 161
+      contrastive_class: 88
+    - image_name: 0000000002.JPEG # zebra and elephant
+      correct_class: 101
+      contrastive_class: 340
+    - image_name: 0000000004.JPEG # zebras and elephants
+      correct_class: 340
+      contrastive_class: 386
+    - image_name: 00000102.JPEG # dog
+      correct_class: 906
+      contrastive_class:
+    - image_name: 0000000003.JPEG # dog and cat
+      correct_class: 207
+      contrastive_class: 285
+    - image_name: 0000000005.JPEG # catdog
+      correct_class: 282
+      contrastive_class: 243
+    - image_name: 00000009.JPEG # mouse, computer mouse (?)
+      correct_class: 674
+      contrastive_class: 673
+    - image_name: 00000001.JPEG # snake
       correct_class:
       contrastive_class:
-#    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
-#      correct_class: 161
-#      contrastive_class: 88
-#    - image_name: 0000000002.JPEG # zebra and elephant
-#      correct_class: 101
-#      contrastive_class: 340
-#    - image_name: 0000000004.JPEG # zebras and elephants
-#      correct_class: 340
-#      contrastive_class: 386
-#    - image_name: 00000102.JPEG # dog
-#      correct_class: 906
-#      contrastive_class:
-#    - image_name: 0000000003.JPEG # dog and cat
-#      correct_class: 207
-#      contrastive_class: 285
-#    - image_name: 0000000005.JPEG # catdog
-#      correct_class: 282
-#      contrastive_class: 243
-#    - image_name: 00000009.JPEG # mouse, computer mouse (?)
-#      correct_class: 674
-#      contrastive_class: 673
-#    - image_name: 00000001.JPEG # snake
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000555.JPEG # trumpet
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000024.JPEG # planetarium
-#      correct_class: 727
-#      contrastive_class:
-#    - image_name: 00000106.JPEG # tie
-#      correct_class: 906
-#      contrastive_class:
-#    - image_name: 00000112.JPEG # pill bottle
-#      correct_class: 720
-#      contrastive_class:
-#    - image_name: 00000003.JPEG # dog
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000018.JPEG # bird
-#      correct_class:
-#      contrastive_class:
+    - image_name: 00000555.JPEG # trumpet
+      correct_class:
+      contrastive_class:
+    - image_name: 00000024.JPEG # planetarium
+      correct_class: 727
+      contrastive_class:
+    - image_name: 00000106.JPEG # tie
+      correct_class: 906
+      contrastive_class:
+    - image_name: 00000112.JPEG # pill bottle
+      correct_class: 720
+      contrastive_class:
+    - image_name: 00000003.JPEG # dog
+      correct_class:
+      contrastive_class:
+    - image_name: 00000018.JPEG # bird
+      correct_class:
+      contrastive_class:
 #    - image_name: 00000061.JPEG # poncho (0.803)
 #      correct_class:
 #      contrastive_class:
@@ -93,9 +91,8 @@ vit:
 #    - image_name: 00000061.JPEG
 #      correct_class:
 #      contrastive_class:
-
   lr: 3.0e-3
-  num_steps: 160
+  num_steps: 180
   print_every: 1
   discard_ratio: 0.6
   log: False
@@ -128,7 +125,7 @@ bert:
   log: False
   verbose: False
   lr: 3.0e-3
-  num_steps: 200
+  num_steps: 5
   print_every: 1
   loss:
     kl_loss_multiplier: 0
