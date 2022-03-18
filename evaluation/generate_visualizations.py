@@ -15,9 +15,9 @@ from torchvision.datasets import ImageNet
 
 from evaluation.evaluation_utils import patch_score_to_image, normalize, _remove_file_if_exists
 from main.temp_softmax_opt import temp_softmax_optimization
-from utils.consts import DATA_PATH, EXPERIMENTS_FOLDER_PATH
+from utils.consts import DATA_PATH, EXPERIMENTS_FOLDER_PATH, EVALUATION_FOLDER_PATH
 from config import config
-from vit_utils import load_feature_extractor_and_vit_model, create_folder
+from vit_utils import load_feature_extractor_and_vit_model, create_folder, read_file
 from torch import nn
 
 vit_config = config['vit']
@@ -113,7 +113,6 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
         for batch_idx, (data, target) in enumerate(tqdm(sample_loader)):
             first = True if batch_idx == 0 else False
             resize_array_src_to_dst_shape(src_array=data_cam_min_pred_loss, dst_array_shape=data.shape, is_first=first)
-            resize_array_src_to_dst_shape(src_array=data_cam_min_pred_loss, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_max_logits, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_90, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_100, dst_array_shape=data.shape, is_first=first)
@@ -136,7 +135,7 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             # data = normalize(data)
             data = data.to(device)
             # data.requires_grad_()
-            d_res = {}
+            res_by_iter = {}
             d_cls_attentions_probs = temp_softmax_optimization(vit_model=model, feature_extractor=feature_extractor,
                                                                image=transforms.ToPILImage()(
                                                                    data.reshape(3, vit_config['img_size'],
@@ -144,21 +143,21 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
                                                                num_steps=vit_config['num_steps'])
 
             for iter_desc, cls_attn in d_cls_attentions_probs.items():
-                d_res[iter_desc] = patch_score_to_image(transformer_attribution=cls_attn.median(dim=0)[0],
-                                                        output_2d_tensor=False)  # [1, 1, 224, 224]
-            insert_result_to_array(d_res['max_logits'], array=data_cam_max_logits, data_shape=data.shape)
-            insert_result_to_array(d_res['min_pred_loss'], array=data_cam_min_pred_loss, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_90'], array=data_cam_90, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_100'], array=data_cam_100, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_110'], array=data_cam_110, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_120'], array=data_cam_120, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_130'], array=data_cam_130, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_140'], array=data_cam_140, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_150'], array=data_cam_150, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_160'], array=data_cam_160, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_170'], array=data_cam_170, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_180'], array=data_cam_180, data_shape=data.shape)
-            insert_result_to_array(d_res['iter_190'], array=data_cam_190, data_shape=data.shape)
+                res_by_iter[iter_desc] = patch_score_to_image(transformer_attribution=cls_attn.median(dim=0)[0],
+                                                              output_2d_tensor=False)  # [1, 1, 224, 224]
+            insert_result_to_array(res_by_iter['max_logits'], array=data_cam_max_logits, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['min_pred_loss'], array=data_cam_min_pred_loss, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_90'], array=data_cam_90, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_100'], array=data_cam_100, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_110'], array=data_cam_110, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_120'], array=data_cam_120, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_130'], array=data_cam_130, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_140'], array=data_cam_140, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_150'], array=data_cam_150, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_160'], array=data_cam_160, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_170'], array=data_cam_170, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_180'], array=data_cam_180, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_190'], array=data_cam_190, data_shape=data.shape)
 
 
 def insert_result_to_array(result, array, data_shape: Tuple):
@@ -228,9 +227,10 @@ if __name__ == "__main__":
         transforms.Resize((vit_config['img_size'], vit_config['img_size'])),
         transforms.ToTensor(),
     ])
+    images_indices = eval(read_file(path=Path(EVALUATION_FOLDER_PATH, 'images_to_test.txt')))[:10]
+    # images_indices = list(range(2)) # TODO - delete
     val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
-    imagenet_ds = torch.utils.data.Subset(val_imagenet_ds,
-                                          list(range(vit_config['evaluation']['num_samples_to_evaluate'])))
+    imagenet_ds = torch.utils.data.Subset(val_imagenet_ds, images_indices)
     sample_loader = DataLoader(
         imagenet_ds,
         batch_size=vit_config['evaluation']['batch_size'],

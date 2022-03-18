@@ -25,7 +25,7 @@ from config import config
 from torch import optim
 from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations
-from utils.utils import get_image_from_path
+from utils.utils_functions import get_image_from_path
 
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
@@ -528,6 +528,10 @@ def save_text_to_file(path: Path, file_name: str, text: str):
     with open(Path(path, f'{file_name}.txt'), 'w') as f:
         f.write(text)
 
+def read_file(path: Path) -> str:
+    with open(Path(path), 'r') as f:
+        data = f.read()
+    return data
 
 def get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path, image_name, total_losses, prediction_losses,
                                                     correct_class_logits, correct_class_probs):
