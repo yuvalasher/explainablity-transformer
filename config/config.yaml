@@ -96,8 +96,8 @@ vit:
   print_every: 1
   discard_ratio: 0.6
   log: False
-  verbose: True
-  plot_visualizations: True
+  verbose: False
+  plot_visualizations: False
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   loss:

@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from utils import *
+# from utils.utils import *
 from loss_utils import *
 import wandb
 from log_utils import get_wandb_config
@@ -51,9 +51,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                                  temp=vit_ours_model.vit.encoder.x_attention)
                 loss.backward()
 
-                compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
-                                             prev_x_attention=vit_ours_model.vit.encoder.x_attention,
-                                             sampled_binary_patches=None)
+                if vit_config['verbose']:
+                    compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
+                                                 prev_x_attention=vit_ours_model.vit.encoder.x_attention,
+                                                 sampled_binary_patches=None)
                 cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_ours_model)
                 if vit_config['plot_visualizations']:
                     temp = visualize_temp_tokens_and_attention_scores(iteration_idx=iteration_idx,
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     #     for entropy_loss_multiplier in entropy_loss_multipliers:
     #         loss_config['pred_loss_multiplier'] = pred_loss_multiplier
     #         loss_config['entropy_loss_multiplier'] = entropy_loss_multiplier
-    experiment_name = f"visu_mul_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+    experiment_name = f"test_saved_objs_mul_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
     print(experiment_name)
     _ = create_folder(Path(PLOTS_PATH, experiment_name))
     optimize_params(vit_model=vit_model, criterion=objective_temp_softmax)
