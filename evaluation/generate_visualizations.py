@@ -9,6 +9,8 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
 from tqdm import tqdm
 import h5py
+
+from datasets.imagenet_dataset import ImageNetDataset
 from feature_extractor import ViTFeatureExtractor
 import argparse
 from torchvision.datasets import ImageNet
@@ -229,7 +231,8 @@ if __name__ == "__main__":
     ])
     images_indices = eval(read_file(path=Path(EVALUATION_FOLDER_PATH, 'images_to_test.txt')))[:10]
     # images_indices = list(range(2)) # TODO - delete
-    val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
+    # val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
+    val_imagenet_ds = ImageNetDataset(transform=transform)
     imagenet_ds = torch.utils.data.Subset(val_imagenet_ds, images_indices)
     sample_loader = DataLoader(
         imagenet_ds,
