@@ -101,7 +101,7 @@ vit:
 #      correct_class:
 #      contrastive_class:
   lr: 3.0e-3
-  num_steps: 191
+  num_steps: 2
   print_every: 1
   discard_ratio: 0.6
   log: False

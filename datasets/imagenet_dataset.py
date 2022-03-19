@@ -28,14 +28,16 @@ class ImageNetDataset(Dataset):
         self.listdir = os.listdir(root_dir)
 
     def __len__(self):
-        return 50
+        return len(self.listdir)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.item()
 
-        image_name = f'{str(self.listdir[idx]).zfill(8)}'
-        image = Image.open(Path(self.root_dir, image_name))
+        # image_name = f'{str(self.listdir[idx]).zfill(8)}'
+        image_name = f'{str(idx).zfill(8)}.JPEG'
+        image_path = Path(self.root_dir, image_name)
+        image = Image.open(image_path)
 
         if self.transform:
             image = self.transform(image)
