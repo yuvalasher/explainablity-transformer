@@ -76,5 +76,4 @@ class ImageNetDataset(Dataset):
 
         if self.transform:
             image = self.transform(image)
-
-        return image, self.targets[idx]
+        return image, self.targets[self.listdir.index(f'{str(idx).zfill(8)}.JPEG')]
