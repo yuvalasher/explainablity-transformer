@@ -229,9 +229,8 @@ if __name__ == "__main__":
         transforms.Resize((vit_config['img_size'], vit_config['img_size'])),
         transforms.ToTensor(),
     ])
-    images_indices = eval(read_file(path=Path(EVALUATION_FOLDER_PATH, 'images_to_test.txt')))[:4]
+    images_indices = eval(read_file(path=Path(EVALUATION_FOLDER_PATH, 'images_to_test.txt')))
     print(images_indices)
-    # images_indices = list(range(2)) # TODO - delete
     # val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
     val_imagenet_ds = ImageNetDataset(transform=transform)
     imagenet_ds = torch.utils.data.Subset(val_imagenet_ds, images_indices)
