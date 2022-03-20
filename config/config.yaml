@@ -112,7 +112,7 @@ vit:
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 1000
+    entropy_loss_multiplier: 100
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   evaluation:
