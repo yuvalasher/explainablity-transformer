@@ -53,10 +53,9 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
         # Compute model accuracy
         if vit_config['verbose']:
             plot_image(data)
-        print(data.is_cuda())
-        inputs = feature_extractor(images=data.squeeze(0), return_tensors="pt")
+        inputs = feature_extractor(images=data.squeeze(0).cpu(), return_tensors="pt")
+        inputs = {'pixel_values': inputs['pixel_values'].to(device)}
         pred = model(**inputs)
-
         probs = torch.softmax(pred.logits, dim=1)
         target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
         second_probs = probs.data.topk(2, dim=1)[0][:, 1]
