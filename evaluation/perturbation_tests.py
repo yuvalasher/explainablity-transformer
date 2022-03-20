@@ -41,41 +41,33 @@ def eval(experiment_dir: Path):
 
     num_correct_pertub = np.zeros((9, len(imagenet_ds)))  # 9 is the number of perturbation steps
     dissimilarity_pertub = np.zeros((9, len(imagenet_ds)))
-    auc_pertub = np.zeros((9, len(imagenet_ds)))
     logit_diff_pertub = np.zeros((9, len(imagenet_ds)))
     prob_diff_pertub = np.zeros((9, len(imagenet_ds)))
     perturb_index = 0
 
     for batch_idx, (data, vis, target) in enumerate(tqdm(sample_loader)):
-        # Update the number of samples
         num_samples += len(data)
 
         data, target, vis = get_data_vis_and_target(data, target, vis)
-        # norm_data = normalize(data.clone()) # TODO - verify
 
         # Compute model accuracy
-        # plot_image(data)
+        if vit_config['verbose']:
+            plot_image(data)
         inputs = feature_extractor(images=data.squeeze(0), return_tensors="pt")
         pred = model(**inputs)
         pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
-            model_index, num_correct_model, pred.logits, target)
+            model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
 
         probs = torch.softmax(pred.logits, dim=1)
         target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
         second_probs = probs.data.topk(2, dim=1)[0][:, 1]
         temp = torch.log(target_probs / second_probs).data.cpu().numpy()
         dissimilarity_model[model_index:model_index + len(temp)] = temp
+        target = torch.tensor([torch.argmax(probs).item()])
+        if vit_config['verbose']:
+            print(
+                f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
 
-        """
-        if args.wrong:
-            wid = np.argwhere(tgt_pred == 0).flatten()
-            if len(wid) == 0:
-                continue
-            wid = torch.from_numpy(wid).to(vis.device)
-            vis = vis.index_select(0, wid)
-            data = data.index_select(0, wid)
-            target = target.index_select(0, wid)
-        """
         # Save original shape
         org_shape = data.shape
 
@@ -88,7 +80,8 @@ def eval(experiment_dir: Path):
             _data = data.clone()
             _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
                                          base_size=base_size)
-            plot_image(_data, step_idx=i)
+            if vit_config['verbose']:
+                plot_image(_data, step_idx=i)
             inputs = feature_extractor(images=_data.squeeze(0), return_tensors="pt")
             out = model(**inputs)
 
@@ -97,8 +90,6 @@ def eval(experiment_dir: Path):
             pred_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)  # hila
             # pred_prob = pred_probabilities[0][target.item()].unsqueeze(0)
             prob_diff = (pred_prob - pred_org_prob).data.cpu().numpy()
-            print(
-                f'%: {perturbation_steps[i]}, original_prob: {pred_org_prob.item()}, perb_prob: {pred_prob.item()}, diff: {prob_diff.item()}')
             prob_diff_pertub[i, perturb_index:perturb_index + len(prob_diff)] = prob_diff
 
             # Logits Comparison
@@ -106,13 +97,9 @@ def eval(experiment_dir: Path):
             # pred_logit = out.logits[0][target.item()].unsqueeze(0)
             logit_diff = (pred_logit - pred_org_logit).data.cpu().numpy()
             logit_diff_pertub[i, perturb_index:perturb_index + len(logit_diff)] = logit_diff
-
-            # AUC - Area Under Curve
-            y_true_one_hot = torch.nn.functional.one_hot(target, num_classes=1000)
-            y_pred_probabilities = pred_probabilities
-            auc = calculate_auc(y_true=y_true_one_hot[0], y_pred=y_pred_probabilities[0])
-            auc_pertub[i, perturb_index:perturb_index + len(logit_diff)] = auc
-            print(f'Auc: {auc}')
+            if vit_config['verbose']:
+                print(
+                    f'{100 * perturbation_steps[i]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
             # Target-Class Comparison
             target_class = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
@@ -127,15 +114,16 @@ def eval(experiment_dir: Path):
 
         model_index += len(target)
         perturb_index += len(target)
+
     save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
                  dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
                  dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
                  prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
-                 perturbation_steps=perturbation_steps, auc_pertub=auc_pertub)
+                 perturbation_steps=perturbation_steps)
 
 
 def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, num_correct_pertub, dissimilarity_pertub,
-                 logit_diff_pertub, prob_diff_pertub, perturb_index, perturbation_steps, auc_pertub):
+                 logit_diff_pertub, prob_diff_pertub, perturb_index, perturbation_steps):
     np.save(Path(experiment_dir, 'model_hits.npy'), num_correct_model)
     np.save(Path(experiment_dir, 'model_dissimilarities.npy'), dissimilarity_model)
     np.save(Path(experiment_dir, 'perturbations_hits.npy'), num_correct_pertub[:, :perturb_index])
@@ -144,8 +132,12 @@ def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, n
     np.save(Path(experiment_dir, 'perturbations_prob_diff.npy'), prob_diff_pertub[:, :perturb_index])
     print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
     print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
+
+    mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
+    mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, 1)  # accuracy for class = top-class
+    print(f'AUC: {calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100}%')
+
     print(f'Perturbation Steps: {perturbation_steps}')
-    print(f'Mean auc_pertub: {np.mean(auc_pertub)}, std auc_pertub {np.std(auc_pertub)}')
     print(
         f'Mean num_correct_pertub: {np.mean(num_correct_pertub, axis=1)}, std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
     print(
@@ -192,9 +184,9 @@ def get_data_vis_and_target(data, target, vis):
 
 
 if __name__ == "__main__":
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, '1')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
     model.eval()
-    imagenet_ds = ImagenetResults(path=experiment_path, vis_type='vis_min_pred_loss')
+    imagenet_ds = ImagenetResults(path=experiment_path, vis_type='vis_150')
     sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
     eval(experiment_dir=experiment_path)
