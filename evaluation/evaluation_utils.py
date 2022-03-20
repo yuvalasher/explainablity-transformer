@@ -3,8 +3,10 @@ from pathlib import Path, WindowsPath
 from typing import Tuple, Union, Any
 import torch
 from torch import Tensor
-from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.metrics import auc
 import os
+import numpy as np
+
 
 def get_iteration_idx_of_minimum_loss(path) -> int:
     losses = load_obj_from_path(path=Path(path, 'objects' 'losses'))
@@ -58,11 +60,8 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def calculate_auc(y_true, y_pred) -> float:
-    """
-    ovr - One versus all - treat the multi-class problem to a binary
-    """
-    return roc_auc_score(y_true=y_true, y_score=y_pred, multi_class='ovr', average='macro')
+def calculate_auc(mean_accuracy_by_step: np.ndarray) -> float:
+    return auc(x=np.arange(0, 1, 0.1), y=mean_accuracy_by_step)
 
 
 def _remove_file_if_exists(path: Path) -> None:
