@@ -55,8 +55,6 @@ def eval(experiment_dir: Path):
             plot_image(data)
         inputs = feature_extractor(images=data.squeeze(0), return_tensors="pt")
         pred = model(**inputs)
-        pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
-            model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
 
         probs = torch.softmax(pred.logits, dim=1)
         target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
@@ -64,6 +62,8 @@ def eval(experiment_dir: Path):
         temp = torch.log(target_probs / second_probs).data.cpu().numpy()
         dissimilarity_model[model_index:model_index + len(temp)] = temp
         target = torch.tensor([torch.argmax(probs).item()])
+        pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
+            model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
         if vit_config['verbose']:
             print(
                 f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
