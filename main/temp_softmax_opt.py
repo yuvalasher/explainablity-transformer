@@ -21,6 +21,7 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
                  - Each 10 iterations from iter 90 to the end ([90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190])
     """
     vit_ours_model, optimizer = setup_model_and_optimizer(model_name='softmax_temp')
+    print(f'******************** Is model on CUDA: {vit_ours_model.is_cuda}')
     inputs, original_transformed_image = get_image_and_inputs_and_transformed_image(image=image,
                                                                                     feature_extractor=feature_extractor)
     target = vit_model(**inputs)
