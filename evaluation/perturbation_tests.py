@@ -61,7 +61,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
         second_probs = probs.data.topk(2, dim=1)[0][:, 1]
         temp = torch.log(target_probs / second_probs).data.cpu().numpy()
         dissimilarity_model[model_index:model_index + len(temp)] = temp
-        target = torch.tensor([torch.argmax(probs).item()])
+        target = torch.tensor([torch.argmax(probs).item()]).to(device)
         pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
             model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
         if vit_config['verbose']:
@@ -83,6 +83,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
             if vit_config['verbose']:
                 plot_image(_data, step_idx=i)
             inputs = feature_extractor(images=_data.squeeze(0), return_tensors="pt")
+            inputs = {'pixel_values': inputs['pixel_values'].to(device)}
             out = model(**inputs)
 
             # Probabilities Comparison
@@ -181,7 +182,6 @@ def get_model_infer_metrics(model_index, num_correct_model, pred, target):
 
 
 def get_data_vis_and_target(data, target, vis):
-    print(device)
     data = data.to(device)
     vis = vis.to(device)
     target = target.to(device)
@@ -204,6 +204,7 @@ if __name__ == "__main__":
         print(vis_type)
         feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
                                                                         model_type='vit-for-dino')
+        model.to(device)
         model.eval()
         imagenet_ds = ImagenetResults(path=experiment_path, vis_type=vis_type)
         sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
