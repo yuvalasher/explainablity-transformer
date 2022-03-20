@@ -13,7 +13,7 @@ class ImagenetResults(Dataset):
         super(ImagenetResults, self).__init__()
 
         self.path: Path = Path(path, 'results.hdf5')
-        # self.path: Path = Path(path, 'results_entropy_1000.hdf5')
+        # self.path: Path = Path(path, 'results_100.hdf5')
         self.vis_type: str = vis_type
         self.data = None
 
