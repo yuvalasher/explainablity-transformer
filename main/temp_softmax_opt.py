@@ -27,7 +27,7 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
     target_class_idx = torch.argmax(target.logits[0])
     total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, temps = [], [], [], [], [], []
 
-    for iteration_idx in tqdm(range(num_steps)):
+    for iteration_idx in range(num_steps):
         optimizer.zero_grad()
         output = vit_ours_model(**inputs)
         correct_class_logit, correct_class_prob, prediction_loss = get_iteration_target_class_stats(
