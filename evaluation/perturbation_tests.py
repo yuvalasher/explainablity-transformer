@@ -82,7 +82,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
                                          base_size=base_size)
             if vit_config['verbose']:
                 plot_image(_data, step_idx=i)
-            inputs = feature_extractor(images=_data.squeeze(0), return_tensors="pt")
+            inputs = feature_extractor(images=_data.squeeze(0).cpu(), return_tensors="pt")
             inputs = {'pixel_values': inputs['pixel_values'].to(device)}
             out = model(**inputs)
 
