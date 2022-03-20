@@ -53,6 +53,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
         # Compute model accuracy
         if vit_config['verbose']:
             plot_image(data)
+        print(data.is_cuda())
         inputs = feature_extractor(images=data.squeeze(0), return_tensors="pt")
         pred = model(**inputs)
 
@@ -181,6 +182,7 @@ def get_model_infer_metrics(model_index, num_correct_model, pred, target):
 
 
 def get_data_vis_and_target(data, target, vis):
+    print(device)
     data = data.to(device)
     vis = vis.to(device)
     target = target.to(device)
