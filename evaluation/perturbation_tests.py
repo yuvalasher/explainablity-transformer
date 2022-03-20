@@ -1,6 +1,6 @@
 import glob
 from typing import Union
-
+import pandas as pd
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -24,7 +24,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def eval(experiment_dir: Path):
+def eval(experiment_dir: Path, model, feature_extractor) -> float:
     num_samples = 0
     num_correct_model = np.zeros((len(imagenet_ds, )))
     dissimilarity_model = np.zeros((len(imagenet_ds, )))
@@ -114,12 +114,21 @@ def eval(experiment_dir: Path):
 
         model_index += len(target)
         perturb_index += len(target)
-
+    auc = get_auc(num_correct_pertub=num_correct_pertub)
     save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
                  dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
                  dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
                  prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
                  perturbation_steps=perturbation_steps)
+    return auc
+
+
+def get_auc(num_correct_pertub):
+    mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
+    mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, 1)  # TODO - accuracy for class = top-class (predicted)
+    auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
+    print(f'AUC: {auc}%')
+    return auc
 
 
 def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, num_correct_pertub, dissimilarity_pertub,
@@ -132,11 +141,6 @@ def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, n
     np.save(Path(experiment_dir, 'perturbations_prob_diff.npy'), prob_diff_pertub[:, :perturb_index])
     print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
     print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
-
-    mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
-    mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, 1)  # accuracy for class = top-class
-    print(f'AUC: {calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100}%')
-
     print(f'Perturbation Steps: {perturbation_steps}')
     print(
         f'Mean num_correct_pertub: {np.mean(num_correct_pertub, axis=1)}, std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
@@ -183,10 +187,26 @@ def get_data_vis_and_target(data, target, vis):
     return data, target, vis
 
 
+def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
+    return results_df.append({'vis_type': vis_type, 'auc': auc}, ignore_index=True)
+
+
 if __name__ == "__main__":
+    results_df = pd.DataFrame(columns=['vis_type', 'auc'])
+    VIS_TYPES = ['vis_min_pred_loss', 'vis_max_logits', 'vis_90', 'vis_100', 'vis_110', 'vis_120', 'vis_130', 'vis_140',
+                 'vis_150', 'vis_160', 'vis_170', 'vis_180', 'vis_190']
+
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, '1')
-    feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
-    model.eval()
-    imagenet_ds = ImagenetResults(path=experiment_path, vis_type='vis_150')
-    sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
-    eval(experiment_dir=experiment_path)
+    # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
+    for vis_type in VIS_TYPES:
+        vit_type_experiment_path = create_folder(Path(experiment_path, vis_type))
+        print(vis_type)
+        feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
+                                                                        model_type='vit-for-dino')
+        model.eval()
+        imagenet_ds = ImagenetResults(path=experiment_path, vis_type=vis_type)
+        sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
+        auc = eval(experiment_dir=vit_type_experiment_path, model=model, feature_extractor=feature_extractor)
+        results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
+        print(results_df)
+        results_df.to_csv(Path(experiment_path, 'results_df.csv'), index=False)
