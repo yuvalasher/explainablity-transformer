@@ -25,6 +25,7 @@ def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tenso
 def entropy(p_dist: Tensor) -> Tensor:
     # return sum([-p * torch.log2(p) if p > 0 else 0 for p in p_dist])
     return torch.sum(torch.nan_to_num_(-torch.log2(p_dist) * p_dist, nan=0.0))
+    # return torch.mean(torch.nan_to_num_(-torch.log2(p_dist) * p_dist, nan=0.0))
 
 
 def log(loss, output, target, x_attention=None, sampled_binary_patches=None, kl_loss=None, l1_loss=None,
