@@ -6,7 +6,9 @@ from pytorch_lightning import seed_everything
 vit_config = config['vit']
 seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
-l = ['0000000002.JPEG', '00000112.JPEG','00000106.JPEG', '0000000003.JPEG','0000000005.JPEG', '0000000004.JPEG','0000000002.JPEG', '0000000001.JPEG','0000000005.JPEG', '00000082.JPEG', '00000032.JPEG', '00000052.JPEG', '00000069.JPEG' , '00000009.JPEG', '00000009.JPEG', '00000018.JPEG', '00000327.JPEG']
+
+l = ['chicken.png', '0000000005.JPEG', '0000000002.JPEG', '00000112.JPEG','00000106.JPEG', '0000000003.JPEG', '0000000004.JPEG','0000000002.JPEG', '0000000001.JPEG','0000000005.JPEG', '00000082.JPEG', '00000032.JPEG', '00000052.JPEG', '00000069.JPEG' , '00000009.JPEG', '00000009.JPEG', '00000018.JPEG', '00000327.JPEG']
+
 for image_name in l:
     image = get_image_from_path(os.path.join(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
