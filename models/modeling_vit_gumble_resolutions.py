@@ -394,7 +394,7 @@ class ViTEncoder(nn.Module):
     def get_sampled_binary_patches_original_resolution(self, sampled_binary_patches):
         sampled_binary_patches_original_resolution = []
         resolution_factor = int(64 / 16)
-        num_patches_in_row = int(384 / 16)
+        num_patches_in_row = int(224 / 16)
         sampled_binary_patches_interpolated = torch.nn.functional.interpolate(
             sampled_binary_patches.unsqueeze(0).unsqueeze(0).unsqueeze(0),
             scale_factor=resolution_factor)
