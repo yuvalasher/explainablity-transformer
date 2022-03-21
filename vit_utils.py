@@ -115,7 +115,7 @@ def plot_attn_probs(attentions: Tensor, image_size: int, patch_size: int, num_he
                     iteration_idx: int = None, only_fusion: bool = True) -> None:
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
-    attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="nearest")[
+    attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=patch_size, mode="bilinear")[
         0].cpu().detach().numpy()
 
     # plt.imsave(fname=Path(path, f'iter_{iteration_idx}_max_fusion.png'), arr=attentions.max(axis=0), format='png')
@@ -174,7 +174,7 @@ def save_saliency_map(image: Tensor, saliency_map: Tensor, filename: Path, verbo
     img_with_heatmap = np.float32(color_heatmap) + np.float32(image)
     img_with_heatmap = img_with_heatmap / np.max(img_with_heatmap)
     if verbose:
-        plt.imshow(img_with_heatmap, interpolation='nearest')
+        plt.imshow(img_with_heatmap, interpolation='bilinear')
         plt.show()
     cv2.imwrite(f'{filename.resolve()}.png', np.uint8(255 * img_with_heatmap))
 
@@ -508,9 +508,9 @@ def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vi
                                                          path=path)
     attention_probs = get_attention_probs(model=vit_basic_for_dino)
     plot_attention_rollout(attention_probs=attention_probs, path=path,
-                           patch_size=patch_size, iteration_idx=0, head_fusion='max')
+                           patch_size=patch_size, iteration_idx=0, head_fusion='max', original_image=original_image)
     plot_attention_rollout(attention_probs=attention_probs, path=path,
-                           patch_size=patch_size, iteration_idx=0, head_fusion='mean')
+                           patch_size=patch_size, iteration_idx=0, head_fusion='mean', original_image=original_image)
 
 
 def get_temp_to_visualize(temp):
@@ -663,19 +663,21 @@ def visualize_attention_scores_only(iteration_idx, max_folder, mean_folder, medi
     return cls_attentions_probs
 
 
-def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, image_plot_folder_path: Path, inputs,
-                                                            run):
+def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, image_plot_folder_path: Path, inputs, run,
+                                                            original_image=None):
     print_number_of_trainable_and_not_trainable_params(model=model)
     if run is not None:
         save_text_to_file(path=image_plot_folder_path, file_name='metrics_url', text=run.url)
     if vit_config['plot_visualizations']:
         plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
-                                             patch_size=vit_config['patch_size'], vit_config=vit_config)
+                                             patch_size=vit_config['patch_size'], vit_config=vit_config,
+                                             original_image=original_image)
     mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, \
     temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder = create_folders(
         image_plot_folder_path)
     objects_path = create_folder(Path(image_plot_folder_path, 'objects'))
-    return max_folder, mean_folder, median_folder, min_folder, objects_path, temp_tokens_max_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder
+    return max_folder, mean_folder, median_folder, min_folder, objects_path, temp_tokens_max_folder, \
+           temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder
 
 
 def end_iteration(correct_class_logits, correct_class_probs, image_name, image_plot_folder_path, iteration_idx,

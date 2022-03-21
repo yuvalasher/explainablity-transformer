@@ -38,8 +38,8 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
             max_folder, mean_folder, median_folder, min_folder, objects_path, temp_tokens_max_folder, \
             temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = start_run_save_files_plot_visualizations_create_folders(
-                model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run)
-
+                model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run,
+                original_image=original_transformed_image)
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_ours_model(**inputs)
