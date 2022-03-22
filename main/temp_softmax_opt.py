@@ -29,7 +29,7 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
     target = vit_model(**inputs)
     target_class_idx = torch.argmax(target.logits[0])
     total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, temps = [], [], [], [], [], []
-
+    mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'])[0]
     for iteration_idx in range(num_steps):
         optimizer.zero_grad()
         output = vit_ours_model(**inputs)
@@ -43,11 +43,12 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
             compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
                                          prev_x_attention=vit_ours_model.vit.encoder.x_attention)
         cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_ours_model, layer=-1)
+        token_mask = cls_attentions_probs.clone() * mask_rollout_max
         correct_class_logits.append(correct_class_logit)
         correct_class_probs.append(correct_class_prob)
         prediction_losses.append(prediction_loss)
         total_losses.append(loss.item())
-        tokens_mask.append(cls_attentions_probs.clone())
+        tokens_mask.append(token_mask)
         optimizer.step()
 
     min_pred_loss_iter, min_total_loss_iter, max_prob_iter, max_logits_iter = get_best_k_values_iterations(
@@ -55,6 +56,6 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
         correct_class_probs=correct_class_probs, logits=correct_class_logits, k=1)
     cls_attn_probs_by_stop_points = {'min_pred_loss': tokens_mask[min_pred_loss_iter],
                                      'max_logits': tokens_mask[max_logits_iter]}
-    for iter_idx in range(90, 200, 10):
+    for iter_idx in range(90, 200, 5):
         cls_attn_probs_by_stop_points[f'iter_{iter_idx}'] = tokens_mask[iter_idx]
     return cls_attn_probs_by_stop_points
