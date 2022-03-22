@@ -40,6 +40,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = start_run_save_files_plot_visualizations_create_folders(
                 model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run,
                 original_image=original_transformed_image)
+            mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'])[0]
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_ours_model(**inputs)
@@ -52,23 +53,31 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 loss.backward()
 
                 if vit_config['verbose']:
-                    compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
+                    compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits,
+                                                 output=output.logits,
                                                  prev_x_attention=vit_ours_model.vit.encoder.x_attention,
                                                  sampled_binary_patches=None)
-                cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_ours_model)
+                cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(
+                    model=vit_ours_model)
                 if vit_config['plot_visualizations']:
-                    temp = visualize_temp_tokens_and_attention_scores(iteration_idx=iteration_idx,
-                                                                      max_folder=max_folder,
-                                                                      mean_folder=mean_folder,
-                                                                      median_folder=median_folder,
-                                                                      min_folder=min_folder,
-                                                                      original_transformed_image=original_transformed_image,
-                                                                      temp_tokens_max_folder=temp_tokens_max_folder,
-                                                                      temp_tokens_mean_folder=temp_tokens_mean_folder,
-                                                                      temp_tokens_median_folder=temp_tokens_median_folder,
-                                                                      temp_tokens_min_folder=temp_tokens_min_folder,
-                                                                      vit_sigmoid_model=vit_ours_model,
-                                                                      cls_attentions_probs=cls_attentions_probs)
+                    visualize_attention_scores_with_rollout(original_transformed_image=original_transformed_image,
+                                                            rollout_vector=mask_rollout_max,
+                                                            cls_attentions_probs=cls_attentions_probs,
+                                                            iteration_idx=iteration_idx, max_folder=max_folder,
+                                                            min_folder=min_folder, median_folder=median_folder,
+                                                            mean_folder=mean_folder)
+                temp = visualize_temp_tokens_and_attention_scores(iteration_idx=iteration_idx,
+                                                                  max_folder=max_folder,
+                                                                  mean_folder=mean_folder,
+                                                                  median_folder=median_folder,
+                                                                  min_folder=min_folder,
+                                                                  original_transformed_image=original_transformed_image,
+                                                                  temp_tokens_max_folder=temp_tokens_max_folder,
+                                                                  temp_tokens_mean_folder=temp_tokens_mean_folder,
+                                                                  temp_tokens_median_folder=temp_tokens_median_folder,
+                                                                  temp_tokens_min_folder=temp_tokens_min_folder,
+                                                                  vit_sigmoid_model=vit_ours_model,
+                                                                  cls_attentions_probs=cls_attentions_probs)
 
                 correct_class_logits.append(correct_class_logit)
                 correct_class_probs.append(correct_class_prob)

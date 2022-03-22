@@ -98,17 +98,46 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
+def get_rollout_mask(inputs, fusions:List[str]) -> List[Tensor]:
+    """
+    Each mask is a [n_tokens] mask (after head aggregation)
+    """
+    vit_basic_for_dino = handle_model_config_and_freezing_for_task(
+        model=load_ViTModel(vit_config, model_type='vit-for-dino'))
+    _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
+    attention_probs = get_attention_probs(model=vit_basic_for_dino)
+    masks =[]
+    if 'mean' in fusions:
+        mask_rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', return_resized=False)
+        masks.append(mask_rollout_mean)
+    if 'median' in fusions:
+        mask_rollout_median = rollout(attentions=attention_probs, head_fusion='median', return_resized=False)
+        masks.append(mask_rollout_median)
+    if 'min' in fusions:
+        mask_rollout_min = rollout(attentions=attention_probs, head_fusion='min', return_resized=False)
+        masks.append(mask_rollout_min)
+    if 'max' in fusions:
+        mask_rollout_max = rollout(attentions=attention_probs, head_fusion='max', return_resized=False)
+        masks.append(mask_rollout_max)
+    return masks
+
+
+# def patches_to_
 def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx: int,
-                           head_fusion: str = 'max') -> None:
+                           head_fusion: str = 'max', original_image=None) -> None:
     image_rollout_plots_folder = Path(path, 'rollout')
     os.makedirs(image_rollout_plots_folder, exist_ok=True)
     mask_rollout = rollout(attentions=attention_probs, head_fusion=head_fusion)
-    attention_rollout_original_size = \
-        nn.functional.interpolate(torch.tensor(mask_rollout).unsqueeze(0).unsqueeze(0), scale_factor=patch_size,
-                                  mode="nearest")[0].cpu().detach().numpy()
-    plt.imsave(fname=Path(image_rollout_plots_folder, f'{head_fusion}_rollout_iter_{iteration_idx}.png'),
-               arr=attention_rollout_original_size[0],
-               format='png')
+    file_path = Path(image_rollout_plots_folder, f'{head_fusion}_rollout_iter_{iteration_idx}')
+    if original_image is not None:
+        visu(original_image=original_image, transformer_attribution=mask_rollout, file_name=file_path)
+    else:
+        attention_rollout_original_size = \
+            nn.functional.interpolate(torch.tensor(mask_rollout).unsqueeze(0).unsqueeze(0), scale_factor=patch_size,
+                                      mode="bilinear")[0].cpu().detach().numpy()
+        plt.imsave(fname=f'{file_path}.png',
+                   arr=attention_rollout_original_size[0],
+                   format='png')
 
 
 def plot_attn_probs(attentions: Tensor, image_size: int, patch_size: int, num_heads: int, path: Path,
@@ -188,6 +217,14 @@ def show_cam_on_image(img, mask):
 
 
 def visu(original_image, transformer_attribution, file_name: str):
+    """
+    :param original_image: shape: [3, 224, 224]
+    :param transformer_attribution: shape: [n_patches, n_patches] = [14, 14]
+    :param file_name:
+    :return:
+    """
+    if type(transformer_attribution) == np.ndarray:
+        transformer_attribution = torch.tensor(transformer_attribution)
     transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
     transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16, mode='bilinear')
     transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
@@ -377,7 +414,7 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
+def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', return_resized: bool = True):
     result = torch.eye(attentions[0].size(-1))
     with torch.no_grad():
         for attention in attentions:
@@ -387,6 +424,8 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
                 attention_heads_fused = attention.max(axis=1)[0]
             elif head_fusion == "min":
                 attention_heads_fused = attention.min(axis=1)[0]
+            elif head_fusion == "median":
+                attention_heads_fused = attention.median(axis=1)[0]
             else:
                 raise ("Attention head fusion type Not supported")
 
@@ -405,11 +444,12 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max'):
 
     # Look at the total attention between the class token,
     # and the image patches
-    mask = result[0, 0, 1:]
+    mask = result[0, 0, 1:]  # result.shape: [1, n_tokens + 1, n_tokens + 1]
     # In case of 224x224 image, this brings us from 196 to 14
-    width = int(mask.size(-1) ** 0.5)
-    mask = mask.reshape(width, width).numpy()
-    mask = mask / np.max(mask)
+    if return_resized:
+        width = int(mask.size(-1) ** 0.5)
+        mask = mask.reshape(width, width).numpy()
+    mask = mask / np.max(np.array(mask))
     return mask
 
 
@@ -497,7 +537,8 @@ def save_objects(path: Path, objects_dict: Dict) -> None:
         save_obj_to_disk(path=Path(path, obj_name), obj=obj)
 
 
-def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vit_config: Dict) -> None:
+def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vit_config: Dict,
+                                         original_image=None) -> None:
     """
     Plotting Dino supervise, & rollout methods
     """
@@ -528,10 +569,12 @@ def save_text_to_file(path: Path, file_name: str, text: str):
     with open(Path(path, f'{file_name}.txt'), 'w') as f:
         f.write(text)
 
+
 def read_file(path: Path) -> str:
     with open(Path(path), 'r') as f:
         data = f.read()
     return data
+
 
 def get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path, image_name, total_losses, prediction_losses,
                                                     correct_class_logits, correct_class_probs):
@@ -575,6 +618,29 @@ def visualize_temp(iteration_idx, original_transformed_image, temp, temp_tokens_
         visu(original_image=original_transformed_image,
              transformer_attribution=temp,
              file_name=Path(temp_tokens_folder, f'plot_{iteration_idx}'))
+
+
+def visualize_attention_scores_with_rollout(cls_attentions_probs, rollout_vector, iteration_idx, max_folder,
+                                            mean_folder, median_folder, min_folder,
+                                            original_transformed_image, rollout_folder=None):
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.mean(dim=0) * rollout_vector,
+         file_name=Path(mean_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.median(dim=0)[0] * rollout_vector,
+         file_name=Path(median_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.max(dim=0)[0] * rollout_vector,
+         file_name=Path(max_folder, f'plot_{iteration_idx}'))
+    visu(original_image=original_transformed_image,
+         transformer_attribution=cls_attentions_probs.min(dim=0)[0] * rollout_vector,
+         file_name=Path(min_folder, f'plot_{iteration_idx}'))
+
+    if rollout_folder is not None:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=rollout_vector,
+             file_name=Path(rollout_folder, f'plot_{iteration_idx}'))
+
 
 
 def visualize_attention_scores(cls_attentions_probs, iteration_idx, max_folder, mean_folder, median_folder, min_folder,
