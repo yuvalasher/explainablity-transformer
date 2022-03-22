@@ -156,7 +156,7 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             data = data.to(device)
             # data.requires_grad_()
             res_by_iter = {}
-            d_cls_attentions_probs = temp_softmax_optimization(vit_model=model, feature_extractor=feature_extractor,
+            d_cls_attentions_probs = temp_softmax_optimization(vit_model=vit_model, feature_extractor=feature_extractor,
                                                                image=transforms.ToPILImage()(
                                                                    data.reshape(3, vit_config['img_size'],
                                                                                 vit_config['img_size'])),
