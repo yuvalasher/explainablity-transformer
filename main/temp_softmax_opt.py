@@ -56,6 +56,6 @@ def temp_softmax_optimization(vit_model: ViTForImageClassification, feature_extr
         correct_class_probs=correct_class_probs, logits=correct_class_logits, k=1)
     cls_attn_probs_by_stop_points = {'min_pred_loss': tokens_mask[min_pred_loss_iter],
                                      'max_logits': tokens_mask[max_logits_iter]}
-    for iter_idx in range(90, 200, 5):
+    for iter_idx in [90, 100, 110, 120, 130, 140, 150, 160, 165, 170, 175, 180, 185, 190]:
         cls_attn_probs_by_stop_points[f'iter_{iter_idx}'] = tokens_mask[iter_idx]
     return cls_attn_probs_by_stop_points

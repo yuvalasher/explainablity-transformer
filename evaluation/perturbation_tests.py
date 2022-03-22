@@ -194,8 +194,8 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
 
 if __name__ == "__main__":
     results_df = pd.DataFrame(columns=['vis_type', 'auc'])
-    VIS_TYPES = ['vis_min_pred_loss', 'vis_max_logits', 'vis_90', 'vis_100', 'vis_110', 'vis_120', 'vis_130', 'vis_140',
-                 'vis_150', 'vis_160', 'vis_170', 'vis_180', 'vis_190']
+    VIS_TYPES = ['max_logits', 'min_pred_loss', 'iter_90', 'iter_100', 'iter_110', 'iter_120', 'iter_130', 'iter_140',
+                 'iter_150', 'iter_160', 'iter_165', 'iter_170', 'iter_175', 'iter_180', 'iter_185', 'iter_190', ]
 
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, '1')
     # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')

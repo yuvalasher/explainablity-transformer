@@ -85,13 +85,28 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
+        data_cam_165 = f.create_dataset('vis_165',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
         data_cam_170 = f.create_dataset('vis_170',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_175 = f.create_dataset('vis_175',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
 
         data_cam_180 = f.create_dataset('vis_180',
+                                        VIS_SHAPE,
+                                        maxshape=VIS_MAX_SHAPE,
+                                        dtype=np.float32,
+                                        compression="gzip")
+        data_cam_185 = f.create_dataset('vis_185',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
@@ -124,8 +139,11 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             resize_array_src_to_dst_shape(src_array=data_cam_140, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_150, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_160, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_165, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_170, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_175, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_180, dst_array_shape=data.shape, is_first=first)
+            resize_array_src_to_dst_shape(src_array=data_cam_185, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_cam_190, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_image, dst_array_shape=data.shape, is_first=first)
             resize_array_src_to_dst_shape(src_array=data_target, dst_array_shape=data.shape, is_first=first)
@@ -157,8 +175,11 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             insert_result_to_array(res_by_iter['iter_140'], array=data_cam_140, data_shape=data.shape)
             insert_result_to_array(res_by_iter['iter_150'], array=data_cam_150, data_shape=data.shape)
             insert_result_to_array(res_by_iter['iter_160'], array=data_cam_160, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_165'], array=data_cam_165, data_shape=data.shape)
             insert_result_to_array(res_by_iter['iter_170'], array=data_cam_170, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_175'], array=data_cam_175, data_shape=data.shape)
             insert_result_to_array(res_by_iter['iter_180'], array=data_cam_180, data_shape=data.shape)
+            insert_result_to_array(res_by_iter['iter_185'], array=data_cam_185, data_shape=data.shape)
             insert_result_to_array(res_by_iter['iter_190'], array=data_cam_190, data_shape=data.shape)
 
 
