@@ -197,7 +197,7 @@ if __name__ == "__main__":
     VIS_TYPES = ['max_logits', 'min_pred_loss', 'iter_90', 'iter_100', 'iter_110', 'iter_120', 'iter_130', 'iter_140',
                  'iter_150', 'iter_160', 'iter_165', 'iter_170', 'iter_175', 'iter_180', 'iter_185', 'iter_190', ]
 
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, '1')
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
     for vis_type in VIS_TYPES:
         vit_type_experiment_path = create_folder(Path(experiment_path, vis_type))
