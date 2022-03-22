@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     #
     # # Model
-    experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, 'test'))
+    experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, 'rollout_cls_test'))
     results_path = Path(experiment_path, 'results.hdf5')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
 

@@ -27,6 +27,8 @@ from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations
 from utils.utils_functions import get_image_from_path
 
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
 vit_config = config['vit']
@@ -104,6 +106,7 @@ def get_rollout_mask(inputs, fusions: List[str]) -> List[Tensor]:
     """
     vit_basic_for_dino = handle_model_config_and_freezing_for_task(
         model=load_ViTModel(vit_config, model_type='vit-for-dino'))
+    vit_basic_for_dino.to(device)
     _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
     attention_probs = get_attention_probs(model=vit_basic_for_dino)
     masks = []
