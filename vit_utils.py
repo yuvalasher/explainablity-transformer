@@ -100,15 +100,16 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
-def get_rollout_mask(inputs, fusions: List[str]) -> List[Tensor]:
+def get_rollout_mask(inputs, fusions: List[str], vit_model=None) -> List[Tensor]:
     """
     Each mask is a [n_tokens] mask (after head aggregation)
     """
-    vit_basic_for_dino = handle_model_config_and_freezing_for_task(
-        model=load_ViTModel(vit_config, model_type='vit-for-dino'))
-    vit_basic_for_dino.to(device)
-    _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
-    attention_probs = get_attention_probs(model=vit_basic_for_dino)
+    if vit_model is None:
+        vit_model = handle_model_config_and_freezing_for_task(
+            model=load_ViTModel(vit_config, model_type='vit-for-dino'))
+        vit_model.to(device)
+    _ = vit_model(**inputs)  # run forward to save attention_probs
+    attention_probs = get_attention_probs(model=vit_model)
     masks = []
     if 'mean' in fusions:
         mask_rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', return_resized=False)
@@ -418,7 +419,7 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
 
 
 def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', return_resized: bool = True):
-    result = torch.eye(attentions[0].size(-1))
+    result = torch.eye(attentions[0].size(-1)).to(device)
     with torch.no_grad():
         for attention in attentions:
             if head_fusion == "mean":
@@ -439,8 +440,8 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
             indices = indices[indices != 0]
             flat[0, indices] = 0
 
-            I = torch.eye(attention_heads_fused.size(-1))
-            a = (attention_heads_fused + 1.0 * I) / 2
+            I = torch.eye(attention_heads_fused.size(-1)).to(device)
+            a = ((attention_heads_fused + 1.0 * I) / 2).to(device)
             a = a / a.sum(dim=-1)
 
             result = torch.matmul(a, result)
@@ -452,7 +453,7 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
     if return_resized:
         width = int(mask.size(-1) ** 0.5)
         mask = mask.reshape(width, width).numpy()
-    mask = mask / np.max(np.array(mask))
+    mask = mask / torch.max(mask)
     return mask
 
 

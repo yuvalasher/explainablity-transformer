@@ -41,7 +41,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
                 model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run,
                 original_image=original_transformed_image)
             # mask_rollout_max, mask_rollout_mean, mask_rollout_median, mask_rollout_min = get_rollout_mask(inputs=inputs, attention_probs=get_attention_probs(model=vit_ours_model), fusions=['max', 'mean', 'min', 'median'])
-            mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'])[0]
+            mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'], vit_model=vit_model)[0]
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
                 output = vit_ours_model(**inputs)
