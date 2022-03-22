@@ -40,6 +40,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
             temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder = start_run_save_files_plot_visualizations_create_folders(
                 model=vit_ours_model, image_plot_folder_path=image_plot_folder_path, inputs=inputs, run=run,
                 original_image=original_transformed_image)
+            # mask_rollout_max, mask_rollout_mean, mask_rollout_median, mask_rollout_min = get_rollout_mask(inputs=inputs, attention_probs=get_attention_probs(model=vit_ours_model), fusions=['max', 'mean', 'min', 'median'])
             mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'])[0]
             for iteration_idx in tqdm(range(vit_config['num_steps'])):
                 optimizer.zero_grad()
@@ -102,7 +103,8 @@ if __name__ == '__main__':
     #     for entropy_loss_multiplier in entropy_loss_multipliers:
     #         loss_config['pred_loss_multiplier'] = pred_loss_multiplier
     #         loss_config['entropy_loss_multiplier'] = entropy_loss_multiplier
-    experiment_name = f"test_saved_objs_mul_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+    experiment_name = f"rollout_temp_mul_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
+    # experiment_name = f"test_saved_objs_mul_{vit_config['objective']}_lr{str(vit_config['lr']).replace('.', '_')}+l1_{loss_config['l1_loss_multiplier']}+kl_loss_{loss_config['kl_loss_multiplier']}+entropy_loss_{loss_config['entropy_loss_multiplier']}+pred_loss_{loss_config['pred_loss_multiplier']}"
     print(experiment_name)
     _ = create_folder(Path(PLOTS_PATH, experiment_name))
     optimize_params(vit_model=vit_model, criterion=objective_temp_softmax)

@@ -98,7 +98,7 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
-def get_rollout_mask(inputs, fusions:List[str]) -> List[Tensor]:
+def get_rollout_mask(inputs, fusions: List[str]) -> List[Tensor]:
     """
     Each mask is a [n_tokens] mask (after head aggregation)
     """
@@ -106,7 +106,7 @@ def get_rollout_mask(inputs, fusions:List[str]) -> List[Tensor]:
         model=load_ViTModel(vit_config, model_type='vit-for-dino'))
     _ = vit_basic_for_dino(**inputs)  # run forward to save attention_probs
     attention_probs = get_attention_probs(model=vit_basic_for_dino)
-    masks =[]
+    masks = []
     if 'mean' in fusions:
         mask_rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', return_resized=False)
         masks.append(mask_rollout_mean)
@@ -640,7 +640,6 @@ def visualize_attention_scores_with_rollout(cls_attentions_probs, rollout_vector
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_vector,
              file_name=Path(rollout_folder, f'plot_{iteration_idx}'))
-
 
 
 def visualize_attention_scores(cls_attentions_probs, iteration_idx, max_folder, mean_folder, median_folder, min_folder,
