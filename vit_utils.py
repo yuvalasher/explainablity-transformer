@@ -126,7 +126,6 @@ def get_rollout_mask(inputs, fusions: List[str], vit_model=None) -> List[Tensor]
     return masks
 
 
-# def patches_to_
 def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx: int,
                            head_fusion: str = 'max', original_image=None) -> None:
     image_rollout_plots_folder = Path(path, 'rollout')
@@ -556,6 +555,10 @@ def plot_different_visualization_methods(path: Path, inputs, patch_size: int, vi
                            patch_size=patch_size, iteration_idx=0, head_fusion='max', original_image=original_image)
     plot_attention_rollout(attention_probs=attention_probs, path=path,
                            patch_size=patch_size, iteration_idx=0, head_fusion='mean', original_image=original_image)
+    # plot_attention_rollout(attention_probs=attention_probs, path=path,
+    #                        patch_size=patch_size, iteration_idx=0, head_fusion='median', original_image=original_image)
+    # plot_attention_rollout(attention_probs=attention_probs, path=path,
+    #                        patch_size=patch_size, iteration_idx=0, head_fusion='min', original_image=original_image)
 
 
 def get_temp_to_visualize(temp):
