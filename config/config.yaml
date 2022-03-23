@@ -143,9 +143,9 @@ bert:
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   text_batch:
-#    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
-#      correct_class: 1
-#      contrastive_class: 0
-    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
-      correct_class: 0
-      contrastive_class: 1
+    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
+      correct_class: 1
+      contrastive_class: 0
+#    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
+#      correct_class: 0
+#      contrastive_class: 1

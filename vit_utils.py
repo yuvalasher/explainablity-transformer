@@ -454,7 +454,7 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
 
 
 def get_minimum_predictions_string(image_name: str, total_losses: List[float], prediction_losses: List[float],
-                                   logits: List[float], correct_class_probs: List[float], k: int = 25) -> str:
+                                   logits: List[float], correct_class_probs: List[float], k: int = 23) -> str:
     min_pred_loss_iter, min_total_loss_iter, max_prob_iter, max_logits_iter = get_best_k_values_iterations(
         prediction_losses=prediction_losses, total_losses=total_losses,
         correct_class_probs=correct_class_probs, logits=logits, k=k)

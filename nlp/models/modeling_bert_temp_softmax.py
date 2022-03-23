@@ -545,7 +545,7 @@ class BertEncoder(nn.Module):
         self.config = config
         self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
-        self.num_tokens = 24
+        self.num_tokens = 22
         self.x_attention = nn.Parameter(
             torch.ones(config.num_hidden_layers, config.num_attention_heads, self.num_tokens + 1, requires_grad=True))
 

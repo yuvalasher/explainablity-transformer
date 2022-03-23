@@ -84,6 +84,7 @@ def optimize_params(bert_model, criterion: Callable):
             total_losses.append(loss.item())
             tokens_mask.append(cls_attentions_probs.clone())
             optimizer.step()
+        print(cls_attentions_probs)
 
 
 if __name__ == '__main__':
