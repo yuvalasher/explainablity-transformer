@@ -45,7 +45,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
     prob_diff_pertub = np.zeros((9, len(imagenet_ds)))
     perturb_index = 0
 
-    for batch_idx, (data, vis, target) in enumerate(sample_loader):
+    for batch_idx, (data, vis, target) in enumerate(tqdm(sample_loader)):
         num_samples += len(data)
 
         data, target, vis = get_data_vis_and_target(data, target, vis)
