@@ -453,7 +453,7 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
     if return_resized:
         width = int(mask.size(-1) ** 0.5)
         mask = mask.reshape(width, width).numpy()
-    mask = mask / torch.max(mask)
+    mask = mask / torch.max(torch.tensor(mask))
     return mask
 
 
