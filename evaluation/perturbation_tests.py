@@ -194,18 +194,19 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
 
 if __name__ == "__main__":
     results_df = pd.DataFrame(columns=['vis_type', 'auc'])
-    VIS_TYPES = ['vis_min_pred_loss', 'vis_max_logits', 'vis_90', 'vis_100', 'vis_110', 'vis_120', 'vis_130', 'vis_140',
-                 'vis_150', 'vis_160', 'vis_170', 'vis_180', 'vis_190']
+    VIS_TYPES = ['vis_max_logits', 'vis_min_pred_loss', 'vis_90', 'vis_100', 'vis_110', 'vis_120',
+                 'vis_130', 'vis_140', 'vis_150', 'vis_160', 'vis_165', 'vis_170',
+                 'vis_175', 'vis_180', 'vis_185', 'vis_190']
 
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, '1')
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
+    feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
+                                                                    model_type='vit-for-dino')
+    model.to(device)
+    model.eval()
     for vis_type in VIS_TYPES:
-        vit_type_experiment_path = create_folder(Path(experiment_path, vis_type))
         print(vis_type)
-        feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
-                                                                        model_type='vit-for-dino')
-        model.to(device)
-        model.eval()
+        vit_type_experiment_path = create_folder(Path(experiment_path, vis_type))
         imagenet_ds = ImagenetResults(path=experiment_path, vis_type=vis_type)
         sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
         auc = eval(experiment_dir=vit_type_experiment_path, model=model, feature_extractor=feature_extractor)
