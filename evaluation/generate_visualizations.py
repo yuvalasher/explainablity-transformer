@@ -126,7 +126,7 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
                                       maxshape=(None, 3, 224, 224),
                                       dtype=np.float32,
                                       compression="gzip")
-
+        vit_ours_model, _ = setup_model_and_optimizer(model_name='softmax_temp')
         for batch_idx, (data, target) in enumerate(tqdm(sample_loader)):
             first = True if batch_idx == 0 else False
             resize_array_src_to_dst_shape(src_array=data_cam_min_pred_loss, dst_array_shape=data.shape, is_first=first)
@@ -156,7 +156,6 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             data = data.to(device)
             # data.requires_grad_()
             res_by_iter = {}
-            vit_ours_model, _ = setup_model_and_optimizer(model_name='softmax_temp')
             d_cls_attentions_probs = temp_softmax_optimization(vit_ours_model=vit_ours_model, vit_model=vit_model, feature_extractor=feature_extractor,
                                                                image=transforms.ToPILImage()(
                                                                    data.reshape(3, vit_config['img_size'],
