@@ -432,14 +432,6 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
                 attention_heads_fused = attention.median(axis=1)[0]
             else:
                 raise ("Attention head fusion type Not supported")
-
-            # Drop the lowest attentions, but
-            # don't drop the class token
-            flat = attention_heads_fused.view(attention_heads_fused.size(0), -1)
-            _, indices = flat.topk(int(flat.size(-1) * discard_ratio), -1, False)
-            indices = indices[indices != 0]
-            flat[0, indices] = 0
-
             I = torch.eye(attention_heads_fused.size(-1)).to(device)
             a = ((attention_heads_fused + 1.0 * I) / 2).to(device)
             a = a / a.sum(dim=-1)
