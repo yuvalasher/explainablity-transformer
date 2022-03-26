@@ -435,7 +435,43 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', return_resized: bool = True):
+def hila_rollout(attnetions, start_layer=0, head_fusion='max', gradients=None):
+    all_layer_attentions = []
+    attn = []
+    if gradients is not None:
+        for attn_score, grad in zip(attnetions, gradients):
+            attn.append(attn_score * grad)
+    else:
+        attn = attnetions
+    for attn_heads in attn:
+        if head_fusion == 'mean':
+            fused_heads = (attn_heads.sum(dim=1) / attn_heads.shape[1]).detach()
+        elif head_fusion == 'max':
+            fused_heads = (attn_heads.max(dim=1)[0]).detach()
+        elif head_fusion == 'median':
+            fused_heads = (attn_heads.median(dim=1)[0]).detach()
+        elif head_fusion == 'min':
+            fused_heads = (attn_heads.min(dim=1)[0]).detach()
+        all_layer_attentions.append(fused_heads)
+    rollout = hila_compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
+    return rollout[:, 0, 1:]
+
+
+def hila_compute_rollout_attention(all_layer_matrices, start_layer=0):
+    # adding residual consideration- code adapted from https://github.com/samiraabnar/attention_flow
+    num_tokens = all_layer_matrices[0].shape[1]
+    batch_size = all_layer_matrices[0].shape[0]
+    eye = torch.eye(num_tokens).expand(batch_size, num_tokens, num_tokens).to(all_layer_matrices[0].device)
+    all_layer_matrices = [all_layer_matrices[i] + eye for i in range(len(all_layer_matrices))]
+    matrices_aug = [all_layer_matrices[i] / all_layer_matrices[i].sum(dim=-1, keepdim=True)
+                    for i in range(len(all_layer_matrices))]
+    joint_attention = matrices_aug[start_layer]
+    for i in range(start_layer + 1, len(matrices_aug)):
+        joint_attention = matrices_aug[i].bmm(joint_attention)
+    return joint_attention
+
+
+def rollout(attentions, head_fusion: str = 'max', return_resized: bool = True):
     result = torch.eye(attentions[0].size(-1)).to(device)
     with torch.no_grad():
         for attention in attentions:
