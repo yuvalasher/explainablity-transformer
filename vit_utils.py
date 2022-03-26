@@ -746,10 +746,12 @@ def start_run_save_files_plot_visualizations_create_folders(model: nn.Module, im
 
 
 def end_iteration(correct_class_logits, correct_class_probs, image_name, image_plot_folder_path, iteration_idx,
-                  objects_path, prediction_losses, tokens_mask, total_losses, temps, vit_sigmoid_model):
+                  objects_path, prediction_losses, tokens_mask, total_losses, temps, vit_sigmoid_model, gradients=None):
     if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
         objects_dict = {'losses': prediction_losses, 'total_losses': total_losses,
                         'tokens_mask': tokens_mask, 'temps': temps}
+        if gradients is not None:
+            objects_dict['gradients'] = gradients
         save_objects(path=objects_path, objects_dict=objects_dict)
 
         get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path=image_plot_folder_path,
