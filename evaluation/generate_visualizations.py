@@ -19,7 +19,7 @@ from evaluation.evaluation_utils import patch_score_to_image, normalize, _remove
 from main.temp_softmax_opt import temp_softmax_optimization
 from utils.consts import DATA_PATH, EXPERIMENTS_FOLDER_PATH, EVALUATION_FOLDER_PATH
 from config import config
-from vit_utils import load_feature_extractor_and_vit_model, create_folder, read_file
+from vit_utils import load_feature_extractor_and_vit_model, create_folder, read_file, setup_model_and_optimizer
 from torch import nn
 
 vit_config = config['vit']
@@ -156,7 +156,8 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             data = data.to(device)
             # data.requires_grad_()
             res_by_iter = {}
-            d_cls_attentions_probs = temp_softmax_optimization(vit_model=vit_model, feature_extractor=feature_extractor,
+            vit_ours_model, _ = setup_model_and_optimizer(model_name='softmax_temp')
+            d_cls_attentions_probs = temp_softmax_optimization(vit_ours_model=vit_ours_model, vit_model=vit_model, feature_extractor=feature_extractor,
                                                                image=transforms.ToPILImage()(
                                                                    data.reshape(3, vit_config['img_size'],
                                                                                 vit_config['img_size'])),

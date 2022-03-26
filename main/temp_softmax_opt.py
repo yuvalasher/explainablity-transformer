@@ -12,7 +12,7 @@ seed_everything(config['general']['seed'])
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
 
-def temp_softmax_optimization(vit_model, feature_extractor: ViTFeatureExtractor, image,
+def temp_softmax_optimization(vit_ours_model, vit_model, feature_extractor: ViTFeatureExtractor, image,
                               num_steps: int, target_class=None) -> Dict[str, Tensor]:
     """
     Return the last layer's attention_scores of the CLS token for each stop point
@@ -20,7 +20,9 @@ def temp_softmax_optimization(vit_model, feature_extractor: ViTFeatureExtractor,
                  - 1 maximum logits
                  - Each 10 iterations from iter 90 to the end ([90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190])
     """
-    vit_ours_model, optimizer = setup_model_and_optimizer(model_name='softmax_temp')
+    # vit_ours_model, optimizer = setup_model_and_optimizer(model_name='softmax_temp')
+    vit_ours_model.vit.encoder.x_attention.data = nn.Parameter(torch.ones_like(vit_ours_model.vit.encoder.x_attention))
+    optimizer = optim.Adam([vit_ours_model.vit.encoder.x_attention], lr=vit_config['lr'])
     vit_ours_model.to(device)
     vit_model.to(device)
     inputs, original_transformed_image = get_image_and_inputs_and_transformed_image(image=image,
@@ -29,7 +31,8 @@ def temp_softmax_optimization(vit_model, feature_extractor: ViTFeatureExtractor,
     target = vit_model(**inputs)
     target_class_idx = torch.argmax(target.logits[0])
     total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask, temps = [], [], [], [], [], []
-    mask_rollout_max = get_rollout_mask(inputs=inputs, fusions=['max'], vit_model=vit_model)[0]
+    attention_probs = get_attention_probs(model=vit_model)
+    mask_rollout_max = get_rollout_mask(fusions=['max'], attention_probs=attention_probs)[0]
     for iteration_idx in range(num_steps):
         optimizer.zero_grad()
         output = vit_ours_model(**inputs)
