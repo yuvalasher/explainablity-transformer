@@ -100,36 +100,37 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
-def get_rollout_mask(inputs, fusions: List[str], vit_model=None) -> List[Tensor]:
+def get_rollout_mask(fusions: List[str], gradients: List[Tensor] = None,
+                     attention_probs=None) -> List[Tensor]:
     """
     Each mask is a [n_tokens] mask (after head aggregation)
     """
-    if vit_model is None:
-        vit_model = handle_model_config_and_freezing_for_task(
-            model=load_ViTModel(vit_config, model_type='vit-for-dino'))
-        vit_model.to(device)
-    _ = vit_model(**inputs)  # run forward to save attention_probs
-    attention_probs = get_attention_probs(model=vit_model)
+    if gradients is not None:
+        attn = []
+        for attn_score, grad in zip(attention_probs, gradients):
+            attn.append(attn_score * grad)
+    else:
+        attn = attention_probs
+
     masks = []
     if 'mean' in fusions:
-        mask_rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', return_resized=False)
+        mask_rollout_mean = rollout(attentions=attn, head_fusion='mean', return_resized=False)
         masks.append(mask_rollout_mean)
     if 'median' in fusions:
-        mask_rollout_median = rollout(attentions=attention_probs, head_fusion='median', return_resized=False)
+        mask_rollout_median = rollout(attentions=attn, head_fusion='median', return_resized=False)
         masks.append(mask_rollout_median)
     if 'min' in fusions:
-        mask_rollout_min = rollout(attentions=attention_probs, head_fusion='min', return_resized=False)
+        mask_rollout_min = rollout(attentions=attn, head_fusion='min', return_resized=False)
         masks.append(mask_rollout_min)
     if 'max' in fusions:
-        mask_rollout_max = rollout(attentions=attention_probs, head_fusion='max', return_resized=False)
+        mask_rollout_max = rollout(attentions=attn, head_fusion='max', return_resized=False)
         masks.append(mask_rollout_max)
     return masks
 
 
 def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx: int,
                            head_fusion: str = 'max', original_image=None) -> None:
-    image_rollout_plots_folder = Path(path, 'rollout')
-    os.makedirs(image_rollout_plots_folder, exist_ok=True)
+    image_rollout_plots_folder = create_folder(Path(path, 'rollout'))
     mask_rollout = rollout(attentions=attention_probs, head_fusion=head_fusion)
     file_path = Path(image_rollout_plots_folder, f'{head_fusion}_rollout_iter_{iteration_idx}')
     if original_image is not None:
