@@ -79,12 +79,29 @@ def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
     return attentions
 
 
+def get_attention_grads_probs(model, apply_relu: bool = True) -> List[Tensor]:
+    """
+
+    :return: Tensor of size (num_heads, num_tokens)
+    """
+    num_layers = get_num_layers(model=model)
+    attentions = [F.relu(model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad) if apply_relu else
+                  model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad for layer_idx in
+                  range(num_layers)]
+    return attentions
+
+
+def get_gradient_attention_probs(vit_model, apply_relu: bool = True):
+    grads = vit_model.vit.encoder.layer[-1].attention.attention.attention_probs.grad[0, :, 0, 1:].reshape(12, -1)
+    if apply_relu:
+        return F.relu(grads)
+    return grads
+
+
 def generate_grad_cam_vector(vit_sigmoid_model, cls_attentions_probs):
-    grads = vit_sigmoid_model.vit.encoder.layer[-1].attention.attention.attention_probs.grad[0, :, 0, 1:].reshape(12,
-                                                                                                                  -1)
-    grads_relu = F.relu(grads)
+    grads = get_gradient_attention_probs(vit_model=vit_sigmoid_model, apply_relu=True)
     # v = cls_attentions_probs * grads_relu
-    return grads_relu
+    return grads
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTSigmoidForImageClassification,
