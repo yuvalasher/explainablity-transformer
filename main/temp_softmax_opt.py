@@ -9,7 +9,6 @@ vit_config = config['vit']
 loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
-feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
 
 
 def temp_softmax_optimization(vit_ours_model, vit_model, feature_extractor: ViTFeatureExtractor, image,
@@ -20,13 +19,11 @@ def temp_softmax_optimization(vit_ours_model, vit_model, feature_extractor: ViTF
                  - 1 maximum logits
                  - Each 10 iterations from iter 90 to the end ([90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190])
     """
-    # vit_ours_model, optimizer = setup_model_and_optimizer(model_name='softmax_temp')
     vit_ours_model.vit.encoder.x_attention.data = nn.Parameter(torch.ones_like(vit_ours_model.vit.encoder.x_attention))
     optimizer = optim.Adam([vit_ours_model.vit.encoder.x_attention], lr=vit_config['lr'])
     vit_ours_model.to(device)
     vit_model.to(device)
-    inputs, original_transformed_image = get_image_and_inputs_and_transformed_image(image=image,
-                                                                                    feature_extractor=feature_extractor)
+    inputs = feature_extractor(images=image, return_tensors="pt")
     inputs = {'pixel_values': inputs['pixel_values'].to(device)}
     target = vit_model(**inputs)
     target_class_idx = torch.argmax(target.logits[0])
@@ -41,10 +38,6 @@ def temp_softmax_optimization(vit_ours_model, vit_model, feature_extractor: ViTF
         loss = objective_temp_softmax(output=output.logits, target=target.logits,
                                       temp=vit_ours_model.vit.encoder.x_attention.clone())
         loss.backward()
-
-        if vit_config['verbose']:
-            compare_results_each_n_steps(iteration_idx=iteration_idx, target=target.logits, output=output.logits,
-                                         prev_x_attention=vit_ours_model.vit.encoder.x_attention)
         cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_ours_model, layer=-1)
         token_mask = cls_attentions_probs.clone() * mask_rollout_max
         correct_class_logits.append(correct_class_logit)
