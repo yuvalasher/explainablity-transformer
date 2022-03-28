@@ -197,7 +197,7 @@ class ViTSelfAttention(nn.Module):
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
-        attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
+        # attention_probs /= attention_probs.sum(-1, keepdim=True) # normalizing each row sum to 1
         self.attention_probs = attention_probs
 
         # This is actually dropping out entire tokens to attend to, which might
