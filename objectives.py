@@ -21,3 +21,13 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor,
     log(loss=loss, entropy_loss=entropy_loss, l1_loss=l1_loss, prediction_loss=prediction_loss, x_attention=temp, output=output,
         target=target, contrastive_class_idx=target_idx.item())
     return loss
+
+
+def objective_grad_rollout(output: Tensor, target: Tensor, contrastive_class_idx: Tensor = None) -> Tensor:
+    target_idx = contrastive_class_idx if contrastive_class_idx is not None else torch.argmax(target)
+    prediction_loss = output[0][target_idx]
+    loss = prediction_loss
+    if vit_config['verbose']:
+        print(f'loss: {loss}')
+    return loss
+

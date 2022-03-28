@@ -435,7 +435,7 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def hila_rollout(attnetions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
+def rollout(attnetions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
     all_layer_attentions = []
     attn = []
     if gradients is not None:
@@ -457,11 +457,11 @@ def hila_rollout(attnetions, discard_ratio: float = 0, start_layer=0, head_fusio
         # indices = indices[indices != 0]
         flat[0, indices] = 0
         all_layer_attentions.append(fused_heads)
-    rollout = hila_compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
+    rollout = compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
     return rollout[0, 0, 1:]
 
 
-def hila_compute_rollout_attention(all_layer_matrices, start_layer=0):
+def compute_rollout_attention(all_layer_matrices, start_layer=0):
     # adding residual consideration- code adapted from https://github.com/samiraabnar/attention_flow
     num_tokens = all_layer_matrices[0].shape[1]
     batch_size = all_layer_matrices[0].shape[0]
@@ -475,6 +475,7 @@ def hila_compute_rollout_attention(all_layer_matrices, start_layer=0):
     return joint_attention
 
 
+"""
 def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', return_resized: bool = True):
     result = torch.eye(attentions[0].size(-1)).to(device)
     with torch.no_grad():
@@ -509,6 +510,7 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
         mask = mask.reshape(width, width).numpy()
     mask = mask / torch.max(torch.tensor(mask))
     return mask
+"""
 
 
 def get_minimum_predictions_string(image_name: str, total_losses: List[float], prediction_losses: List[float],
