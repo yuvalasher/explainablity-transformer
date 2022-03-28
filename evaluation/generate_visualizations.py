@@ -1,9 +1,6 @@
 from pathlib import Path
 from typing import Tuple
-
 import numpy as np
-import os
-
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import transforms
@@ -12,12 +9,10 @@ import h5py
 
 from datasets.imagenet_dataset import ImageNetDataset
 from feature_extractor import ViTFeatureExtractor
-import argparse
-from torchvision.datasets import ImageNet
 
-from evaluation.evaluation_utils import patch_score_to_image, normalize, _remove_file_if_exists
+from evaluation.evaluation_utils import patch_score_to_image, _remove_file_if_exists
 from main.temp_softmax_opt import temp_softmax_optimization
-from utils.consts import DATA_PATH, EXPERIMENTS_FOLDER_PATH, EVALUATION_FOLDER_PATH
+from utils.consts import EXPERIMENTS_FOLDER_PATH, EVALUATION_FOLDER_PATH
 from config import config
 from vit_utils import load_feature_extractor_and_vit_model, create_folder, read_file, setup_model_and_optimizer
 from torch import nn
@@ -156,7 +151,8 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
             data = data.to(device)
             # data.requires_grad_()
             res_by_iter = {}
-            d_cls_attentions_probs = temp_softmax_optimization(vit_ours_model=vit_ours_model, vit_model=vit_model, feature_extractor=feature_extractor,
+            d_cls_attentions_probs = temp_softmax_optimization(vit_ours_model=vit_ours_model, vit_model=vit_model,
+                                                               feature_extractor=feature_extractor,
                                                                image=transforms.ToPILImage()(
                                                                    data.reshape(3, vit_config['img_size'],
                                                                                 vit_config['img_size'])),
@@ -196,52 +192,6 @@ def resize_array_src_to_dst_shape(src_array, dst_array_shape, is_first: bool):
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description='Train a segmentation')
-    # parser.add_argument('--batch-size', type=int,
-    #                     default=1,
-    #                     help='')
-    # parser.add_argument('--method', type=str,
-    #                     default='grad_rollout',
-    #                     choices=['rollout', 'lrp', 'transformer_attribution', 'full_lrp', 'lrp_last_layer',
-    #                              'attn_last_layer', 'attn_gradcam'],
-    #                     help='')
-    # parser.add_argument('--lmd', type=float,
-    #                     default=10,
-    #                     help='')
-    # parser.add_argument('--vis-class', type=str,
-    #                     default='top',
-    #                     choices=['top', 'target', 'index'],
-    #                     help='')
-    # parser.add_argument('--class-id', type=int,
-    #                     default=0,
-    #                     help='')
-    # parser.add_argument('--imagenet-validation-path', type=str,
-    #                     required=True,
-    #                     help='')
-    # args = parser.parse_args()
-    #
-    # # PATH variables
-    # PATH = os.path.dirname(os.path.abspath(__file__)) + '/' # evaluation folder
-    # os.makedirs(os.path.join(PATH, 'visualizations'), exist_ok=True)
-    #
-    # try:
-    #     os.remove(os.path.join(PATH, 'visualizations/{}/{}/results.hdf5'.format(args.method,
-    #                                                                             args.vis_class)))
-    # except OSError:
-    #     pass
-    #
-    # os.makedirs(os.path.join(PATH, 'visualizations/{}'.format(args.method)), exist_ok=True)
-    # os.makedirs(os.path.join(PATH, 'visualizations/{}/{}_{}'.format(args.method,
-    #                                                                 args.vis_class,
-    #                                                                 args.class_id)), exist_ok=True)
-    # args.method_dir = os.path.join(PATH, 'visualizations/{}/{}_{}'.format(args.method,
-    #                                                                       args.vis_class,
-    #                                                                       args.class_id))
-    #
-
-    #
-    # # Model
-
     experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name']))
     results_path = Path(experiment_path, 'results.hdf5')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
@@ -253,7 +203,6 @@ if __name__ == "__main__":
     ])
     images_indices = eval(read_file(path=Path(EVALUATION_FOLDER_PATH, 'images_to_test.txt')))
     print(images_indices)
-    # val_imagenet_ds = ImageNet(str(DATA_PATH), split='val', transform=transform)
     val_imagenet_ds = ImageNetDataset(transform=transform)
     imagenet_ds = torch.utils.data.Subset(val_imagenet_ds, images_indices)
     sample_loader = DataLoader(
