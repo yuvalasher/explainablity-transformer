@@ -24,7 +24,7 @@ from utils import save_obj_to_disk
 from config import config
 from torch import optim
 from utils.consts import IMAGES_FOLDER_PATH
-from utils.transformation import image_transformations
+from utils.transformation import image_transformations, wolf_image_transformations
 from utils.utils_functions import get_image_from_path
 
 cuda = torch.cuda.is_available()
@@ -69,10 +69,6 @@ def get_attention_probs(model) -> List[Tensor]:
 
 
 def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
-    """
-
-    :return: Tensor of size (num_heads, num_tokens)
-    """
     num_heads = get_head_num_heads(model=model)
     attentions = model.vit.encoder.layer[layer].attention.attention.attention_probs[0, :, 0, 1:].reshape(
         num_heads, -1)
@@ -80,10 +76,6 @@ def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
 
 
 def get_attention_grads_probs(model, apply_relu: bool = True) -> List[Tensor]:
-    """
-
-    :return: Tensor of size (num_heads, num_tokens)
-    """
     num_layers = get_num_layers(model=model)
     attentions = [F.relu(model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad) if apply_relu else
                   model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad for layer_idx in
@@ -117,7 +109,7 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
-def get_rollout_mask(fusions: List[str], gradients: List[Tensor] = None,
+def get_rollout_mask(fusions: List[str], discard_ratio: float = 0.9, gradients: List[Tensor] = None,
                      attention_probs=None) -> List[Tensor]:
     """
     Each mask is a [n_tokens] mask (after head aggregation)
@@ -131,16 +123,20 @@ def get_rollout_mask(fusions: List[str], gradients: List[Tensor] = None,
 
     masks = []
     if 'mean' in fusions:
-        mask_rollout_mean = rollout(attentions=attn, head_fusion='mean', return_resized=False)
+        mask_rollout_mean = rollout(attentions=attn, head_fusion='mean', return_resized=False,
+                                    discard_ratio=discard_ratio)
         masks.append(mask_rollout_mean)
     if 'median' in fusions:
-        mask_rollout_median = rollout(attentions=attn, head_fusion='median', return_resized=False)
+        mask_rollout_median = rollout(attentions=attn, head_fusion='median', return_resized=False,
+                                      discard_ratio=discard_ratio)
         masks.append(mask_rollout_median)
     if 'min' in fusions:
-        mask_rollout_min = rollout(attentions=attn, head_fusion='min', return_resized=False)
+        mask_rollout_min = rollout(attentions=attn, head_fusion='min', return_resized=False,
+                                   discard_ratio=discard_ratio)
         masks.append(mask_rollout_min)
     if 'max' in fusions:
-        mask_rollout_max = rollout(attentions=attn, head_fusion='max', return_resized=False)
+        mask_rollout_max = rollout(attentions=attn, head_fusion='max', return_resized=False,
+                                   discard_ratio=discard_ratio)
         masks.append(mask_rollout_max)
     return masks
 
@@ -317,8 +313,9 @@ def print_number_of_trainable_and_not_trainable_params(model: VitModelForClassif
         f'Number of params: {calculate_num_of_params(model)}, Number of trainable params: {calculate_num_of_trainable_params(model)}')
 
 
-def load_feature_extractor(vit_config: Dict) -> ViTFeatureExtractor:
-    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config['model_name'])
+def load_feature_extractor(vit_config: Dict, is_wolf_transforms) -> ViTFeatureExtractor:
+    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config['model_name'],
+                                                            is_wolf_transforms=is_wolf_transforms)
     return feature_extractor
 
 
@@ -327,9 +324,9 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
     return model
 
 
-def load_feature_extractor_and_vit_model(vit_config: Dict, model_type: str = 'vit') -> Tuple[
+def load_feature_extractor_and_vit_model(vit_config: Dict, model_type: str, is_wolf_transforms: bool = False) -> Tuple[
     ViTFeatureExtractor, ViTForImageClassification]:
-    feature_extractor = load_feature_extractor(vit_config=vit_config)
+    feature_extractor = load_feature_extractor(vit_config=vit_config, is_wolf_transforms=is_wolf_transforms)
     vit_model = load_vit_model_by_type(vit_config=vit_config, model_type=model_type)
     return feature_extractor, vit_model
 
@@ -404,7 +401,7 @@ def check_stop_criterion(x_attention: Tensor) -> bool:
 
 
 def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_name: str, image_name: str,
-                                          is_contrastive_run: bool = False) -> Path:
+                                          is_contrastive_run: bool = False, save_image: bool = True) -> Path:
     """
     Also saving the original picture in the models' resolution (img_size, img_size)
     """
@@ -413,9 +410,10 @@ def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_n
     if is_contrastive_run:
         image_plot_folder_path = Path(image_plot_folder_path, 'contrastive')
     os.makedirs(name=image_plot_folder_path, exist_ok=True)
-    save_resized_original_picture(image_size=config['vit']['img_size'],
-                                  picture_path=Path(images_folder_path, image_name),
-                                  dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
+    if save_image:
+        save_resized_original_picture(image_size=config['vit']['img_size'],
+                                      picture_path=Path(images_folder_path, image_name),
+                                      dst_path=Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}'))
     return image_plot_folder_path
 
 
@@ -435,7 +433,7 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def hila_rollout(attnetions, start_layer=0, head_fusion='max', gradients=None):
+def hila_rollout(attnetions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
     all_layer_attentions = []
     attn = []
     if gradients is not None:
@@ -452,9 +450,13 @@ def hila_rollout(attnetions, start_layer=0, head_fusion='max', gradients=None):
             fused_heads = (attn_heads.median(dim=1)[0]).detach()
         elif head_fusion == 'min':
             fused_heads = (attn_heads.min(dim=1)[0]).detach()
+        flat = fused_heads.view(fused_heads.size(0), -1)
+        _, indices = flat.topk(int(flat.size(-1) * discard_ratio), -1, False)
+        # indices = indices[indices != 0]
+        flat[0, indices] = 0
         all_layer_attentions.append(fused_heads)
     rollout = hila_compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
-    return rollout[:, 0, 1:]
+    return rollout[0, 0, 1:]
 
 
 def hila_compute_rollout_attention(all_layer_matrices, start_layer=0):
@@ -471,7 +473,7 @@ def hila_compute_rollout_attention(all_layer_matrices, start_layer=0):
     return joint_attention
 
 
-def rollout(attentions, head_fusion: str = 'max', return_resized: bool = True):
+def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', return_resized: bool = True):
     result = torch.eye(attentions[0].size(-1)).to(device)
     with torch.no_grad():
         for attention in attentions:
@@ -485,6 +487,11 @@ def rollout(attentions, head_fusion: str = 'max', return_resized: bool = True):
                 attention_heads_fused = attention.median(axis=1)[0]
             else:
                 raise ("Attention head fusion type Not supported")
+            # Drop the lowest attentions, but don't drop the class token
+            flat = attention_heads_fused.view(attention_heads_fused.size(0), -1)
+            _, indices = flat.topk(int(flat.size(-1) * discard_ratio), -1, False)
+            # indices = indices[indices != 0]
+            flat[0, indices] = 0
             I = torch.eye(attention_heads_fused.size(-1)).to(device)
             a = ((attention_heads_fused + 1.0 * I) / 2).to(device)
             a = a / a.sum(dim=-1)
@@ -839,11 +846,12 @@ def is_iteration_to_action(iteration_idx: int, action: str = 'print') -> bool:
 
 
 def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtractor, image_name: str = None,
-                                               image=None):
+                                               image=None, is_wolf_transforms: bool = False):
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
-    original_transformed_image = image_transformations(image)
+    original_transformed_image = wolf_image_transformations(image) if is_wolf_transforms else image_transformations(
+        image)
     return inputs, original_transformed_image
 
 
