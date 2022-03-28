@@ -18,3 +18,9 @@ image_transformations = transforms.Compose([
     transforms.ToTensor(),
     normalize,
 ])
+wolf_image_transformations = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(config['vit']['img_size']),
+    transforms.ToTensor(),
+    normalize,
+])
