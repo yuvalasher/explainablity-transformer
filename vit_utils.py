@@ -6,7 +6,8 @@ from torch.functional import F
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
 from models.modeling_vit_sigmoid import ViTSigmoidForImageClassification
-from models.modeling_dino_vit import ViTBasicForDinoForImageClassification
+from models.modeling_vit import ViTBasicForForImageClassification
+from models.modeling_vit_grad import ViTBasicGradForImageClassification
 from models.modeling_infer_vit import ViTInferForImageClassification
 from models.vit_sigmoid_mask_head_layer import ViTSigmoidPerLayerHeadForImageClassification
 from models.modeling_temp_softmax_vit import ViTTempSoftmaxForImageClassification
@@ -39,7 +40,8 @@ VitModelForClassification = NewType('VitModelForClassification',
 
 vit_model_types = {'vit': ViTForImageClassification,
                    'vit-sigmoid': ViTSigmoidForImageClassification,
-                   'vit-for-dino': ViTBasicForDinoForImageClassification,
+                   'vit-for-dino': ViTBasicForForImageClassification,
+                   'vit-for-dino-grad': ViTBasicGradForImageClassification,
                    'infer': ViTInferForImageClassification,
                    'per-layer-head': ViTSigmoidPerLayerHeadForImageClassification,
                    'softmax_temp': ViTTempSoftmaxForImageClassification,
