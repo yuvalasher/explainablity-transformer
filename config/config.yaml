@@ -109,6 +109,7 @@ vit:
   plot_visualizations: False
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  is_wolf_transforms: False
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10

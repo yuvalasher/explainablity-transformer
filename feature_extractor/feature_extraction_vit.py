@@ -69,6 +69,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
             do_normalize=True,
             image_mean=None,
             image_std=None,
+            is_wolf_transforms: bool = False,
             **kwargs
     ):
         super().__init__(**kwargs)
@@ -78,6 +79,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
         self.do_normalize = do_normalize
         self.image_mean = image_mean if image_mean is not None else IMAGENET_STANDARD_MEAN
         self.image_std = image_std if image_std is not None else IMAGENET_STANDARD_STD
+        self.is_wolf_transforms = is_wolf_transforms
 
     def __call__(
             self, images: ImageInput, return_tensors: Optional[Union[str, TensorType]] = None, **kwargs
@@ -137,10 +139,13 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
             images = [images]
 
         # transformations (resizing + normalization)
-        # images = [self.resize(image=image, size=(341,256), resample=self.resample) for image in images]
-        # images = [self.center_crop(image=image, size=self.size) for image in images]
-        if self.do_resize and self.size is not None:
-            images = [self.resize(image=image, size=self.size, resample=self.resample) for image in images]
+        if self.is_wolf_transforms:
+            images = [self.resize(image=image, size=get_transforms_size(image), resample=self.resample) for image in
+                      images]
+            images = [self.center_crop(image=image, size=(224, 224)) for image in images]
+        else:
+            if self.do_resize and self.size is not None:
+                images = [self.resize(image=image, size=self.size, resample=self.resample) for image in images]
         if self.do_normalize:
             images = [self.normalize(image=image, mean=self.image_mean, std=self.image_std) for image in images]
 
@@ -149,3 +154,15 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
         encoded_inputs = BatchFeature(data=data, tensor_type=return_tensors)
 
         return encoded_inputs
+
+
+def get_transforms_size(pic, size: int = 256):
+    height, width = pic.size
+    # print(f'Height: {height}, Width: {width}')
+    if height > width:
+        size = (int(size * height / width), size)
+    elif height == width:
+        size = (size, size)
+    elif height < width:
+        size = (size, int(size * width / height))
+    return size
