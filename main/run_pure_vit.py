@@ -61,19 +61,20 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         # rollout_min_grad = rollout(attnetions=attention_probs, head_fusion='min', gradients=gradients)
 
         target_desc = vit_unfreezed.config.id2label[target_idx][:10]
-        # visu(original_image=original_transformed_image,
-        #      transformer_attribution=relu_gradients[-1][0, :, 0, 1:].median(dim=0)[0],
-        #      file_name=Path(image_plot_folder_path, f'relu_grad_last_layer_median'))
-        # visu(original_image=original_transformed_image,
-        #      transformer_attribution=rollout_max_relu_grad,
-        #      file_name=Path(image_plot_folder_path, f'relu_grad_rollout_max'))
+
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_max_grad,
              file_name=Path(image_plot_folder_path, f'grad_rollout_max'))
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_mean_relu_grad,
              file_name=Path(image_plot_folder_path, f'relu_grad_rollout_mean'))
-
+        """
+        # visu(original_image=original_transformed_image,
+        #      transformer_attribution=relu_gradients[-1][0, :, 0, 1:].median(dim=0)[0],
+        #      file_name=Path(image_plot_folder_path, f'relu_grad_last_layer_median'))
+        # visu(original_image=original_transformed_image,
+        #      transformer_attribution=rollout_max_relu_grad,
+        #      file_name=Path(image_plot_folder_path, f'relu_grad_rollout_max'))
         # visu(original_image=original_transformed_image,
         #      transformer_attribution=gradients[-1][0, :, 0, 1:].median(dim=0)[0],
         #       file_name=Path(image_plot_folder_path, f'grad_last_layer_median'))
@@ -103,7 +104,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         #      transformer_attribution=rollout_median_grad,
         #       file_name=Path(image_plot_folder_path, f'grad_rollout_median'))
 
-        """
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_min_grad,
               file_name=Path(image_plot_folder_path, f'grad_rollout_min'))
@@ -125,10 +125,6 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_median,
               file_name=Path(image_plot_folder_path, f'rollout_median'))
-        
-        """
-
-        """
         for head_idx in range(12):
             visu(original_image=original_transformed_image,
                  transformer_attribution=gradients[-1][:, head_idx, 0, 1:][0],
