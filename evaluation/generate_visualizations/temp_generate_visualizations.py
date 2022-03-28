@@ -192,7 +192,7 @@ def resize_array_src_to_dst_shape(src_array, dst_array_shape, is_first: bool):
 
 
 if __name__ == "__main__":
-    experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name']))
+    experiment_path = create_folder(Path(EXPERIMENTS_FOLDER_PATH, 'temp', vit_config['evaluation']['experiment_folder_name']))
     results_path = Path(experiment_path, 'results.hdf5')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
 

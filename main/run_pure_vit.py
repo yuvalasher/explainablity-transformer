@@ -35,7 +35,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         correct_idx = target.logits.argmax().item()
         # contrastive_idx = 88
         target_idx = correct_idx
-        loss = criterion(output=output.logits, target=target.logits, target_idx=target_idx)
+        loss = criterion(output=output.logits, target_idx=target_idx)
         loss.backward()
         # rollout_folder = create_folder(Path(image_plot_folder_path, 'rollout'))
         attention_probs = get_attention_probs(model=vit_model)

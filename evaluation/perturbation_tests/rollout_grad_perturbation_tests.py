@@ -194,12 +194,9 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
 
 if __name__ == "__main__":
     results_df = pd.DataFrame(columns=['vis_type', 'auc'])
-    VIS_TYPES = ['vis_max_logits', 'vis_min_pred_loss', 'vis_90', 'vis_100', 'vis_110', 'vis_120',
-                 'vis_130', 'vis_140', 'vis_150', 'vis_160', 'vis_165', 'vis_170',
-                 'vis_175', 'vis_180', 'vis_185', 'vis_190']
+    VIS_TYPES = ['vis_rollout_max_grad', 'vis_rollout_mean_relu_grad']
 
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
-    # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'rollout_grad', vit_config['evaluation']['experiment_folder_name'])
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
                                                                     model_type='vit-for-dino')
     model.to(device)

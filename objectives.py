@@ -1,3 +1,5 @@
+from typing import Union
+
 from loss_utils import ce_loss, entropy, log
 import torch
 from torch import Tensor
@@ -23,8 +25,7 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor,
     return loss
 
 
-def objective_grad_rollout(output: Tensor, target: Tensor, contrastive_class_idx: Tensor = None) -> Tensor:
-    target_idx = contrastive_class_idx if contrastive_class_idx is not None else torch.argmax(target)
+def objective_grad_rollout(output: Tensor, target_idx: Union[int, Tensor]) -> Tensor:
     prediction_loss = output[0][target_idx]
     loss = prediction_loss
     if vit_config['verbose']:
