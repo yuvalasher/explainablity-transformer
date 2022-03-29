@@ -201,7 +201,8 @@ if __name__ == "__main__":
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'temp', vit_config['evaluation']['experiment_folder_name'])
     # experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'test')
     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
-                                                                    model_type='vit-for-dino')
+                                                                    model_type='vit-for-dino',
+                                                                    is_wolf_transforms=vit_config['is_wolf_transforms'])
     model.to(device)
     model.eval()
     for vis_type in VIS_TYPES:

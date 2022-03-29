@@ -13,7 +13,8 @@ vit_config = config['vit']
 loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
-feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
+feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino',
+                                                                    is_wolf_transforms=vit_config['is_wolf_transforms'])
 
 
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):

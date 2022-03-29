@@ -17,6 +17,7 @@
 from typing import Optional, Union
 
 import numpy as np
+import torch
 from PIL import Image
 import torchvision.transforms as transforms
 from transformers.feature_extraction_utils import BatchFeature, FeatureExtractionMixin
@@ -157,7 +158,10 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
 
 
 def get_transforms_size(pic, size: int = 256):
-    height, width = pic.size
+    if type(pic) is torch.Tensor and len(pic.shape) == 3:
+        height, width = pic.shape[1], pic.shape[2]
+    else:
+        height, width = pic.size
     # print(f'Height: {height}, Width: {width}')
     if height > width:
         size = (int(size * height / width), size)
