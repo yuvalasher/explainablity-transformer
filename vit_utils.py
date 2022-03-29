@@ -435,14 +435,14 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def rollout(attnetions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
+def rollout(attentions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
     all_layer_attentions = []
     attn = []
     if gradients is not None:
-        for attn_score, grad in zip(attnetions, gradients):
+        for attn_score, grad in zip(attentions, gradients):
             attn.append(attn_score * grad)
     else:
-        attn = attnetions
+        attn = attentions
     for attn_heads in attn:
         if head_fusion == 'mean':
             fused_heads = (attn_heads.sum(dim=1) / attn_heads.shape[1]).detach()
