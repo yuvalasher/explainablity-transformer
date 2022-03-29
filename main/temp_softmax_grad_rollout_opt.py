@@ -32,8 +32,7 @@ def temp_softmax_grad_rollout_optimization(vit_ours_model, vit_model, feature_ex
     total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask_rollout_max_grad, tokens_mask_rollout_mean_relu_grad, temps = [], [], [], [], [], [], []
     d_masks = get_rollout_grad(vit_ours_model=vit_ours_model,
                                feature_extractor=feature_extractor,
-                               image=transforms.ToPILImage()(
-                                   image.reshape(3, vit_config['img_size'], vit_config['img_size'])),
+                               inputs=inputs,
                                discard_ratio=0.9)
     for iteration_idx in range(num_steps):
         optimizer.zero_grad()
