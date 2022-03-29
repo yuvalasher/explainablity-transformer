@@ -29,7 +29,7 @@ def temp_softmax_grad_rollout_optimization(vit_ours_model, vit_model, feature_ex
     inputs = {'pixel_values': inputs['pixel_values'].to(device)}
     target = vit_model(**inputs)
     target_class_idx = torch.argmax(target.logits[0])
-    total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask_rollout_max_grad, tokens_mask_rollout_mean_relu_grad, temps = [], [], [], [], [], []
+    total_losses, prediction_losses, correct_class_logits, correct_class_probs, tokens_mask_rollout_max_grad, tokens_mask_rollout_mean_relu_grad, temps = [], [], [], [], [], [], []
     d_masks = get_rollout_grad(vit_ours_model=vit_ours_model,
                                feature_extractor=feature_extractor,
                                image=transforms.ToPILImage()(
