@@ -111,36 +111,36 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(vit_sigmoid_model: ViTS
                     path=image_dino_plots_folder, only_fusion=False)
 
 
-def get_rollout_mask(fusions: List[str], discard_ratio: float = 0.9, gradients: List[Tensor] = None,
-                     attention_probs=None) -> List[Tensor]:
-    """
-    Each mask is a [n_tokens] mask (after head aggregation)
-    """
-    if gradients is not None:
-        attn = []
-        for attn_score, grad in zip(attention_probs, gradients):
-            attn.append(attn_score * grad)
-    else:
-        attn = attention_probs
-
-    masks = []
-    if 'mean' in fusions:
-        mask_rollout_mean = rollout(attentions=attn, head_fusion='mean', return_resized=False,
-                                    discard_ratio=discard_ratio)
-        masks.append(mask_rollout_mean)
-    if 'median' in fusions:
-        mask_rollout_median = rollout(attentions=attn, head_fusion='median', return_resized=False,
-                                      discard_ratio=discard_ratio)
-        masks.append(mask_rollout_median)
-    if 'min' in fusions:
-        mask_rollout_min = rollout(attentions=attn, head_fusion='min', return_resized=False,
-                                   discard_ratio=discard_ratio)
-        masks.append(mask_rollout_min)
-    if 'max' in fusions:
-        mask_rollout_max = rollout(attentions=attn, head_fusion='max', return_resized=False,
-                                   discard_ratio=discard_ratio)
-        masks.append(mask_rollout_max)
-    return masks
+# def get_rollout_mask(fusions: List[str], discard_ratio: float = 0.9, gradients: List[Tensor] = None,
+#                      attention_probs=None) -> List[Tensor]:
+#     """
+#     Each mask is a [n_tokens] mask (after head aggregation)
+#     """
+#     if gradients is not None:
+#         attn = []
+#         for attn_score, grad in zip(attention_probs, gradients):
+#             attn.append(attn_score * grad)
+#     else:
+#         attn = attention_probs
+#
+#     masks = []
+#     if 'mean' in fusions:
+#         mask_rollout_mean = rollout(attentions=attn, head_fusion='mean', return_resized=False,
+#                                     discard_ratio=discard_ratio)
+#         masks.append(mask_rollout_mean)
+#     if 'median' in fusions:
+#         mask_rollout_median = rollout(attentions=attn, head_fusion='median', return_resized=False,
+#                                       discard_ratio=discard_ratio)
+#         masks.append(mask_rollout_median)
+#     if 'min' in fusions:
+#         mask_rollout_min = rollout(attentions=attn, head_fusion='min', return_resized=False,
+#                                    discard_ratio=discard_ratio)
+#         masks.append(mask_rollout_min)
+#     if 'max' in fusions:
+#         mask_rollout_max = rollout(attentions=attn, head_fusion='max', return_resized=False,
+#                                    discard_ratio=discard_ratio)
+#         masks.append(mask_rollout_max)
+#     return masks
 
 
 def plot_attention_rollout(attention_probs, path, patch_size: int, iteration_idx: int,
