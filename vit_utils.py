@@ -435,7 +435,7 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
     return array
 
 
-def rollout(attentions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None):
+def rollout(attentions, discard_ratio: float = 0, start_layer=0, head_fusion='max', gradients=None, return_resized:bool= True):
     all_layer_attentions = []
     attn = []
     if gradients is not None:
@@ -457,8 +457,12 @@ def rollout(attentions, discard_ratio: float = 0, start_layer=0, head_fusion='ma
         # indices = indices[indices != 0]
         flat[0, indices] = 0
         all_layer_attentions.append(fused_heads)
-    rollout = compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
-    return rollout[0, 0, 1:]
+    rollout_arr = compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
+    mask = rollout_arr[0, 0, 1:]  # result.shape: [1, n_tokens + 1, n_tokens + 1]
+    if return_resized:
+        width = int(mask.size(-1) ** 0.5)
+        mask = mask.reshape(width, width)
+    return mask
 
 
 def compute_rollout_attention(all_layer_matrices, start_layer=0):
