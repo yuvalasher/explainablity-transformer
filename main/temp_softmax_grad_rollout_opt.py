@@ -33,7 +33,7 @@ def temp_softmax_grad_rollout_optimization(vit_ours_model, vit_model, feature_ex
     d_masks = get_rollout_grad(vit_ours_model=vit_ours_model,
                                feature_extractor=feature_extractor,
                                inputs=inputs,
-                               discard_ratio=0.9)
+                               discard_ratio=0.9, return_resized=False)
     for iteration_idx in range(num_steps):
         optimizer.zero_grad()
         output = vit_ours_model(**inputs)
