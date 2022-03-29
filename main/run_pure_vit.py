@@ -42,21 +42,21 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         gradients = get_attention_grads_probs(model=vit_unfreezed, apply_relu=False)
         relu_gradients = get_attention_grads_probs(model=vit_unfreezed, apply_relu=True)
         # rollout_max = rollout(attnetions=attention_probs, head_fusion='max')
-        rollout_mean_discard = rollout(attnetions=attention_probs, head_fusion='mean', discard_ratio=0.9)
-        rollout_mean = rollout(attnetions=attention_probs, head_fusion='mean', discard_ratio=0)
+        rollout_mean_discard = rollout(attentions=attention_probs, head_fusion='mean', discard_ratio=0.9)
+        rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', discard_ratio=0)
         # rollout_min = rollout(attnetions=attention_probs, head_fusion='min')
         # rollout_median = rollout(attnetions=attention_probs, head_fusion='median')
         # rollout_min_relu_grad = rollout(attnetions=attention_probs, head_fusion='min', gradients=relu_gradients)
         # rollout_median_relu_grad = rollout(attnetions=attention_probs, head_fusion='median', gradients=relu_gradients)
-        rollout_max_relu_grad = rollout(attnetions=attention_probs, head_fusion='max', gradients=relu_gradients,
+        rollout_max_relu_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=relu_gradients,
                                         discard_ratio=0.9)
-        rollout_mean_relu_grad = rollout(attnetions=attention_probs, head_fusion='mean', gradients=relu_gradients,
+        rollout_mean_relu_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=relu_gradients,
                                          discard_ratio=0.9)
-        rollout_max_grad = rollout(attnetions=attention_probs, head_fusion='max', gradients=gradients,
+        rollout_max_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=gradients,
                                    discard_ratio=0.9)
-        rollout_mean_grad = rollout(attnetions=attention_probs, head_fusion='mean', gradients=gradients,
+        rollout_mean_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=gradients,
                                     discard_ratio=0.9)
-        rollout_median_grad = rollout(attnetions=attention_probs, head_fusion='median', gradients=gradients,
+        rollout_median_grad = rollout(attentions=attention_probs, head_fusion='median', gradients=gradients,
                                       discard_ratio=0.9)
         # rollout_min_grad = rollout(attnetions=attention_probs, head_fusion='min', gradients=gradients)
 
@@ -134,7 +134,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
 
 if __name__ == '__main__':
-    experiment_name = f"rollout_grad_0.9_not_wolf"
+    experiment_name = f"rollout_grad_0.9_not_wolf_test"
     print(experiment_name)
     _ = create_folder(Path(PLOTS_PATH, experiment_name))
     optimize_params(vit_model=vit_model, criterion=objective_grad_rollout)
