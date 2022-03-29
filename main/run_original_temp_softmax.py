@@ -41,8 +41,10 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         h_rollout_max = rollout(attentions=attention_probs, head_fusion='max')
         h_rollout_mean = rollout(attentions=attention_probs, head_fusion='mean')
         image_rollout_plots_folder = create_folder(Path(image_plot_folder_path, 'rollout'))
-        visu(original_image=original_transformed_image, transformer_attribution=h_rollout_max, file_name=Path(image_rollout_plots_folder, 'h_rollout_max'))
-        visu(original_image=original_transformed_image, transformer_attribution=h_rollout_mean, file_name=Path(image_rollout_plots_folder, 'h_rollout_mean'))
+        visu(original_image=original_transformed_image, transformer_attribution=h_rollout_max,
+             file_name=Path(image_rollout_plots_folder, 'h_rollout_max'))
+        visu(original_image=original_transformed_image, transformer_attribution=h_rollout_mean,
+             file_name=Path(image_rollout_plots_folder, 'h_rollout_mean'))
         plot_attention_rollout(attention_probs=attention_probs, path=image_plot_folder_path,
                                patch_size=16, iteration_idx=0, head_fusion='max',
                                original_image=original_transformed_image)

@@ -16,10 +16,11 @@ for image_name in l:
     outputs = vit_model(**inputs)
     logits = outputs.logits
     predicted_class_idx = logits.argmax(-1).item()
-    correct_class_prob = F.softmax(logits[0 ], dim=-1)[predicted_class_idx].item()
+    correct_class_prob = F.softmax(logits[0], dim=-1)[predicted_class_idx].item()
     correct_class_logits = torch.max(logits[0])
     print(image_name, vit_model.config.id2label[predicted_class_idx], correct_class_prob, correct_class_logits.item())
     probs, indices = torch.topk(F.softmax(logits[0], dim=-1), k=10, largest=True)
     for prob, ind in zip(probs, indices):
         print(f'Class: {vit_model.config.id2label[ind.item()]}, Prob: {prob.item()}, Class Idx: {ind.item()}')
-    print('----------------------------------------------------------------------------------------------------------------')
+    print(
+        '----------------------------------------------------------------------------------------------------------------')
