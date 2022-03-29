@@ -52,7 +52,6 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
                                       compression="gzip")
         vit_ours_model, _ = setup_model_and_optimizer(model_name='softmax_temp')
         for batch_idx, (data, target) in enumerate(tqdm(sample_loader)):
-            # print(f'batch_idx: {batch_idx}')
             first = True if batch_idx == 0 else False
             resize_array_src_to_dst_shape(src_array=data_cam_rollout_max_grad, dst_array_shape=data.shape,
                                           is_first=first)
@@ -100,7 +99,7 @@ if __name__ == "__main__":
     experiment_path = create_folder(
         Path(EXPERIMENTS_FOLDER_PATH, 'rollout_grad', vit_config['evaluation']['experiment_folder_name']))
     results_path = Path(experiment_path, 'results.hdf5')
-    feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino')
+    feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino', is_wolf_transforms=vit_config['is_wolf_transforms'])
 
     # Dataset loader for sample images
     transform = transforms.Compose([
