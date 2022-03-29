@@ -113,14 +113,14 @@ vit:
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 100
+    entropy_loss_multiplier: 1000
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   evaluation:
     original_image_name: 224x224.JPEG
     batch_size: 1
     num_samples_to_evaluate: 5
-    experiment_folder_name: rollout_grad_1000_lior_trans
+    experiment_folder_name: temp_softmax_grad_rollout_entropy_1000
 
 bert:
   general:
