@@ -12,7 +12,7 @@ seed_everything(config['general']['seed'])
 
 def get_rollout_grad(vit_ours_model: ViTForImageClassification, feature_extractor: ViTFeatureExtractor, image=None,
                      inputs=None, discard_ratio: float = 0.9) -> Dict[str, Tensor]:
-    if inputs is not None:
+    if inputs is None:
         inputs = feature_extractor(images=image, return_tensors="pt")
         inputs = {'pixel_values': inputs['pixel_values'].to(device)}
     vit_ours_model.to(device)
