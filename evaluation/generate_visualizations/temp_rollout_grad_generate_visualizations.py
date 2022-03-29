@@ -29,85 +29,85 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
     _remove_file_if_exists(path=results_path)
 
     with h5py.File(results_path, 'a') as f:
-        data_cam_min_pred_loss_rollout_grad_max = f.create_dataset('data_cam_min_pred_loss_rollout_grad_max',
+        data_cam_min_pred_loss_rollout_grad_max = f.create_dataset('vis_min_pred_loss_rollout_grad_max',
                                                   VIS_SHAPE,
                                                   maxshape=VIS_MAX_SHAPE,
                                                   dtype=np.float32,
                                                   compression="gzip")
-        data_cam_max_logits_rollout_grad_max = f.create_dataset('data_cam_max_logits_rollout_grad_max',
+        data_cam_max_logits_rollout_grad_max = f.create_dataset('vis_max_logits_rollout_grad_max',
                                                VIS_SHAPE,
                                                maxshape=VIS_MAX_SHAPE,
                                                dtype=np.float32,
                                                compression="gzip")
 
-        data_cam_90_rollout_grad_max = f.create_dataset('data_cam_90_rollout_grad_max',
+        data_cam_90_rollout_grad_max = f.create_dataset('vis_90_rollout_grad_max',
                                                          VIS_SHAPE,
                                                          maxshape=VIS_MAX_SHAPE,
                                                          dtype=np.float32,
                                                          compression="gzip")
-        data_cam_100_rollout_grad_max = f.create_dataset('data_cam_100_rollout_grad_max',
+        data_cam_100_rollout_grad_max = f.create_dataset('vis_100_rollout_grad_max',
                                                          VIS_SHAPE,
                                                          maxshape=VIS_MAX_SHAPE,
                                                          dtype=np.float32,
                                                          compression="gzip")
-        data_cam_110_rollout_grad_max = f.create_dataset('data_cam_110_rollout_grad_max',
+        data_cam_110_rollout_grad_max = f.create_dataset('vis_110_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_120_rollout_grad_max = f.create_dataset('data_cam_120_rollout_grad_max',
+        data_cam_120_rollout_grad_max = f.create_dataset('vis_120_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_130_rollout_grad_max = f.create_dataset('data_cam_130_rollout_grad_max',
+        data_cam_130_rollout_grad_max = f.create_dataset('vis_130_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
 
-        data_cam_140_rollout_grad_max = f.create_dataset('data_cam_140_rollout_grad_max',
+        data_cam_140_rollout_grad_max = f.create_dataset('vis_140_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_150_rollout_grad_max = f.create_dataset('data_cam_150_rollout_grad_max',
+        data_cam_150_rollout_grad_max = f.create_dataset('vis_150_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_160_rollout_grad_max = f.create_dataset('data_cam_160_rollout_grad_max',
+        data_cam_160_rollout_grad_max = f.create_dataset('vis_160_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_165_rollout_grad_max = f.create_dataset('data_cam_165_rollout_grad_max',
+        data_cam_165_rollout_grad_max = f.create_dataset('vis_165_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_170_rollout_grad_max = f.create_dataset('data_cam_170_rollout_grad_max',
+        data_cam_170_rollout_grad_max = f.create_dataset('vis_170_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_175_rollout_grad_max = f.create_dataset('data_cam_175_rollout_grad_max',
+        data_cam_175_rollout_grad_max = f.create_dataset('vis_175_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
 
-        data_cam_180_rollout_grad_max = f.create_dataset('data_cam_180_rollout_grad_max',
+        data_cam_180_rollout_grad_max = f.create_dataset('vis_180_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_185_rollout_grad_max = f.create_dataset('data_cam_185_rollout_grad_max',
+        data_cam_185_rollout_grad_max = f.create_dataset('vis_185_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,
                                         compression="gzip")
-        data_cam_190_rollout_grad_max = f.create_dataset('data_cam_190_rollout_grad_max',
+        data_cam_190_rollout_grad_max = f.create_dataset('vis_190_rollout_grad_max',
                                         VIS_SHAPE,
                                         maxshape=VIS_MAX_SHAPE,
                                         dtype=np.float32,

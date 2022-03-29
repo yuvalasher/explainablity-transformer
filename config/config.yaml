@@ -121,6 +121,7 @@ vit:
     batch_size: 1
     num_samples_to_evaluate: 5
     experiment_folder_name: temp_softmax_grad_rollout_entropy_1000
+    perturbation_type: pos
 
 bert:
   general:

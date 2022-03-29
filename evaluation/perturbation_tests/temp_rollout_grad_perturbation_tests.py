@@ -74,7 +74,7 @@ def eval(experiment_dir: Path, model, feature_extractor) -> float:
         # if args.neg:
         if vit_config['perturbation_type'] == 'neg':
             vis = -vis
-        elif vit_config['perturbation_type'] == 'neg':
+        elif vit_config['perturbation_type'] == 'pos':
             vis = vis
         else:
             raise (NotImplementedError(f'perturbation_type config {vit_config["perturbation_type"]} not exists'))
