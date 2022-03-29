@@ -23,8 +23,8 @@ def get_rollout_grad(vit_ours_model: ViTForImageClassification, feature_extracto
     gradients = get_attention_grads_probs(model=vit_ours_model, apply_relu=False)
     relu_gradients = get_attention_grads_probs(model=vit_ours_model, apply_relu=True)
 
-    rollout_mean_relu_grad = rollout(attnetions=attention_probs, head_fusion='mean', gradients=relu_gradients,
+    rollout_mean_relu_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=relu_gradients,
                                      discard_ratio=discard_ratio)
-    rollout_max_grad = rollout(attnetions=attention_probs, head_fusion='max', gradients=gradients,
+    rollout_max_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=gradients,
                                discard_ratio=discard_ratio)
     return {'rollout_mean_relu_grad': rollout_mean_relu_grad, 'rollout_max_grad': rollout_max_grad}
