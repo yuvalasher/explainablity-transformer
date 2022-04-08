@@ -19,36 +19,39 @@ vit:
   num_labels: 1000
   save_every: 50
   images:
-    - image_name: 00000117.JPEG
+#    - image_name: 1111111111 (1).JPEG
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000069.JPEG # tricycle, trike, velocipede
+#      correct_class: 870
+#      contrastive_class:
+    - image_name: 1111111111 (2).JPEG
       correct_class:
       contrastive_class:
-    - image_name: 00000196.JPEG
-      correct_class:
-      contrastive_class:
-    - image_name: 00000169.JPEG
-      correct_class:
-      contrastive_class:
-#    - image_name: Bullmastiff.jpg
-#      correct_class: 282
+#    - image_name: 0000000005.JPEG # catdog
+#      correct_class: 282 # cat
+#      contrastive_class: 243 # dog
+#    - image_name: 0000000003.JPEG # dog and cat
+#      correct_class: 207 # dog
+#      contrastive_class: 285 # cat
+#    - image_name: 0000000002.JPEG # zebra (340) and elephant (101)
+#      correct_class: 101
+#      contrastive_class: 340
+#    - image_name: 0000000004.JPEG # zebras and elephants
+#      correct_class: 340 # zebras
+#      contrastive_class: 386 # elephants
+#    - image_name: 00000003.JPEG # dog
+#      correct_class:
 #      contrastive_class:
 #    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
 #      correct_class: 161
 #      contrastive_class: 88
-#    - image_name: 0000000002.JPEG # zebra and elephant
-#      correct_class: 101
-#      contrastive_class: 340
-#    - image_name: 0000000004.JPEG # zebras and elephants
-#      correct_class: 340
-#      contrastive_class: 386
-#    - image_name: 00000102.JPEG # dog
+#    - image_name: Bullmastiff.jpg
+#      correct_class: 282
+#      contrastive_class:
+#   - image_name: 00000102.JPEG # dog
 #      correct_class: 906
 #      contrastive_class:
-#    - image_name: 0000000003.JPEG # dog and cat
-#      correct_class: 207
-#      contrastive_class: 285
-#    - image_name: 0000000005.JPEG # catdog
-#      correct_class: 282
-#      contrastive_class: 243
 #    - image_name: 00000009.JPEG # mouse, computer mouse (?)
 #      correct_class: 674
 #      contrastive_class: 673
@@ -66,9 +69,6 @@ vit:
 #      contrastive_class:
 #    - image_name: 00000112.JPEG # pill bottle
 #      correct_class: 720
-#      contrastive_class:
-#    - image_name: 00000003.JPEG # dog
-#      correct_class:
 #      contrastive_class:
 #    - image_name: 00000018.JPEG # bird
 #      correct_class:
@@ -94,9 +94,6 @@ vit:
 #    - image_name: 00000052.JPEG # fish
 #      correct_class: 29
 #      contrastive_class:
-#    - image_name: 00000069.JPEG # tricycle, trike, velocipede
-#      correct_class: 870
-#      contrastive_class:
 #    - image_name: 00000061.JPEG
 #      correct_class:
 #      contrastive_class:
@@ -113,7 +110,7 @@ vit:
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 1000
+    entropy_loss_multiplier: 100
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   evaluation:
