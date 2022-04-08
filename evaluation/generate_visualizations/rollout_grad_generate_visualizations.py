@@ -73,7 +73,7 @@ def compute_saliency_and_save(results_path: Path, feature_extractor: ViTFeatureE
                                        image=transforms.ToPILImage()(
                                            data.reshape(3, vit_config['img_size'],
                                                         vit_config['img_size'])),
-                                       discard_ratio=0.9)
+                                       discard_ratio=0)
             for iter_desc, mask in d_masks.items():
                 res_by_type[iter_desc] = patch_score_to_image(transformer_attribution=mask,
                                                               output_2d_tensor=False)  # [1, 1, 224, 224]
