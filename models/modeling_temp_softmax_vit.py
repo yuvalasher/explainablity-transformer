@@ -370,6 +370,7 @@ class ViTEncoder(nn.Module):
         num_patches = (config.image_size // config.patch_size) * (config.image_size // config.patch_size)
         self.x_attention = nn.Parameter(
             torch.ones(config.num_hidden_layers, config.num_attention_heads, num_patches + 1, requires_grad=True))
+        self.x_attention.retain_grad()
 
     def forward(
             self,

@@ -172,8 +172,8 @@ class ViTSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size, bias=config.qkv_bias)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
-        self.attention_probs = None
         # self.attention_scores = None
+        # self.attention_probs = None
 
     def transpose_for_scores(self, x):
         # Dividing the dim_size (768) to num_attention heads (attention_head: dim: 64)
@@ -195,7 +195,8 @@ class ViTSelfAttention(nn.Module):
                                                                          -2))  # [batch_size, n_heads, num_patches + 1, num_patches + 1]
 
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
-
+        self.attention_scores = attention_scores
+        self.attention_scores.retain_grad()
         # Normalize the attention scores to probabilities.
         # with torch.enable_grad():
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)

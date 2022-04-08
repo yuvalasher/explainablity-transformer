@@ -194,6 +194,7 @@ class ViTSelfAttention(nn.Module):
                                                                          -2))  # [batch_size, n_heads, num_patches + 1, num_patches + 1]
 
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
+        self.attention_scores = attention_scores
 
         # Normalize the attention scores to probabilities.
         attention_probs = nn.functional.softmax(attention_scores, dim=-1)
