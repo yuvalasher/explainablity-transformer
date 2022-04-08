@@ -668,8 +668,9 @@ def get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path, imag
 
 def visualize_attentions_and_temps(cls_attentions_probs, iteration_idx, mean_folder, median_folder, max_folder,
                                    min_folder, original_transformed_image, temp,
-                                   temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder,
-                                   temp_tokens_min_folder, temp_tokens_folder=None):
+                                   temp_tokens_mean_folder=None, temp_tokens_median_folder=None,
+                                   temp_tokens_max_folder=None,
+                                   temp_tokens_min_folder=None, temp_tokens_folder=None):
     visualize_attention_scores(cls_attentions_probs=cls_attentions_probs, iteration_idx=iteration_idx,
                                max_folder=max_folder, mean_folder=mean_folder, median_folder=median_folder,
                                min_folder=min_folder, original_transformed_image=original_transformed_image)
@@ -680,21 +681,25 @@ def visualize_attentions_and_temps(cls_attentions_probs, iteration_idx, mean_fol
                    temp_tokens_min_folder=temp_tokens_min_folder)
 
 
-def visualize_temp(iteration_idx, original_transformed_image, temp, temp_tokens_folder, temp_tokens_max_folder,
-                   temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder):
+def visualize_temp(iteration_idx, original_transformed_image, temp, temp_tokens_folder, temp_tokens_max_folder=None,
+                   temp_tokens_mean_folder=None, temp_tokens_median_folder=None, temp_tokens_min_folder=None):
     if len(temp.shape) > 1:
-        visu(original_image=original_transformed_image,
-             transformer_attribution=temp.mean(dim=0),
-             file_name=Path(temp_tokens_mean_folder, f'plot_{iteration_idx}'))
-        visu(original_image=original_transformed_image,
-             transformer_attribution=temp.median(dim=0)[0],
-             file_name=Path(temp_tokens_median_folder, f'plot_{iteration_idx}'))
-        visu(original_image=original_transformed_image,
-             transformer_attribution=temp.max(dim=0)[0],
-             file_name=Path(temp_tokens_max_folder, f'plot_{iteration_idx}'))
-        visu(original_image=original_transformed_image,
-             transformer_attribution=temp.min(dim=0)[0],
-             file_name=Path(temp_tokens_min_folder, f'plot_{iteration_idx}'))
+        if temp_tokens_mean_folder is not None:
+            visu(original_image=original_transformed_image,
+                 transformer_attribution=temp.mean(dim=0),
+                 file_name=Path(temp_tokens_mean_folder, f'plot_{iteration_idx}'))
+        if temp_tokens_median_folder is not None:
+            visu(original_image=original_transformed_image,
+                 transformer_attribution=temp.median(dim=0)[0],
+                 file_name=Path(temp_tokens_median_folder, f'plot_{iteration_idx}'))
+        if temp_tokens_max_folder is not None:
+            visu(original_image=original_transformed_image,
+                 transformer_attribution=temp.max(dim=0)[0],
+                 file_name=Path(temp_tokens_max_folder, f'plot_{iteration_idx}'))
+        if temp_tokens_min_folder is not None:
+            visu(original_image=original_transformed_image,
+                 transformer_attribution=temp.min(dim=0)[0],
+                 file_name=Path(temp_tokens_min_folder, f'plot_{iteration_idx}'))
     else:
         visu(original_image=original_transformed_image,
              transformer_attribution=temp,
@@ -723,20 +728,24 @@ def visualize_attention_scores_with_rollout(cls_attentions_probs, rollout_vector
              file_name=Path(rollout_folder, f'plot_{iteration_idx}'))
 
 
-def visualize_attention_scores(cls_attentions_probs, iteration_idx, max_folder, mean_folder, median_folder, min_folder,
-                               original_transformed_image):
-    visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.mean(dim=0),
-         file_name=Path(mean_folder, f'plot_{iteration_idx}'))
-    visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.median(dim=0)[0],
-         file_name=Path(median_folder, f'plot_{iteration_idx}'))
-    visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.max(dim=0)[0],
-         file_name=Path(max_folder, f'plot_{iteration_idx}'))
-    visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.min(dim=0)[0],
-         file_name=Path(min_folder, f'plot_{iteration_idx}'))
+def visualize_attention_scores(cls_attentions_probs, original_transformed_image, iteration_idx, max_folder=None,
+                               mean_folder=None, median_folder=None, min_folder=None):
+    if mean_folder is not None:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=cls_attentions_probs.mean(dim=0),
+             file_name=Path(mean_folder, f'plot_{iteration_idx}'))
+    if median_folder is not None:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=cls_attentions_probs.median(dim=0)[0],
+             file_name=Path(median_folder, f'plot_{iteration_idx}'))
+    if max_folder is not None:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=cls_attentions_probs.max(dim=0)[0],
+             file_name=Path(max_folder, f'plot_{iteration_idx}'))
+    if min_folder is not None:
+        visu(original_image=original_transformed_image,
+             transformer_attribution=cls_attentions_probs.min(dim=0)[0],
+             file_name=Path(min_folder, f'plot_{iteration_idx}'))
 
 
 def create_folder(path: Path) -> Path:
