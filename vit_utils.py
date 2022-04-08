@@ -789,10 +789,12 @@ def visualize_attention_scores_by_layer_idx(model, image_plot_folder_path, origi
                                    min_folder=min_folder, original_transformed_image=original_image)
 
 
-def visualize_temp_tokens_and_attention_scores(iteration_idx, max_folder, mean_folder, median_folder, min_folder,
-                                               original_transformed_image, temp_tokens_max_folder,
-                                               temp_tokens_mean_folder, temp_tokens_median_folder,
-                                               temp_tokens_min_folder, vit_sigmoid_model, cls_attentions_probs):
+def visualize_temp_tokens_and_attention_scores(iteration_idx, vit_sigmoid_model, cls_attentions_probs,
+                                               original_transformed_image,
+                                               max_folder=None, mean_folder=None, median_folder=None, min_folder=None,
+                                               temp_tokens_max_folder=None,
+                                               temp_tokens_mean_folder=None, temp_tokens_median_folder=None,
+                                               temp_tokens_min_folder=None):
     # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
     #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
     temp = vit_sigmoid_model.vit.encoder.x_attention.clone()
