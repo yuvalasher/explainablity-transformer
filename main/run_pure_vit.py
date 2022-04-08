@@ -33,41 +33,46 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
         # print_number_of_trainable_and_not_trainable_params(model=vit_unfreezed)
         output = vit_unfreezed(**inputs)
         correct_idx = target.logits.argmax().item()
-        # contrastive_idx = 88
-        target_idx = correct_idx
+        target_idx = 340
         loss = criterion(output=output.logits, target_idx=target_idx)
         loss.backward()
         # rollout_folder = create_folder(Path(image_plot_folder_path, 'rollout'))
-        attention_probs = get_attention_probs(model=vit_model)
+        attention_probs = get_attention_probs(model=vit_unfreezed)
+        attention_scores = get_attention_scores(model=vit_unfreezed)
+        attention_scores_grad = get_attention_scores_grad(model=vit_unfreezed)
         gradients = get_attention_grads_probs(model=vit_unfreezed, apply_relu=False)
         relu_gradients = get_attention_grads_probs(model=vit_unfreezed, apply_relu=True)
+
         # rollout_max = rollout(attnetions=attention_probs, head_fusion='max')
-        rollout_mean_discard = rollout(attentions=attention_probs, head_fusion='mean', discard_ratio=0.9)
         rollout_mean = rollout(attentions=attention_probs, head_fusion='mean', discard_ratio=0)
         # rollout_min = rollout(attnetions=attention_probs, head_fusion='min')
         # rollout_median = rollout(attnetions=attention_probs, head_fusion='median')
         # rollout_min_relu_grad = rollout(attnetions=attention_probs, head_fusion='min', gradients=relu_gradients)
         # rollout_median_relu_grad = rollout(attnetions=attention_probs, head_fusion='median', gradients=relu_gradients)
-        rollout_max_relu_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=relu_gradients,
-                                        discard_ratio=0.9)
+        rollout_max_relu_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=relu_gradients, discard_ratio=0)
         rollout_mean_relu_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=relu_gradients,
-                                         discard_ratio=0.9)
-        rollout_max_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=gradients,
-                                   discard_ratio=0.9)
-        rollout_mean_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=gradients,
-                                    discard_ratio=0.9)
-        rollout_median_grad = rollout(attentions=attention_probs, head_fusion='median', gradients=gradients,
-                                      discard_ratio=0.9)
+                                         discard_ratio=0)
+        attn_scores_rollout_max_grad = rollout(attentions=attention_scores, head_fusion='max', gradients=attention_scores_grad, discard_ratio=0)
+        rollout_max_grad = rollout(attentions=attention_probs, head_fusion='max', gradients=gradients, discard_ratio=0)
+        rollout_mean_grad = rollout(attentions=attention_probs, head_fusion='mean', gradients=gradients, discard_ratio=0)
+        rollout_median_grad = rollout(attentions=attention_probs, head_fusion='median', gradients=gradients, discard_ratio=0)
         # rollout_min_grad = rollout(attnetions=attention_probs, head_fusion='min', gradients=gradients)
 
         target_desc = vit_unfreezed.config.id2label[target_idx][:10]
 
+        visu(original_image=original_transformed_image,
+             transformer_attribution=rollout_mean_grad,
+             file_name=Path(image_plot_folder_path, f'grad_rollout_mean'))
+        visu(original_image=original_transformed_image,
+             transformer_attribution=attn_scores_rollout_max_grad,
+             file_name=Path(image_plot_folder_path, f'attn_scores_rollout_max_grad'))
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_max_grad,
              file_name=Path(image_plot_folder_path, f'grad_rollout_max'))
         visu(original_image=original_transformed_image,
              transformer_attribution=rollout_mean_relu_grad,
              file_name=Path(image_plot_folder_path, f'relu_grad_rollout_mean'))
+        print(1)
         """
         # visu(original_image=original_transformed_image,
         #      transformer_attribution=relu_gradients[-1][0, :, 0, 1:].median(dim=0)[0],
@@ -134,7 +139,7 @@ def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
 
 
 if __name__ == '__main__':
-    experiment_name = f"rollout_grad_0.9_not_wolf_test"
+    experiment_name = f"pasten"
     print(experiment_name)
     _ = create_folder(Path(PLOTS_PATH, experiment_name))
     optimize_params(vit_model=vit_model, criterion=objective_grad_rollout)
