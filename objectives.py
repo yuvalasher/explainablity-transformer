@@ -20,8 +20,8 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor,
     if vit_config['verbose']:
         print(f'entropy: {entropy_loss}, prediction_loss: {prediction_loss}, l1_loss: {l1_loss}')
         print(f'loss: {loss}, max_temp: {torch.max(temp)}, min_temp: {torch.min(temp)}')
-    log(loss=loss, entropy_loss=entropy_loss, l1_loss=l1_loss, prediction_loss=prediction_loss, x_attention=temp, output=output,
-        target=target, contrastive_class_idx=target_idx.item())
+    log(loss=loss, entropy_loss=entropy_loss, l1_loss=l1_loss, prediction_loss=prediction_loss, x_attention=temp,
+        output=output, target=target, contrastive_class_idx=target_idx.item())
     return loss
 
 
