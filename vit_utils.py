@@ -69,6 +69,18 @@ def get_attention_probs(model) -> List[Tensor]:
                   range(num_layers)]
     return attentions
 
+def get_attention_scores(model) -> List[Tensor]:
+    num_layers = get_num_layers(model=model)
+    attentions = [model.vit.encoder.layer[layer_idx].attention.attention.attention_scores for layer_idx in
+                  range(num_layers)]
+    return attentions
+
+def get_attention_scores_grad(model) -> List[Tensor]:
+    num_layers = get_num_layers(model=model)
+    attentions = [model.vit.encoder.layer[layer_idx].attention.attention.attention_scores.grad for layer_idx in
+                  range(num_layers)]
+    return attentions
+
 
 def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
     num_heads = get_head_num_heads(model=model)
