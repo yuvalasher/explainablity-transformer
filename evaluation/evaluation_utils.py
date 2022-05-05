@@ -40,7 +40,7 @@ def load_obj_from_path(path: Union[str, WindowsPath, Path]) -> Any:
 def patch_score_to_image(transformer_attribution: Tensor, output_2d_tensor: bool = True) -> Tensor:
     """
     Convert Patch scores ([196]) to image size tesnor [224, 224]
-    :param transformer_attribution: Tensor with score of each patch in the picuter
+    :param transformer_attribution: Tensor with score of each patch in the picture
     :return:
     """
     transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
