@@ -539,15 +539,16 @@ class BertLayer(nn.Module):
         return layer_output
 
 
-class BertEncoder(nn.Module):
+class BertTempEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
         self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
         self.gradient_checkpointing = False
-        self.num_tokens = 22
+        self.num_tokens = 512
         self.x_attention = nn.Parameter(
-            torch.ones(config.num_hidden_layers, config.num_attention_heads, self.num_tokens + 1, requires_grad=True))
+            torch.ones(config.num_hidden_layers, config.num_attention_heads, self.num_tokens, requires_grad=True))
+        # I change it to be the correct num_tokens depends on the input and remove the +1
 
     def forward(
             self,
@@ -874,12 +875,12 @@ class BertModel(BertPreTrainedModel):
     `add_cross_attention` set to `True`; an `encoder_hidden_states` is then expected as an input to the forward pass.
     """
 
-    def __init__(self, config, add_pooling_layer=True):
+    def __init__(self, config, add_pooling_layer=True, ):
         super().__init__(config)
         self.config = config
 
         self.embeddings = BertEmbeddings(config)
-        self.encoder = BertEncoder(config)
+        self.encoder = BertTempEncoder(config)
 
         self.pooler = BertPooler(config) if add_pooling_layer else None
 

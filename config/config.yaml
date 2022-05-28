@@ -28,78 +28,78 @@ vit:
     - image_name: 00000169.JPEG
       correct_class:
       contrastive_class:
-#    - image_name: Bullmastiff.jpg
-#      correct_class: 282
-#      contrastive_class:
-#    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
-#      correct_class: 161
-#      contrastive_class: 88
-#    - image_name: 0000000002.JPEG # zebra and elephant
-#      correct_class: 101
-#      contrastive_class: 340
-#    - image_name: 0000000004.JPEG # zebras and elephants
-#      correct_class: 340
-#      contrastive_class: 386
-#    - image_name: 00000102.JPEG # dog
-#      correct_class: 906
-#      contrastive_class:
-#    - image_name: 0000000003.JPEG # dog and cat
-#      correct_class: 207
-#      contrastive_class: 285
-#    - image_name: 0000000005.JPEG # catdog
-#      correct_class: 282
-#      contrastive_class: 243
-#    - image_name: 00000009.JPEG # mouse, computer mouse (?)
-#      correct_class: 674
-#      contrastive_class: 673
-#    - image_name: 00000001.JPEG # snake
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000555.JPEG # trumpet
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000024.JPEG # planetarium
-#      correct_class: 727
-#      contrastive_class:
-#    - image_name: 00000106.JPEG # tie
-#      correct_class: 906
-#      contrastive_class:
-#    - image_name: 00000112.JPEG # pill bottle
-#      correct_class: 720
-#      contrastive_class:
-#    - image_name: 00000003.JPEG # dog
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000018.JPEG # bird
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000061.JPEG # poncho (0.803)
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000151.JPEG # computer (0.751)
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000279.JPEG # Dandie Dinmont terrier (0.82)
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000327.JPEG # Rottweiler (0.813)
-#      correct_class: 236
-#      contrastive_class:
-#    - image_name: 00000082.JPEG # Afghan hound, Afghan
-#      correct_class: 160
-#      contrastive_class:
-#    - image_name: 00000032.JPEG # go-kart
-#      correct_class:
-#      contrastive_class:
-#    - image_name: 00000052.JPEG # fish
-#      correct_class: 29
-#      contrastive_class:
-#    - image_name: 00000069.JPEG # tricycle, trike, velocipede
-#      correct_class: 870
-#      contrastive_class:
-#    - image_name: 00000061.JPEG
-#      correct_class:
-#      contrastive_class:
+  #    - image_name: Bullmastiff.jpg
+  #      correct_class: 282
+  #      contrastive_class:
+  #    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
+  #      correct_class: 161
+  #      contrastive_class: 88
+  #    - image_name: 0000000002.JPEG # zebra and elephant
+  #      correct_class: 101
+  #      contrastive_class: 340
+  #    - image_name: 0000000004.JPEG # zebras and elephants
+  #      correct_class: 340
+  #      contrastive_class: 386
+  #    - image_name: 00000102.JPEG # dog
+  #      correct_class: 906
+  #      contrastive_class:
+  #    - image_name: 0000000003.JPEG # dog and cat
+  #      correct_class: 207
+  #      contrastive_class: 285
+  #    - image_name: 0000000005.JPEG # catdog
+  #      correct_class: 282
+  #      contrastive_class: 243
+  #    - image_name: 00000009.JPEG # mouse, computer mouse (?)
+  #      correct_class: 674
+  #      contrastive_class: 673
+  #    - image_name: 00000001.JPEG # snake
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000555.JPEG # trumpet
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000024.JPEG # planetarium
+  #      correct_class: 727
+  #      contrastive_class:
+  #    - image_name: 00000106.JPEG # tie
+  #      correct_class: 906
+  #      contrastive_class:
+  #    - image_name: 00000112.JPEG # pill bottle
+  #      correct_class: 720
+  #      contrastive_class:
+  #    - image_name: 00000003.JPEG # dog
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000018.JPEG # bird
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000061.JPEG # poncho (0.803)
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000151.JPEG # computer (0.751)
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000279.JPEG # Dandie Dinmont terrier (0.82)
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000327.JPEG # Rottweiler (0.813)
+  #      correct_class: 236
+  #      contrastive_class:
+  #    - image_name: 00000082.JPEG # Afghan hound, Afghan
+  #      correct_class: 160
+  #      contrastive_class:
+  #    - image_name: 00000032.JPEG # go-kart
+  #      correct_class:
+  #      contrastive_class:
+  #    - image_name: 00000052.JPEG # fish
+  #      correct_class: 29
+  #      contrastive_class:
+  #    - image_name: 00000069.JPEG # tricycle, trike, velocipede
+  #      correct_class: 870
+  #      contrastive_class:
+  #    - image_name: 00000061.JPEG
+  #      correct_class:
+  #      contrastive_class:
   lr: 3.0e-3
   num_steps: 191
   print_every: 1
@@ -125,7 +125,17 @@ bert:
   general:
     - seed: 42
   model_name: "textattack/bert-base-uncased-SST-2"
-  max_tokens: 512
+  num_tokens: 22
+  max_length: 512
+
+  evidence_classifier:
+    classes: [ 'NEG', 'POS' ]
+    lr: 3.0e-3
+    batch_size: 10
+    epochs: 100
+    patience: 1
+    max_grad_norm: None
+
   n_heads: 12
   n_layers: 12
   freezing_transformer: True
@@ -133,9 +143,12 @@ bert:
   save_every: 50
   log: False
   verbose: False
-  lr: 3.0e-3
-  num_steps: 5
-  print_every: 1
+
+  num_steps: 100
+  k_tokens: 100
+  k_steps: 10
+  num_of_examples: 200
+  print_every: 10
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
@@ -143,9 +156,9 @@ bert:
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   text_batch:
-    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
-      correct_class: 1
-      contrastive_class: 0
-#    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
-#      correct_class: 0
-#      contrastive_class: 1
+    #    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
+    #      correct_class: 1
+    #      contrastive_class: 0
+    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
+      correct_class: 0
+      contrastive_class: 1

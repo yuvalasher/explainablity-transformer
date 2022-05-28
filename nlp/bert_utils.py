@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 from torch import Tensor
 from torch import nn
@@ -83,6 +84,7 @@ def handle_model_freezing(model: BertModelForSequenceClassification) -> BertMode
 def setup_model_config(model: BertModelForSequenceClassification) -> BertModelForSequenceClassification:
     model.config.output_scores = True
     model.config.output_attentions = True
+    model.config.input_num_tokens = 5
     return model
 
 
@@ -268,40 +270,17 @@ def create_folders(image_plot_folder_path: Path):
     return mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder
 
 
-#
-# 
-# def start_run(model: nn.Module, image_plot_folder_path: Path, inputs, run):
-#     print_number_of_trainable_and_not_trainable_params(model=model)
-#     save_text_to_file(path=image_plot_folder_path, file_name='metrics_url',
-#                       text=run.url) if run is not None else ''
-#     plot_different_visualization_methods(path=image_plot_folder_path, inputs=inputs,
-#                                          patch_size=bert_config['patch_size'], bert_config=bert_config)
-#     mean_folder, median_folder, max_folder, min_folder, temp_tokens_folder, temp_tokens_mean_folder, \
-#     temp_tokens_median_folder, temp_tokens_max_folder, temp_tokens_min_folder = create_folders(
-#         image_plot_folder_path)
-#     objects_path = create_folder(Path(image_plot_folder_path, 'objects'))
-#     return max_folder, mean_folder, median_folder, min_folder, objects_path, temp_tokens_max_folder, temp_tokens_mean_folder, temp_tokens_median_folder, temp_tokens_min_folder
-# 
-# 
-# def end_iteration(correct_class_logits, correct_class_probs, image_name, image_plot_folder_path, iteration_idx,
-#                   objects_path, prediction_losses, tokens_mask, total_losses, vit_sigmoid_model):
-#     if is_iteration_to_action(iteration_idx=iteration_idx, action='save'):
-#         objects_dict = {'losses': prediction_losses, 'total_losses': total_losses,
-#                         'tokens_mask': tokens_mask,
-#                         'temp': vit_sigmoid_model.bert.encoder.x_attention.clone()}
-#         save_objects(path=objects_path, objects_dict=objects_dict)
-# 
-#         get_minimum_prediction_string_and_write_to_disk(image_plot_folder_path=image_plot_folder_path,
-#                                                         image_name=image_name, total_losses=total_losses,
-#                                                         prediction_losses=prediction_losses,
-#                                                         correct_class_logits=correct_class_logits,
-#                                                         correct_class_probs=correct_class_probs)
-
-
-def get_text_spec(text_dict: Dict) -> Tuple[str, Tensor, Optional[Tensor]]:
+def get_img_spec(text_dict: Dict) -> Tuple[str, Tensor, Optional[Tensor]]:
     image_name, correct_class_idx, contrastive_class_idx = text_dict['text'], text_dict['correct_class'], \
                                                            text_dict['contrastive_class']
     return image_name, correct_class_idx, contrastive_class_idx
+
+
+def get_text_spec(df: pd.DataFrame, idx: int) -> Tuple[str, Tensor, Optional[Tensor]]:
+    text_input, correct_class_idx = df['text'].iloc[idx], df['sentiment'].iloc[idx]
+    correct_class_idx = np.where(correct_class_idx.lower() == 'pos', 1, 0)
+    contrastive_class_idx = 1 - correct_class_idx
+    return text_input, correct_class_idx, contrastive_class_idx
 
 
 def get_iteration_target_class_stats(output, target_class_idx: Tensor):
@@ -322,16 +301,62 @@ def is_iteration_to_action(iteration_idx: int, action: str = 'print') -> bool:
     return is_iter_to_action
 
 
-def setup_model_and_optimizer(model_name: str):
+def setup_model_and_optimizer(model_type: str):
     vit_ours_model = handle_model_config_and_freezing_for_task(
-        model=load_BertModel(bert_config, model_type=model_name),
+        model=load_BertModel(bert_config, model_type=model_type),
         freezing_transformer=bert_config['freezing_transformer'])
-    optimizer = optim.Adam([vit_ours_model.bert.encoder.x_attention], lr=bert_config['lr'])
+    optimizer = optim.Adam([vit_ours_model.bert.encoder.x_attention], lr=bert_config['evidence_classifier']['lr'])
     return vit_ours_model, optimizer
 
 
 def get_input_tokens(tokenizer, text):
-    encoding = tokenizer(text, return_tensors='pt')
+    encoding = tokenizer(text, return_tensors='pt', max_length=512, truncation=True,
+                         padding="max_length")
     input_ids = encoding['input_ids']
     attention_mask = encoding['attention_mask']
     return encoding, input_ids, attention_mask
+
+def scores_per_word_from_scores_per_token(input, tokenizer, input_ids, scores_per_id):
+    words = tokenizer.convert_ids_to_tokens(input_ids)
+    words = [word.replace('##', '') for word in words]
+    score_per_char = []
+
+    # TODO: DELETE
+    input_ids_chars = []
+    for word in words:
+        if word in ['[CLS]', '[SEP]', '[UNK]', '[PAD]']:
+            continue
+        input_ids_chars += list(word)
+    # TODO: DELETE
+
+    for i in range(len(scores_per_id)):
+        if words[i] in ['[CLS]', '[SEP]', '[UNK]', '[PAD]']:
+            continue
+        score_per_char += [scores_per_id[i]] * len(words[i])
+
+    score_per_word = []
+    start_idx = 0
+    end_idx = 0
+    # TODO: DELETE
+    words_from_chars = []
+    for inp in input:
+        if start_idx >= len(score_per_char):
+            break
+        end_idx = end_idx + len(inp)
+        temp_tensor = torch.tensor(score_per_char[start_idx:end_idx])
+        score_per_word.append(temp_tensor.max().item())
+
+        # TODO: DELETE
+        words_from_chars.append(''.join(input_ids_chars[start_idx:end_idx]))
+
+        start_idx = end_idx
+
+    if (words_from_chars[:-1] != input[:len(words_from_chars) - 1]):
+        print(words_from_chars)
+        print(input[:len(words_from_chars)])
+        print(words)
+        print(tokenizer.convert_ids_to_tokens(input_ids))
+        assert False
+
+    return torch.tensor(score_per_word)
+

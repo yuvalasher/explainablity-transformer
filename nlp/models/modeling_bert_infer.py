@@ -55,6 +55,8 @@ from transformers.modeling_utils import (
 from transformers.utils import logging
 from transformers.models.bert.configuration_bert import BertConfig
 
+from nlp.models.modeling_bert_temp_softmax import BertTempEncoder
+
 logger = logging.get_logger(__name__)
 
 _CHECKPOINT_FOR_DOC = "bert-base-uncased"
@@ -864,7 +866,7 @@ class BertModel(BertPreTrainedModel):
         self.config = config
 
         self.embeddings = BertEmbeddings(config)
-        self.encoder = BertEncoder(config)
+        self.encoder = BertTempEncoder(config)
 
         self.pooler = BertPooler(config) if add_pooling_layer else None
 

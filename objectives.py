@@ -21,3 +21,4 @@ def objective_temp_softmax(output: Tensor, target: Tensor, temp: Tensor,
     log(loss=loss, entropy_loss=entropy_loss, l1_loss=l1_loss, prediction_loss=prediction_loss, x_attention=temp, output=output,
         target=target, contrastive_class_idx=target_idx.item())
     return loss
+
