@@ -28,78 +28,78 @@ vit:
     - image_name: 00000169.JPEG
       correct_class:
       contrastive_class:
-  #    - image_name: Bullmastiff.jpg
-  #      correct_class: 282
-  #      contrastive_class:
-  #    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
-  #      correct_class: 161
-  #      contrastive_class: 88
-  #    - image_name: 0000000002.JPEG # zebra and elephant
-  #      correct_class: 101
-  #      contrastive_class: 340
-  #    - image_name: 0000000004.JPEG # zebras and elephants
-  #      correct_class: 340
-  #      contrastive_class: 386
-  #    - image_name: 00000102.JPEG # dog
-  #      correct_class: 906
-  #      contrastive_class:
-  #    - image_name: 0000000003.JPEG # dog and cat
-  #      correct_class: 207
-  #      contrastive_class: 285
-  #    - image_name: 0000000005.JPEG # catdog
-  #      correct_class: 282
-  #      contrastive_class: 243
-  #    - image_name: 00000009.JPEG # mouse, computer mouse (?)
-  #      correct_class: 674
-  #      contrastive_class: 673
-  #    - image_name: 00000001.JPEG # snake
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000555.JPEG # trumpet
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000024.JPEG # planetarium
-  #      correct_class: 727
-  #      contrastive_class:
-  #    - image_name: 00000106.JPEG # tie
-  #      correct_class: 906
-  #      contrastive_class:
-  #    - image_name: 00000112.JPEG # pill bottle
-  #      correct_class: 720
-  #      contrastive_class:
-  #    - image_name: 00000003.JPEG # dog
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000018.JPEG # bird
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000061.JPEG # poncho (0.803)
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000151.JPEG # computer (0.751)
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000279.JPEG # Dandie Dinmont terrier (0.82)
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000327.JPEG # Rottweiler (0.813)
-  #      correct_class: 236
-  #      contrastive_class:
-  #    - image_name: 00000082.JPEG # Afghan hound, Afghan
-  #      correct_class: 160
-  #      contrastive_class:
-  #    - image_name: 00000032.JPEG # go-kart
-  #      correct_class:
-  #      contrastive_class:
-  #    - image_name: 00000052.JPEG # fish
-  #      correct_class: 29
-  #      contrastive_class:
-  #    - image_name: 00000069.JPEG # tricycle, trike, velocipede
-  #      correct_class: 870
-  #      contrastive_class:
-  #    - image_name: 00000061.JPEG
-  #      correct_class:
-  #      contrastive_class:
+#    - image_name: Bullmastiff.jpg
+#      correct_class: 282
+#      contrastive_class:
+#    - image_name: 0000000001.JPEG # parrot (88) and dog (161)
+#      correct_class: 161
+#      contrastive_class: 88
+#    - image_name: 0000000002.JPEG # zebra and elephant
+#      correct_class: 101
+#      contrastive_class: 340
+#    - image_name: 0000000004.JPEG # zebras and elephants
+#      correct_class: 340
+#      contrastive_class: 386
+#    - image_name: 00000102.JPEG # dog
+#      correct_class: 906
+#      contrastive_class:
+#    - image_name: 0000000003.JPEG # dog and cat
+#      correct_class: 207
+#      contrastive_class: 285
+#    - image_name: 0000000005.JPEG # catdog
+#      correct_class: 282
+#      contrastive_class: 243
+#    - image_name: 00000009.JPEG # mouse, computer mouse (?)
+#      correct_class: 674
+#      contrastive_class: 673
+#    - image_name: 00000001.JPEG # snake
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000555.JPEG # trumpet
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000024.JPEG # planetarium
+#      correct_class: 727
+#      contrastive_class:
+#    - image_name: 00000106.JPEG # tie
+#      correct_class: 906
+#      contrastive_class:
+#    - image_name: 00000112.JPEG # pill bottle
+#      correct_class: 720
+#      contrastive_class:
+#    - image_name: 00000003.JPEG # dog
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000018.JPEG # bird
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000061.JPEG # poncho (0.803)
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000151.JPEG # computer (0.751)
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000279.JPEG # Dandie Dinmont terrier (0.82)
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000327.JPEG # Rottweiler (0.813)
+#      correct_class: 236
+#      contrastive_class:
+#    - image_name: 00000082.JPEG # Afghan hound, Afghan
+#      correct_class: 160
+#      contrastive_class:
+#    - image_name: 00000032.JPEG # go-kart
+#      correct_class:
+#      contrastive_class:
+#    - image_name: 00000052.JPEG # fish
+#      correct_class: 29
+#      contrastive_class:
+#    - image_name: 00000069.JPEG # tricycle, trike, velocipede
+#      correct_class: 870
+#      contrastive_class:
+#    - image_name: 00000061.JPEG
+#      correct_class:
+#      contrastive_class:
   lr: 3.0e-3
   num_steps: 191
   print_every: 1
