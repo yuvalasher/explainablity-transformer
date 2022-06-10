@@ -470,8 +470,11 @@ def rollout(attentions, discard_ratio: float = 0, start_layer=0, head_fusion='ma
         # indices = indices[indices != 0]
         flat[0, indices] = 0
         all_layer_attentions.append(fused_heads)
+        # print(f'all_layer_attentions_len: {len(all_layer_attentions)}')
+        # print(f'all_layer_attentions[0].shape: {all_layer_attentions[0].shape}')
     rollout_arr = compute_rollout_attention(all_layer_attentions, start_layer=start_layer)
     mask = rollout_arr[0, 0, 1:]  # result.shape: [1, n_tokens + 1, n_tokens + 1]
+    # print(f'mask.shape: {mask.shape}')
     if return_resized:
         width = int(mask.size(-1) ** 0.5)
         mask = mask.reshape(width, width)
@@ -483,6 +486,7 @@ def compute_rollout_attention(all_layer_matrices, start_layer=0):
     num_tokens = all_layer_matrices[0].shape[1]
     batch_size = all_layer_matrices[0].shape[0]
     eye = torch.eye(num_tokens).expand(batch_size, num_tokens, num_tokens).to(all_layer_matrices[0].device)
+    # print(eye.shape)
     all_layer_matrices = [all_layer_matrices[i] + eye for i in range(len(all_layer_matrices))]
     matrices_aug = [all_layer_matrices[i] / all_layer_matrices[i].sum(dim=-1, keepdim=True)
                     for i in range(len(all_layer_matrices))]
