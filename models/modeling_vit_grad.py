@@ -172,6 +172,7 @@ class ViTSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size, bias=config.qkv_bias)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.context_layer = None
         # self.attention_scores = None
         # self.attention_probs = None
 
@@ -215,11 +216,11 @@ class ViTSelfAttention(nn.Module):
                                      value_layer)  # [batch_size, num_patches + 1, num_attention_heads, head_dim] = \
         # [batch_size, n_heads, num_patches + 1, num_patches + 1] * [batch_size, n_heads, num_patches + 1, attention_head_size]
 
-        context_layer = context_layer.permute(0, 2, 1,
-                                              3).contiguous()  # [batch_size, num_attention_heads, num_patches + 1, head_dim]
+        context_layer = context_layer.permute(0, 2, 1, 3).contiguous()  # [batch_size, num_attention_heads, num_patches + 1, head_dim]
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)  # [batch_size, num_patches + 1, dim_size]
-
+        self.context_layer = context_layer
+        self.context_layer.retain_grad()
         outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
 
         return outputs  # ([batch_size, num_patches + 1, dim_size])
@@ -238,6 +239,7 @@ class ViTSelfOutput(nn.Module):
 
     def forward(self, hidden_states, input_tensor):
         hidden_states = self.dense(hidden_states)
+        self.dense.weight.retain_grad()
         hidden_states = self.dropout(hidden_states)
 
         return hidden_states
@@ -366,7 +368,7 @@ class ViTEncoder(nn.Module):
 
     def forward(
             self,
-            hidden_states,
+            hidden_states, # hidden states are the embedding_output of the pixels tokens
             head_mask=None,
             output_attentions=False,
             output_hidden_states=False,
