@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path, WindowsPath
-from typing import Tuple, Union, Any
+from typing import Tuple, Union, Any, List
 import torch
 from torch import Tensor
 from sklearn.metrics import auc
@@ -63,6 +63,18 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 def calculate_auc(mean_accuracy_by_step: np.ndarray) -> float:
     return auc(x=np.arange(0, 1, 0.1), y=mean_accuracy_by_step)
 
+
+def calculate_num_of_correct_in_at_k(y_true: List[int], y_pred: List[int], k: int) -> int:
+    num_of_correct_in_at_k = sum([1 if y_pred[i] in y_true[:k] else 0 for i in range(k)])
+    return num_of_correct_in_at_k
+
+
+def get_precision_at_k(y_true: List[int], y_pred: List[int], k: int) -> float:
+    return calculate_num_of_correct_in_at_k(y_true=y_true, y_pred=y_pred, k=k) / k
+
+
+# def recall_at_k(y_true: List[int], y_pred: List[int], k: int):
+#     return calculate_num_of_correct_in_at_k(y_true=y_true, y_pred=y_pred, k=k) /
 
 def _remove_file_if_exists(path: Path) -> None:
     try:
