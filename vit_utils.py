@@ -334,7 +334,7 @@ def load_feature_extractor(vit_config: Dict, is_wolf_transforms) -> ViTFeatureEx
 
 
 def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassification:
-    model = vit_model_types[model_type].from_pretrained(vit_config['model_name'])
+    model = vit_model_types[model_type].from_pretrained(vit_config['model_name'], output_hidden_states=True)
     return model
 
 
