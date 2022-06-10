@@ -1,0 +1,5 @@
+,grad_max_mean_agg_top_6_cls,grad_max_median_agg_top_6_cls,image,mean_cls,median_cls,relu_mean_mean_agg_top_6_cls,relu_mean_median_agg_top_6_cls
+,1.0,2.0,0000000002.JPEG,0.0,0.0,0.0,0.0
+,2.0,3.0,0000000004.JPEG,2.0,3.0,3.0,5.0
+,0.0,0.0,00000003.JPEG,1.0,1.0,0.0,1.0
+,1.0,1.0,0000000001.JPEG,1.0,2.0,1.0,0.0
