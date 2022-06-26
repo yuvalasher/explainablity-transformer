@@ -4,9 +4,12 @@ import torch
 from torch import Tensor
 from torch import nn
 from torch.functional import F
-from transformers import BertForSequenceClassification
-from nlp.models.modeling_bert_infer import BertForSequenceClassification
-from nlp.models.modeling_bert_temp_softmax import BertTempSoftmaxForSequenceClassification
+from transformers import BertForSequenceClassification, BertTokenizer
+
+from nlp.BERT_explainability.modules.BERT.Bert_Temp_New import BertTempSoftmaxForSequenceClassification
+from nlp.BERT_explainability.modules.BERT.BertForSequenceClassification import \
+    BertForSequenceClassification as T_BertForSequenceClassification, Amit_Temp_BertForSequenceClassification
+
 import matplotlib.pyplot as plt
 import os
 from typing import Dict, Tuple, Union, NewType, List, Optional
@@ -25,10 +28,11 @@ loss_config = bert_config['loss']
 
 BertModelForSequenceClassification = NewType('BertModelForSequenceClassification',
                                              Union[
-                                                 BertForSequenceClassification, BertTempSoftmaxForSequenceClassification])
+                                                 BertForSequenceClassification, Amit_Temp_BertForSequenceClassification])
 
 bert_model_types = {'infer': BertForSequenceClassification,
-                    'softmax_temp': BertTempSoftmaxForSequenceClassification,
+                    'softmax_temp': T_BertForSequenceClassification,
+                    'amit_softmax_temp': BertTempSoftmaxForSequenceClassification,
                     }
 
 
@@ -120,10 +124,29 @@ def print_number_of_trainable_and_not_trainable_params(model: BertModelForSequen
         f'Number of params: {calculate_num_of_params(model)}, Number of trainable params: {calculate_num_of_trainable_params(model)}')
 
 
-def load_BertModel(bert_config: Dict, model_type: str) -> BertModelForSequenceClassification:
-    model = bert_model_types[model_type].from_pretrained(bert_config['model_name'])
+def load_BertModel(bert_config: Dict, model_type: str,device: str) -> BertModelForSequenceClassification:
+    model = bert_model_types[model_type].from_pretrained(bert_config['model_name']).to(device)
     return model
 
+def initialize_models(params: dict, model_type: str, batch_first: bool, device: str, use_half_precision=False):
+    assert batch_first
+    max_length = params['max_length']
+    tokenizer = BertTokenizer.from_pretrained(params['model_name'])
+    pad_token_id = tokenizer.pad_token_id
+    cls_token_id = tokenizer.cls_token_id
+    sep_token_id = tokenizer.sep_token_id
+    word_interner = tokenizer.vocab
+    de_interner = tokenizer.ids_to_tokens
+
+    bert_dir = params['model_name']
+    evidence_classes = dict((y, x) for (x, y) in enumerate(params['evidence_classifier']['classes']))
+    evidence_classifier = bert_model_types[model_type].from_pretrained(bert_dir, num_labels=len(evidence_classes)).to(device)
+    optimizer = optim.Adam([evidence_classifier.bert.encoder.x_attention], lr=bert_config['evidence_classifier']['lr'])
+
+    lmbda = lambda epoch: 0.65 ** epoch
+    scheduler = None #torch.optim.lr_scheduler.ExponentialLR(optimizer, lr_lambda=lmbda)
+
+    return evidence_classifier,optimizer,scheduler, word_interner, de_interner, evidence_classes, tokenizer
 
 """
 def load_feature_extractor_and_vit_model(bert_config: Dict):
@@ -286,7 +309,7 @@ def get_text_spec(df: pd.DataFrame, idx: int) -> Tuple[str, Tensor, Optional[Ten
 def get_iteration_target_class_stats(output, target_class_idx: Tensor):
     correct_class_logit = output.logits[0][target_class_idx].item()
     correct_class_prob = F.softmax(output.logits[0], dim=-1)[target_class_idx].item()
-    prediction_loss = ce_loss(output.logits, target_class_idx.unsqueeze(0)) * loss_config['pred_loss_multiplier']
+    prediction_loss = ce_loss(output.logits, target_class_idx) * loss_config['pred_loss_multiplier'] # Change - I've change it from target_class_idx.unsquuze(0)
     return correct_class_logit, correct_class_prob, prediction_loss
 
 
@@ -301,9 +324,9 @@ def is_iteration_to_action(iteration_idx: int, action: str = 'print') -> bool:
     return is_iter_to_action
 
 
-def setup_model_and_optimizer(model_type: str):
+def setup_model_and_optimizer(model_type: str,device:str):
     vit_ours_model = handle_model_config_and_freezing_for_task(
-        model=load_BertModel(bert_config, model_type=model_type),
+        model=load_BertModel(bert_config, model_type=model_type,device=device),
         freezing_transformer=bert_config['freezing_transformer'])
     optimizer = optim.Adam([vit_ours_model.bert.encoder.x_attention], lr=bert_config['evidence_classifier']['lr'])
     return vit_ours_model, optimizer

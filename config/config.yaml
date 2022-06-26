@@ -130,11 +130,11 @@ bert:
 
   evidence_classifier:
     classes: [ 'NEG', 'POS' ]
-    lr: 3.0e-3
+    lr: 1.0e-3
     batch_size: 10
-    epochs: 100
-    patience: 1
-    max_grad_norm: None
+    epochs: 50
+    patience: 10
+
 
   n_heads: 12
   n_layers: 12
@@ -144,7 +144,7 @@ bert:
   log: False
   verbose: False
 
-  num_steps: 100
+  num_steps: 1000
   k_tokens: 100
   k_steps: 10
   num_of_examples: 200
@@ -152,7 +152,7 @@ bert:
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
-    entropy_loss_multiplier: 100
+    entropy_loss_multiplier: 0.1
     l1_loss_multiplier: 0
     other_loss_multiplier: 0
   text_batch:
