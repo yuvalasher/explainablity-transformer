@@ -14,7 +14,7 @@ vit_config = config['vit']
 loss_config = vit_config['loss']
 
 seed_everything(config['general']['seed'])
-feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config)
+feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='infer')
 vit_infer = handle_model_config_and_freezing_for_task(model=load_ViTModel(vit_config, model_type='infer'))
 
 
