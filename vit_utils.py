@@ -69,11 +69,13 @@ def get_attention_probs(model) -> List[Tensor]:
                   range(num_layers)]
     return attentions
 
+
 def get_attention_scores(model) -> List[Tensor]:
     num_layers = get_num_layers(model=model)
     attentions = [model.vit.encoder.layer[layer_idx].attention.attention.attention_scores for layer_idx in
                   range(num_layers)]
     return attentions
+
 
 def get_attention_scores_grad(model) -> List[Tensor]:
     num_layers = get_num_layers(model=model)
@@ -709,25 +711,26 @@ def visualize_temp(iteration_idx, original_transformed_image, temp, temp_tokens_
              file_name=Path(temp_tokens_folder, f'plot_{iteration_idx}'))
 
 
-def visualize_attention_scores_with_rollout(original_transformed_image, cls_attentions_probs, rollout_vector, iteration_idx, max_folder=None,
+def visualize_attention_scores_with_rollout(original_transformed_image, cls_attentions_probs, rollout_vector,
+                                            iteration_idx, max_folder=None,
                                             mean_folder=None, median_folder=None, min_folder=None,
                                             rollout_folder=None):
     if mean_folder is not None:
         visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.mean(dim=0) * rollout_vector,
-         file_name=Path(mean_folder, f'plot_{iteration_idx}'))
+             transformer_attribution=cls_attentions_probs.mean(dim=0) * rollout_vector,
+             file_name=Path(mean_folder, f'plot_{iteration_idx}'))
     if median_folder is not None:
         visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.median(dim=0)[0] * rollout_vector,
-         file_name=Path(median_folder, f'plot_{iteration_idx}'))
+             transformer_attribution=cls_attentions_probs.median(dim=0)[0] * rollout_vector,
+             file_name=Path(median_folder, f'plot_{iteration_idx}'))
     if max_folder is not None:
         visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.max(dim=0)[0] * rollout_vector,
-         file_name=Path(max_folder, f'plot_{iteration_idx}'))
+             transformer_attribution=cls_attentions_probs.max(dim=0)[0] * rollout_vector,
+             file_name=Path(max_folder, f'plot_{iteration_idx}'))
     if min_folder is not None:
         visu(original_image=original_transformed_image,
-         transformer_attribution=cls_attentions_probs.min(dim=0)[0] * rollout_vector,
-         file_name=Path(min_folder, f'plot_{iteration_idx}'))
+             transformer_attribution=cls_attentions_probs.min(dim=0)[0] * rollout_vector,
+             file_name=Path(min_folder, f'plot_{iteration_idx}'))
 
     if rollout_folder is not None:
         visu(original_image=original_transformed_image,
@@ -890,8 +893,7 @@ def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtr
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     image = image if image.mode == 'RGB' else image.convert('RGB')  # Black & White images
     inputs = feature_extractor(images=image, return_tensors="pt")
-    original_transformed_image = wolf_image_transformations(image) if is_wolf_transforms else image_transformations(
-        image)
+    original_transformed_image = wolf_image_transformations(image) if is_wolf_transforms else image_transformations(image)
     return inputs, original_transformed_image
 
 
