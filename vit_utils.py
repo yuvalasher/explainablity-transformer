@@ -29,7 +29,6 @@ from utils.transformation import image_transformations, wolf_image_transformatio
 from utils.utils_functions import get_image_from_path
 
 cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
 ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
 vit_config = config['vit']
