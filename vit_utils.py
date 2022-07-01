@@ -40,6 +40,7 @@ VitModelForClassification = NewType('VitModelForClassification',
 
 vit_model_types = {'vit': ViTForImageClassification,
                    'vit-sigmoid': ViTSigmoidForImageClassification,
+                   'vit-basic': ViTBasicForForImageClassification,
                    'vit-for-dino': ViTBasicForForImageClassification,
                    'vit-for-dino-grad': ViTBasicGradForImageClassification,
                    'infer': ViTInferForImageClassification,
@@ -258,8 +259,9 @@ def visu(original_image, transformer_attribution, file_name: str):
     """
     if type(transformer_attribution) == np.ndarray:
         transformer_attribution = torch.tensor(transformer_attribution)
-    transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
-    transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16, mode='bilinear')
+    transformer_attribution = transformer_attribution.reshape(1, 14, 14)
+    transformer_attribution = torch.nn.functional.interpolate(transformer_attribution.unsqueeze(0), scale_factor=16,
+                                                              mode='bilinear')
     transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min())
@@ -357,6 +359,23 @@ def handle_model_config_and_freezing_for_task(model: VitModelForClassification,
     model = setup_model_config(model=model)
     if freezing_transformer:
         model = handle_model_freezing(model=model)
+    return model
+
+
+def freeze_multitask_model(model, freezing_transformer: bool = True, freeze_classification_head: bool = True):
+    if freezing_transformer:
+        for param in model.vit_with_classification_head.vit.parameters():
+            param.requires_grad = False
+        for param in model.vit_without_classification_head.encoder.parameters():
+            param.requires_grad = False
+
+        for param in model.vit_without_classification_head.layernorm.parameters():
+            param.requires_grad = False
+        for param in model.vit_without_classification_head.pooler.parameters():
+            param.requires_grad = False
+    if freeze_classification_head:
+        for param in model.image_classification.parameters():
+            param.requires_grad = False
     return model
 
 
@@ -903,3 +922,11 @@ def setup_model_and_optimizer(model_name: str):
         freezing_transformer=vit_config['freezing_transformer'])
     optimizer = optim.Adam([vit_ours_model.vit.encoder.x_attention], lr=vit_config['lr'])
     return vit_ours_model, optimizer
+
+
+def get_warmup_steps_and_total_training_steps(n_epochs: int, train_samples_length: int, batch_size: int) -> Tuple[
+    int, int]:
+    steps_per_epoch = train_samples_length // batch_size
+    total_training_steps = steps_per_epoch * n_epochs
+    warmup_steps = total_training_steps // 5
+    return warmup_steps, total_training_steps
