@@ -16,6 +16,7 @@ vit:
     - objective_gumble_minimize_softmax
     - objective_opposite_gumble_softmax
   freezing_transformer: True
+  freeze_classification_head: True
   num_labels: 1000
   save_every: 50
   images:
@@ -34,9 +35,9 @@ vit:
 #    - image_name: 0000000005.JPEG # catdog
 #      correct_class: 282 # cat
 #      contrastive_class: 243 # dog
-#    - image_name: 0000000003.JPEG # dog and cat
-#      correct_class: 207 # dog
-#      contrastive_class: 285 # cat
+  batch_size: 16
+  plot_path: /home/yuvalas/explainability/research/plots/token_classification
+  n_epochs: 10
 #    - image_name: 0000000002.JPEG # zebra (340) and elephant (101)
 #      correct_class: 101
 #      contrastive_class: 340
@@ -106,10 +107,14 @@ vit:
   discard_ratio: 0.6
   log: False
   verbose: False
-  plot_visualizations: False
+  plot_visualizations: True
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
+  seg_cls:
+    loss:
+      prediction_loss_mul: 1
+      mask_loss_mul: 0
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
@@ -135,7 +140,7 @@ bert:
   save_every: 50
   log: False
   verbose: False
-  lr: 3.0e-3
+  lr: 2.0e-5
   num_steps: 5
   print_every: 1
   loss:
