@@ -419,7 +419,6 @@ def get_and_create_image_plot_folder_path(images_folder_path: Path, experiment_n
     """
     Also saving the original picture in the models' resolution (img_size, img_size)
     """
-    print(image_name)
     image_plot_folder_path = Path(PLOTS_PATH, experiment_name, f'{image_name.replace(".JPEG", "")}')
     if is_contrastive_run:
         image_plot_folder_path = Path(image_plot_folder_path, 'contrastive')
