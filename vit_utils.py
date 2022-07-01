@@ -34,6 +34,7 @@ ce_loss = nn.CrossEntropyLoss(reduction='mean')
 
 vit_config = config['vit']
 loss_config = vit_config['loss']
+device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
 
 VitModelForClassification = NewType('VitModelForClassification',
                                     Union[ViTSigmoidForImageClassification, ViTForImageClassification])
