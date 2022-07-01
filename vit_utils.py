@@ -890,6 +890,7 @@ def get_image_and_inputs_and_transformed_image(feature_extractor: ViTFeatureExtr
                                                image=None, is_wolf_transforms: bool = False):
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
+    image = image if image.mode == 'RGB' else image.convert('RGB')  # Black & White images
     inputs = feature_extractor(images=image, return_tensors="pt")
     original_transformed_image = wolf_image_transformations(image) if is_wolf_transforms else image_transformations(
         image)
