@@ -7,6 +7,9 @@ general:
   wandb_entity: yuvalasher
 
 vit:
+  train_images_path: train_data
+  val_images_path: val_data
+  gpus: 1
   model_name: google/vit-base-patch16-224
   img_size: 224
   patch_size: 16
@@ -36,6 +39,7 @@ vit:
 #      correct_class: 282 # cat
 #      contrastive_class: 243 # dog
   batch_size: 16
+  default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
   n_epochs: 10
 #    - image_name: 0000000002.JPEG # zebra (340) and elephant (101)
@@ -113,8 +117,8 @@ vit:
   is_wolf_transforms: False
   seg_cls:
     loss:
-      prediction_loss_mul: 1
-      mask_loss_mul: 0
+      prediction_loss_mul: 50
+      mask_loss_mul: 1
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10
