@@ -94,9 +94,10 @@ def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
 
 def get_attention_grads_probs(model, apply_relu: bool = True) -> List[Tensor]:
     num_layers = get_num_layers(model=model)
-    attentions_grad = [F.relu(model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad) if apply_relu else
-                  model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad for layer_idx in
-                  range(num_layers)]
+    attentions_grad = [
+        F.relu(model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad) if apply_relu else
+        model.vit.encoder.layer[layer_idx].attention.attention.attention_probs.grad for layer_idx in
+        range(num_layers)]
     return attentions_grad
 
 
