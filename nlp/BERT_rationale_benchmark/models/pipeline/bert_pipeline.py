@@ -26,7 +26,7 @@ from nlp.BERT_rationale_benchmark.utils import (
     load_documents,
 )
 from nlp.BERT_explainability.modules.BERT.BertForSequenceClassification import \
-    BertForSequenceClassification as BertForSequenceClassificationTest, Amit_Temp_BertForSequenceClassification
+    BertForSequenceClassification as BertForSequenceClassificationTest, Temp_BertForSequenceClassification
 from nlp.BERT_explainability.modules.BERT.BERT_cls_lrp import \
     BertForSequenceClassification as BertForClsOrigLrp
 
@@ -51,7 +51,7 @@ latex_special_token = ["!@#$%^&*()"]
 
 bert_model_types = {'infer': BertForSequenceClassification,
                     # 'softmax_temp': BertTempSoftmaxForSequenceClassification,
-                    'amit_softmax_temp': Amit_Temp_BertForSequenceClassification,
+                    'amit_softmax_temp': Temp_BertForSequenceClassification,
                     }
 
 

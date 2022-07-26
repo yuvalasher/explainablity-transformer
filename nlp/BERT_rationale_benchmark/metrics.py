@@ -13,7 +13,9 @@ import numpy as np
 import torch
 
 from scipy.stats import entropy
-from sklearn.metrics import accuracy_score, auc, average_precision_score, classification_report, precision_recall_curve, roc_auc_score
+from sklearn.metrics import accuracy_score, auc, average_precision_score, classification_report, precision_recall_curve, \
+    roc_auc_score
+from tqdm import tqdm
 
 from nlp.BERT_rationale_benchmark.utils import (
     Annotation,
@@ -22,10 +24,11 @@ from nlp.BERT_rationale_benchmark.utils import (
     load_jsonl,
     load_documents,
     load_flattened_documents
- )
+)
 
 os.chdir('/home/amiteshel1/Projects/explainablity-transformer')
 logging.basicConfig(level=logging.DEBUG, format='%(relativeCreated)6d %(threadName)s %(message)s')
+
 
 # start_token is inclusive, end_token is exclusive
 @dataclass(eq=True, frozen=True)
@@ -38,7 +41,7 @@ class Rationale:
     def to_token_level(self) -> List['Rationale']:
         ret = []
         for t in range(self.start_token, self.end_token):
-            ret.append(Rationale(self.ann_id, self.docid, t, t+1))
+            ret.append(Rationale(self.ann_id, self.docid, t, t + 1))
         return ret
 
     @classmethod
@@ -57,6 +60,7 @@ class Rationale:
                 ret.append(Rationale(inst['annotation_id'], rat['docid'], pred['start_token'], pred['end_token']))
         return ret
 
+
 @dataclass(eq=True, frozen=True)
 class PositionScoredDocument:
     ann_id: str
@@ -65,7 +69,8 @@ class PositionScoredDocument:
     truths: Tuple[bool]
 
     @classmethod
-    def from_results(cls, instances: List[dict], annotations: List[Annotation], docs: Dict[str, List[Any]], use_tokens: bool=True) -> List['PositionScoredDocument']:
+    def from_results(cls, instances: List[dict], annotations: List[Annotation], docs: Dict[str, List[Any]],
+                     use_tokens: bool = True) -> List['PositionScoredDocument']:
         """Creates a paired list of annotation ids/docids/predictions/truth values"""
         key_to_annotation = dict()
         for ann in annotations:
@@ -90,18 +95,21 @@ class PositionScoredDocument:
                 scores = rat[field]
                 key = (inst['annotation_id'], docid)
                 assert len(scores) == len(docs[docid])
-                if key in key_to_annotation :
+                if key in key_to_annotation:
                     assert len(scores) == len(key_to_annotation[key])
-                else :
-                    #In case model makes a prediction on docuemnt(s) for which ground truth evidence is not present
+                else:
+                    # In case model makes a prediction on docuemnt(s) for which ground truth evidence is not present
                     key_to_annotation[key] = [False for _ in docs[docid]]
-                ret.append(PositionScoredDocument(inst['annotation_id'], docid, tuple(scores), tuple(key_to_annotation[key])))
+                ret.append(
+                    PositionScoredDocument(inst['annotation_id'], docid, tuple(scores), tuple(key_to_annotation[key])))
         return ret
+
 
 def _f1(_p, _r):
     if _p == 0 or _r == 0:
         return 0
     return 2 * _p * _r / (_p + _r)
+
 
 def _keyed_rationale_from_list(rats: List[Rationale]) -> Dict[Tuple[str, str], Rationale]:
     ret = defaultdict(set)
@@ -109,6 +117,7 @@ def _keyed_rationale_from_list(rats: List[Rationale]) -> Dict[Tuple[str, str], R
         ret[(r.ann_id, r.docid)].add(r)
     return ret
 
+#1
 def partial_match_score(truth: List[Rationale], pred: List[Rationale], thresholds: List[float]) -> List[Dict[str, Any]]:
     """Computes a partial match F1
 
@@ -126,8 +135,8 @@ def partial_match_score(truth: List[Rationale], pred: List[Rationale], threshold
     ann_to_rat = _keyed_rationale_from_list(truth)
     pred_to_rat = _keyed_rationale_from_list(pred)
 
-    num_classifications = {k:len(v) for k,v in pred_to_rat.items()}
-    num_truth = {k:len(v) for k,v in ann_to_rat.items()}
+    num_classifications = {k: len(v) for k, v in pred_to_rat.items()}
+    num_truth = {k: len(v) for k, v in ann_to_rat.items()}
     ious = defaultdict(dict)
     for k in set(ann_to_rat.keys()) | set(pred_to_rat.keys()):
         for p in pred_to_rat.get(k, []):
@@ -145,7 +154,8 @@ def partial_match_score(truth: List[Rationale], pred: List[Rationale], threshold
         for k, vs in ious.items():
             threshold_tps[k] = sum(int(x >= threshold) for x in vs.values())
         micro_r = sum(threshold_tps.values()) / sum(num_truth.values()) if sum(num_truth.values()) > 0 else 0
-        micro_p = sum(threshold_tps.values()) / sum(num_classifications.values()) if sum(num_classifications.values()) > 0 else 0
+        micro_p = sum(threshold_tps.values()) / sum(num_classifications.values()) if sum(
+            num_classifications.values()) > 0 else 0
         micro_f1 = _f1(micro_r, micro_p)
         macro_rs = list(threshold_tps.get(k, 0.0) / n if n > 0 else 0 for k, n in num_truth.items())
         macro_ps = list(threshold_tps.get(k, 0.0) / n if n > 0 else 0 for k, n in num_classifications.items())
@@ -154,18 +164,19 @@ def partial_match_score(truth: List[Rationale], pred: List[Rationale], threshold
         macro_f1 = _f1(macro_r, macro_p)
         scores.append({'threshold': threshold,
                        'micro': {
-                            'p': micro_p,
-                            'r': micro_r,
-                            'f1': micro_f1
+                           'p': micro_p,
+                           'r': micro_r,
+                           'f1': micro_f1
                        },
                        'macro': {
-                            'p': macro_p,
-                            'r': macro_r,
-                            'f1': macro_f1
+                           'p': macro_p,
+                           'r': macro_r,
+                           'f1': macro_f1
                        },
                        })
     return scores
 
+#2 token_prf
 def score_hard_rationale_predictions(truth: List[Rationale], pred: List[Rationale]) -> Dict[str, Dict[str, float]]:
     """Computes instance (annotation)-level micro/macro averaged F1s"""
     scores = dict()
@@ -175,10 +186,10 @@ def score_hard_rationale_predictions(truth: List[Rationale], pred: List[Rational
     micro_rec = len(truth & pred) / len(truth)
     micro_f1 = _f1(micro_prec, micro_rec)
     scores['instance_micro'] = {
-                                'p': micro_prec,
-                                'r': micro_rec,
-                                'f1': micro_f1,
-                               }
+        'p': micro_prec,
+        'r': micro_rec,
+        'f1': micro_f1,
+    }
 
     ann_to_rat = _keyed_rationale_from_list(truth)
     pred_to_rat = _keyed_rationale_from_list(pred)
@@ -194,26 +205,70 @@ def score_hard_rationale_predictions(truth: List[Rationale], pred: List[Rational
             instance_rec = 0
         instance_f1 = _f1(instance_prec, instance_rec)
         instances_to_scores[k] = {
-                                    'p': instance_prec,
-                                    'r': instance_rec,
-                                    'f1': instance_f1,
-                                 }
+            'p': instance_prec,
+            'r': instance_rec,
+            'f1': instance_f1,
+        }
     # these are calculated as sklearn would
     macro_prec = sum(instance['p'] for instance in instances_to_scores.values()) / len(instances_to_scores)
     macro_rec = sum(instance['r'] for instance in instances_to_scores.values()) / len(instances_to_scores)
     macro_f1 = sum(instance['f1'] for instance in instances_to_scores.values()) / len(instances_to_scores)
 
     f1_scores = [instance['f1'] for instance in instances_to_scores.values()]
-    print(macro_f1,  np.argsort(f1_scores)[::-1])
-
-
+    # print(macro_f1, np.argsort(f1_scores)[::-1])
 
     scores['instance_macro'] = {
-                                'p': macro_prec,
-                                'r': macro_rec,
-                                'f1': macro_f1,
-                               }
+        'p': macro_prec,
+        'r': macro_rec,
+        'f1': macro_f1,
+    }
     return scores
+
+def token_prf_f1_micro(truth: List[Rationale], pred: List[Rationale]) -> Dict[str, Dict[str, float]]:
+    """Computes instance (annotation)-level micro averaged F1s"""
+    truth = set(truth)
+    pred = set(pred)
+    micro_prec = len(truth & pred) / len(pred)
+    micro_rec = len(truth & pred) / len(truth)
+    micro_f1 = _f1(micro_prec, micro_rec)
+    return micro_f1
+
+def token_prf_f1_macro(truth: List[Rationale], pred: List[Rationale]) -> Dict[str, Dict[str, float]]:
+    """Computes instance (annotation)-level micro/macro averaged F1s"""
+    scores = dict()
+    truth = set(truth)
+    pred = set(pred)
+    micro_prec = len(truth & pred) / len(pred)
+    micro_rec = len(truth & pred) / len(truth)
+    micro_f1 = _f1(micro_prec, micro_rec)
+    scores['instance_micro'] = {
+        'p': micro_prec,
+        'r': micro_rec,
+        'f1': micro_f1,
+    }
+
+    ann_to_rat = _keyed_rationale_from_list(truth)
+    pred_to_rat = _keyed_rationale_from_list(pred)
+    instances_to_scores = dict()
+    for k in set(ann_to_rat.keys()) | (pred_to_rat.keys()):
+        if len(pred_to_rat.get(k, set())) > 0:
+            instance_prec = len(ann_to_rat.get(k, set()) & pred_to_rat.get(k, set())) / len(pred_to_rat[k])
+        else:
+            instance_prec = 0
+        if len(ann_to_rat.get(k, set())) > 0:
+            instance_rec = len(ann_to_rat.get(k, set()) & pred_to_rat.get(k, set())) / len(ann_to_rat[k])
+        else:
+            instance_rec = 0
+        instance_f1 = _f1(instance_prec, instance_rec)
+        instances_to_scores[k] = {
+            'p': instance_prec,
+            'r': instance_rec,
+            'f1': instance_f1,
+        }
+
+    macro_f1 = sum(instance['f1'] for instance in instances_to_scores.values()) / len(instances_to_scores)
+
+    return macro_f1
 
 def _auprc(truth: Dict[Any, List[bool]], preds: Dict[Any, List[float]]) -> float:
     if len(preds) == 0:
@@ -227,7 +282,10 @@ def _auprc(truth: Dict[Any, List[bool]], preds: Dict[Any, List[float]]) -> float
         aucs.append(auc(recall, precision))
     return np.average(aucs)
 
-def _score_aggregator(truth: Dict[Any, List[bool]], preds: Dict[Any, List[float]], score_function: Callable[[List[float], List[float]], float ], discard_single_class_answers: bool) -> float:
+
+def _score_aggregator(truth: Dict[Any, List[bool]], preds: Dict[Any, List[float]],
+                      score_function: Callable[[List[float], List[float]], float],
+                      discard_single_class_answers: bool) -> float:
     if len(preds) == 0:
         return 0.0
     assert len(truth.keys() and preds.keys()) == len(truth.keys())
@@ -240,6 +298,7 @@ def _score_aggregator(truth: Dict[Any, List[bool]], preds: Dict[Any, List[float]
         scores.append(score_function(true, pred))
     return np.average(scores)
 
+
 def score_soft_tokens(paired_scores: List[PositionScoredDocument]) -> Dict[str, float]:
     truth = {(ps.ann_id, ps.docid): ps.truths for ps in paired_scores}
     pred = {(ps.ann_id, ps.docid): ps.scores for ps in paired_scores}
@@ -248,10 +307,11 @@ def score_soft_tokens(paired_scores: List[PositionScoredDocument]) -> Dict[str, 
     roc_auc = _score_aggregator(truth, pred, roc_auc_score, True)
 
     return {
-             'auprc': auprc_score,
-             'average_precision': ap,
-             'roc_auc_score': roc_auc,
-           }
+        'auprc': auprc_score,
+        'average_precision': ap,
+        'roc_auc_score': roc_auc,
+    }
+
 
 def _instances_aopc(instances: List[dict], thresholds: List[float], key: str) -> Tuple[float, List[float]]:
     dataset_scores = []
@@ -259,7 +319,8 @@ def _instances_aopc(instances: List[dict], thresholds: List[float], key: str) ->
         kls = inst['classification']
         beta_0 = inst['classification_scores'][kls]
         instance_scores = []
-        for score in filter(lambda x : x['threshold'] in thresholds, sorted(inst['thresholded_scores'], key=lambda x: x['threshold'])):
+        for score in filter(lambda x: x['threshold'] in thresholds,
+                            sorted(inst['thresholded_scores'], key=lambda x: x['threshold'])):
             beta_k = score[key][kls]
             delta = beta_0 - beta_k
             instance_scores.append(delta)
@@ -275,22 +336,29 @@ def _instances_aopc(instances: List[dict], thresholds: List[float], key: str) ->
 
     return final_score, position_scores
 
+
 def compute_aopc_scores(instances: List[dict], aopc_thresholds: List[float]):
-    if aopc_thresholds is None :
-        aopc_thresholds = sorted(set(chain.from_iterable([x['threshold'] for x in y['thresholded_scores']] for y in instances)))
-    aopc_comprehensiveness_score, aopc_comprehensiveness_points = _instances_aopc(instances, aopc_thresholds, 'comprehensiveness_classification_scores')
-    aopc_sufficiency_score, aopc_sufficiency_points = _instances_aopc(instances, aopc_thresholds, 'sufficiency_classification_scores')
+    if aopc_thresholds is None:
+        aopc_thresholds = sorted(
+            set(chain.from_iterable([x['threshold'] for x in y['thresholded_scores']] for y in instances)))
+    aopc_comprehensiveness_score, aopc_comprehensiveness_points = _instances_aopc(instances, aopc_thresholds,
+                                                                                  'comprehensiveness_classification_scores')
+    aopc_sufficiency_score, aopc_sufficiency_points = _instances_aopc(instances, aopc_thresholds,
+                                                                      'sufficiency_classification_scores')
     return aopc_thresholds, aopc_comprehensiveness_score, aopc_comprehensiveness_points, aopc_sufficiency_score, aopc_sufficiency_points
 
-def score_classifications(instances: List[dict], annotations: List[Annotation], docs: Dict[str, List[str]], aopc_thresholds: List[float]) -> Dict[str, float]:
+
+def score_classifications(instances: List[dict], annotations: List[Annotation], docs: Dict[str, List[str]],
+                          aopc_thresholds: List[float]) -> Dict[str, float]:
     def compute_kl(cls_scores_, faith_scores_):
         keys = list(cls_scores_.keys())
         cls_scores_ = [cls_scores_[k] for k in keys]
         faith_scores_ = [faith_scores_[k] for k in keys]
         return entropy(faith_scores_, cls_scores_)
+
     labels = list(set(x.classification for x in annotations))
-    label_to_int = {l:i for i,l in enumerate(labels)}
-    key_to_instances = {inst['annotation_id']:inst for inst in instances}
+    label_to_int = {l: i for i, l in enumerate(labels)}
+    key_to_instances = {inst['annotation_id']: inst for inst in instances}
     truth = []
     predicted = []
     for ann in annotations:
@@ -300,39 +368,47 @@ def score_classifications(instances: List[dict], annotations: List[Annotation], 
     classification_scores = classification_report(truth, predicted, output_dict=True, target_names=labels, digits=3)
     accuracy = accuracy_score(truth, predicted)
     if 'comprehensiveness_classification_scores' in instances[0]:
-        comprehensiveness_scores = [x['classification_scores'][x['classification']] - x['comprehensiveness_classification_scores'][x['classification']] for x in instances]
+        comprehensiveness_scores = [
+            x['classification_scores'][x['classification']] - x['comprehensiveness_classification_scores'][
+                x['classification']] for x in instances]
         comprehensiveness_score = np.average(comprehensiveness_scores)
-    else :
+    else:
         comprehensiveness_score = None
         comprehensiveness_scores = None
 
     if 'sufficiency_classification_scores' in instances[0]:
-        sufficiency_scores = [x['classification_scores'][x['classification']] - x['sufficiency_classification_scores'][x['classification']] for x in instances]
+        sufficiency_scores = [x['classification_scores'][x['classification']] - x['sufficiency_classification_scores'][
+            x['classification']] for x in instances]
         sufficiency_score = np.average(sufficiency_scores)
-    else :
+    else:
         sufficiency_score = None
         sufficiency_scores = None
-    
+
     if 'comprehensiveness_classification_scores' in instances[0]:
-        comprehensiveness_entropies = [entropy(list(x['classification_scores'].values())) - entropy(list(x['comprehensiveness_classification_scores'].values())) for x in instances]
+        comprehensiveness_entropies = [entropy(list(x['classification_scores'].values())) - entropy(
+            list(x['comprehensiveness_classification_scores'].values())) for x in instances]
         comprehensiveness_entropy = np.average(comprehensiveness_entropies)
-        comprehensiveness_kl = np.average(list(compute_kl(x['classification_scores'], x['comprehensiveness_classification_scores']) for x in instances))
+        comprehensiveness_kl = np.average(list(
+            compute_kl(x['classification_scores'], x['comprehensiveness_classification_scores']) for x in instances))
     else:
         comprehensiveness_entropies = None
         comprehensiveness_kl = None
         comprehensiveness_entropy = None
 
     if 'sufficiency_classification_scores' in instances[0]:
-        sufficiency_entropies = [entropy(list(x['classification_scores'].values())) - entropy(list(x['sufficiency_classification_scores'].values())) for x in instances]
+        sufficiency_entropies = [entropy(list(x['classification_scores'].values())) - entropy(
+            list(x['sufficiency_classification_scores'].values())) for x in instances]
         sufficiency_entropy = np.average(sufficiency_entropies)
-        sufficiency_kl = np.average(list(compute_kl(x['classification_scores'], x['sufficiency_classification_scores']) for x in instances))
+        sufficiency_kl = np.average(
+            list(compute_kl(x['classification_scores'], x['sufficiency_classification_scores']) for x in instances))
     else:
         sufficiency_entropies = None
         sufficiency_kl = None
         sufficiency_entropy = None
 
     if 'thresholded_scores' in instances[0]:
-        aopc_thresholds, aopc_comprehensiveness_score, aopc_comprehensiveness_points, aopc_sufficiency_score, aopc_sufficiency_points = compute_aopc_scores(instances, aopc_thresholds)
+        aopc_thresholds, aopc_comprehensiveness_score, aopc_comprehensiveness_points, aopc_sufficiency_score, aopc_sufficiency_points = compute_aopc_scores(
+            instances, aopc_thresholds)
     else:
         aopc_thresholds, aopc_comprehensiveness_score, aopc_comprehensiveness_points, aopc_sufficiency_score, aopc_sufficiency_points = None, None, None, None, None
     if 'tokens_to_flip' in instances[0]:
@@ -349,20 +425,21 @@ def score_classifications(instances: List[dict], annotations: List[Annotation], 
         token_percentages = None
 
     return {
-              'accuracy': accuracy,
-              'prf': classification_scores,
-              'comprehensiveness': comprehensiveness_score,
-              'sufficiency': sufficiency_score,
-              'comprehensiveness_entropy': comprehensiveness_entropy,
-              'comprehensiveness_kl': comprehensiveness_kl,
-              'sufficiency_entropy': sufficiency_entropy,
-              'sufficiency_kl': sufficiency_kl,
-              'aopc_thresholds': aopc_thresholds,
-              'comprehensiveness_aopc': aopc_comprehensiveness_score,
-              'comprehensiveness_aopc_points': aopc_comprehensiveness_points,
-              'sufficiency_aopc': aopc_sufficiency_score,
-              'sufficiency_aopc_points': aopc_sufficiency_points,
-           }
+        'accuracy': accuracy,
+        'prf': classification_scores,
+        'comprehensiveness': comprehensiveness_score,
+        'sufficiency': sufficiency_score,
+        'comprehensiveness_entropy': comprehensiveness_entropy,
+        'comprehensiveness_kl': comprehensiveness_kl,
+        'sufficiency_entropy': sufficiency_entropy,
+        'sufficiency_kl': sufficiency_kl,
+        'aopc_thresholds': aopc_thresholds,
+        'comprehensiveness_aopc': aopc_comprehensiveness_score,
+        'comprehensiveness_aopc_points': aopc_comprehensiveness_points,
+        'sufficiency_aopc': aopc_sufficiency_score,
+        'sufficiency_aopc_points': aopc_sufficiency_points,
+    }
+
 
 def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float]):
     error = False
@@ -376,7 +453,8 @@ def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float
         docid = rat['docid']
         if docid not in docid:
             error = True
-            logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} could not be found as a preprocessed document! Gave up on additional processing.')
+            logging.info(
+                f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} could not be found as a preprocessed document! Gave up on additional processing.')
             continue
         doc_length = len(docs[docid])
         for h1 in rat.get('hard_rationale_predictions', []):
@@ -385,20 +463,25 @@ def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float
             for h2 in rat.get('hard_rationale_predictions', []):
                 if h1 == h2:
                     continue
-                if len(set(range(h1['start_token'], h1['end_token'])) & set(range(h2['start_token'], h2['end_token']))) > 0:
-                    logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} {h1} and {h2} overlap!')
+                if len(set(range(h1['start_token'], h1['end_token'])) & set(
+                        range(h2['start_token'], h2['end_token']))) > 0:
+                    logging.info(
+                        f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} {h1} and {h2} overlap!')
                     error = True
             if h1['start_token'] > doc_length:
-                logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} received an impossible tokenspan: {h1} for a document of length {doc_length}')
+                logging.info(
+                    f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} received an impossible tokenspan: {h1} for a document of length {doc_length}')
                 error = True
             if h1['end_token'] > doc_length:
-                logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} received an impossible tokenspan: {h1} for a document of length {doc_length}')
+                logging.info(
+                    f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} received an impossible tokenspan: {h1} for a document of length {doc_length}')
                 error = True
         # length check for soft rationale
         # note that either flattened_documents or sentence-broken documents must be passed in depending on result
         soft_rationale_predictions = rat.get('soft_rationale_predictions', [])
         if len(soft_rationale_predictions) > 0 and len(soft_rationale_predictions) != doc_length:
-            logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} expected classifications for {doc_length} tokens but have them for {len(soft_rationale_predictions)} tokens instead!')
+            logging.info(
+                f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} expected classifications for {doc_length} tokens but have them for {len(soft_rationale_predictions)} tokens instead!')
             error = True
 
     # count that one appears per-document
@@ -406,44 +489,54 @@ def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float
     for docid, count in docids.items():
         if count > 1:
             error = True
-            logging.info('Error! For instance annotation={instance["annotation_id"]}, docid={docid} appear {count} times, may only appear once!')
+            logging.info(
+                'Error! For instance annotation={instance["annotation_id"]}, docid={docid} appear {count} times, may only appear once!')
 
     classification = instance.get('classification', '')
     if not isinstance(classification, str):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, classification field {classification} is not a string!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, classification field {classification} is not a string!')
         error = True
     classification_scores = instance.get('classification_scores', dict())
     if not isinstance(classification_scores, dict):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, classification_scores field {classification_scores} is not a dict!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, classification_scores field {classification_scores} is not a dict!')
         error = True
     comprehensiveness_classification_scores = instance.get('comprehensiveness_classification_scores', dict())
     if not isinstance(comprehensiveness_classification_scores, dict):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, comprehensiveness_classification_scores field {comprehensiveness_classification_scores} is not a dict!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, comprehensiveness_classification_scores field {comprehensiveness_classification_scores} is not a dict!')
         error = True
     sufficiency_classification_scores = instance.get('sufficiency_classification_scores', dict())
     if not isinstance(sufficiency_classification_scores, dict):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, sufficiency_classification_scores field {sufficiency_classification_scores} is not a dict!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, sufficiency_classification_scores field {sufficiency_classification_scores} is not a dict!')
         error = True
     if ('classification' in instance) != ('classification_scores' in instance):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, when providing a classification, you must also provide classification scores!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, when providing a classification, you must also provide classification scores!')
         error = True
     if ('comprehensiveness_classification_scores' in instance) and not ('classification' in instance):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, when providing a classification, you must also provide a comprehensiveness_classification_score')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, when providing a classification, you must also provide a comprehensiveness_classification_score')
         error = True
     if ('sufficiency_classification_scores' in instance) and not ('classification_scores' in instance):
-        logging.info(f'Error! For instance annotation={instance["annotation_id"]}, when providing a sufficiency_classification_score, you must also provide a classification score!')
+        logging.info(
+            f'Error! For instance annotation={instance["annotation_id"]}, when providing a sufficiency_classification_score, you must also provide a classification score!')
         error = True
     if 'thresholded_scores' in instance:
         instance_thresholds = set(x['threshold'] for x in instance['thresholded_scores'])
         if instance_thresholds != thresholds:
             error = True
-            logging.info('Error: {instance["thresholded_scores"]} has thresholds that differ from previous thresholds: {thresholds}')
-        if 'comprehensiveness_classification_scores' not in instance\
-            or 'sufficiency_classification_scores' not in instance\
-            or 'classification' not in instance\
-            or 'classification_scores' not in instance:
+            logging.info(
+                'Error: {instance["thresholded_scores"]} has thresholds that differ from previous thresholds: {thresholds}')
+        if 'comprehensiveness_classification_scores' not in instance \
+                or 'sufficiency_classification_scores' not in instance \
+                or 'classification' not in instance \
+                or 'classification_scores' not in instance:
             error = True
-            logging.info('Error: {instance} must have comprehensiveness_classification_scores, sufficiency_classification_scores, classification, and classification_scores defined when including thresholded scores')
+            logging.info(
+                'Error: {instance} must have comprehensiveness_classification_scores, sufficiency_classification_scores, classification, and classification_scores defined when including thresholded scores')
         if not all('sufficiency_classification_scores' in x for x in instance['thresholded_scores']):
             error = True
             logging.info('Error: {instance} must have sufficiency_classification_scores for every threshold')
@@ -452,6 +545,7 @@ def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float
             logging.info('Error: {instance} must have comprehensiveness_classification_scores for every threshold')
     return error
 
+
 def verify_instances(instances: List[dict], docs: Dict[str, list]):
     annotation_ids = list(x['annotation_id'] for x in instances)
     key_counter = Counter(annotation_ids)
@@ -459,7 +553,8 @@ def verify_instances(instances: List[dict], docs: Dict[str, list]):
     error = False
     if len(multi_occurrence_annotation_ids) > 0:
         error = True
-        logging.info(f'Error in instances: {len(multi_occurrence_annotation_ids)} appear multiple times in the annotations file: {multi_occurrence_annotation_ids}')
+        logging.info(
+            f'Error in instances: {len(multi_occurrence_annotation_ids)} appear multiple times in the annotations file: {multi_occurrence_annotation_ids}')
     failed_validation = set()
     instances_with_classification = list()
     instances_with_soft_rationale_predictions = list()
@@ -493,61 +588,158 @@ def verify_instances(instances: List[dict], docs: Dict[str, list]):
             instances_with_soft_rationale_predictions.append(instance)
             if len(has_soft_rationales) != len(instance['rationales']):
                 error = True
-                logging.info(f'Error: instance {instance["annotation"]} has soft rationales for some but not all reported documents!')
+                logging.info(
+                    f'Error: instance {instance["annotation"]} has soft rationales for some but not all reported documents!')
         if len(has_soft_sentences) > 0:
             instances_with_soft_sentence_predictions.append(instance)
             if len(has_soft_sentences) != len(instance['rationales']):
                 error = True
-                logging.info(f'Error: instance {instance["annotation"]} has soft sentences for some but not all reported documents!')
+                logging.info(
+                    f'Error: instance {instance["annotation"]} has soft sentences for some but not all reported documents!')
         if 'thresholded_scores' in instance:
             instances_with_thresholded_scores.append(instance)
     logging.info(f'Error in instances: {len(failed_validation)} instances fail validation: {failed_validation}')
     if len(instances_with_classification) != 0 and len(instances_with_classification) != len(instances):
-        logging.info(f'Either all {len(instances)} must have a classification or none may, instead {len(instances_with_classification)} do!')
+        logging.info(
+            f'Either all {len(instances)} must have a classification or none may, instead {len(instances_with_classification)} do!')
         error = True
-    if len(instances_with_soft_sentence_predictions) != 0 and len(instances_with_soft_sentence_predictions) != len(instances):
-        logging.info(f'Either all {len(instances)} must have a sentence prediction or none may, instead {len(instances_with_soft_sentence_predictions)} do!')
+    if len(instances_with_soft_sentence_predictions) != 0 and len(instances_with_soft_sentence_predictions) != len(
+            instances):
+        logging.info(
+            f'Either all {len(instances)} must have a sentence prediction or none may, instead {len(instances_with_soft_sentence_predictions)} do!')
         error = True
-    if len(instances_with_soft_rationale_predictions) != 0 and len(instances_with_soft_rationale_predictions) != len(instances):
-        logging.info(f'Either all {len(instances)} must have a soft rationale prediction or none may, instead {len(instances_with_soft_rationale_predictions)} do!')
+    if len(instances_with_soft_rationale_predictions) != 0 and len(instances_with_soft_rationale_predictions) != len(
+            instances):
+        logging.info(
+            f'Either all {len(instances)} must have a soft rationale prediction or none may, instead {len(instances_with_soft_rationale_predictions)} do!')
         error = True
-    if len(instances_with_comprehensiveness_classifications) != 0 and len(instances_with_comprehensiveness_classifications) != len(instances):
+    if len(instances_with_comprehensiveness_classifications) != 0 and len(
+            instances_with_comprehensiveness_classifications) != len(instances):
         error = True
-        logging.info(f'Either all {len(instances)} must have a comprehensiveness classification or none may, instead {len(instances_with_comprehensiveness_classifications)} do!')
-    if len(instances_with_sufficiency_classifications) != 0 and len(instances_with_sufficiency_classifications) != len(instances):
+        logging.info(
+            f'Either all {len(instances)} must have a comprehensiveness classification or none may, instead {len(instances_with_comprehensiveness_classifications)} do!')
+    if len(instances_with_sufficiency_classifications) != 0 and len(instances_with_sufficiency_classifications) != len(
+            instances):
         error = True
-        logging.info(f'Either all {len(instances)} must have a sufficiency classification or none may, instead {len(instances_with_sufficiency_classifications)} do!')
+        logging.info(
+            f'Either all {len(instances)} must have a sufficiency classification or none may, instead {len(instances_with_sufficiency_classifications)} do!')
     if len(instances_with_thresholded_scores) != 0 and len(instances_with_thresholded_scores) != len(instances):
         error = True
-        logging.info(f'Either all {len(instances)} must have thresholded scores or none may, instead {len(instances_with_thresholded_scores)} do!')
+        logging.info(
+            f'Either all {len(instances)} must have thresholded scores or none may, instead {len(instances_with_thresholded_scores)} do!')
     if error:
         raise ValueError('Some instances are invalid, please fix your formatting and try again')
 
+
 def _has_hard_predictions(results: List[dict]) -> bool:
     # assumes that we have run "verification" over the inputs
-    return 'rationales' in results[0]\
-        and len(results[0]['rationales']) > 0\
-        and 'hard_rationale_predictions' in results[0]['rationales'][0]\
-        and results[0]['rationales'][0]['hard_rationale_predictions'] is not None\
-        and len(results[0]['rationales'][0]['hard_rationale_predictions']) > 0
+    return 'rationales' in results[0] \
+           and len(results[0]['rationales']) > 0 \
+           and 'hard_rationale_predictions' in results[0]['rationales'][0] \
+           and results[0]['rationales'][0]['hard_rationale_predictions'] is not None \
+           and len(results[0]['rationales'][0]['hard_rationale_predictions']) > 0
+
 
 def _has_soft_predictions(results: List[dict]) -> bool:
     # assumes that we have run "verification" over the inputs
-    return 'rationales' in results[0] and len(results[0]['rationales']) > 0 and 'soft_rationale_predictions' in results[0]['rationales'][0] and results[0]['rationales'][0]['soft_rationale_predictions'] is not None
+    return 'rationales' in results[0] and len(results[0]['rationales']) > 0 and 'soft_rationale_predictions' in \
+           results[0]['rationales'][0] and results[0]['rationales'][0]['soft_rationale_predictions'] is not None
+
 
 def _has_soft_sentence_predictions(results: List[dict]) -> bool:
     # assumes that we have run "verification" over the inputs
-    return 'rationales' in results[0] and len(results[0]['rationales']) > 0 and 'soft_sentence_predictions' in results[0]['rationales'][0] and results[0]['rationales'][0]['soft_sentence_predictions'] is not None
+    return 'rationales' in results[0] and len(results[0]['rationales']) > 0 and 'soft_sentence_predictions' in \
+           results[0]['rationales'][0] and results[0]['rationales'][0]['soft_sentence_predictions'] is not None
+
 
 def _has_classifications(results: List[dict]) -> bool:
     # assumes that we have run "verification" over the inputs
     return 'classification' in results[0] and results[0]['classification'] is not None
 
+
+def cal_metrics(data_dir, split, results_path, score_file):
+    iou_thresholds = [0.5]
+    aopc_thresholds = [0.01, 0.05, 0.1, 0.2, 0.5]
+    strict = False
+    for k in tqdm(range(5, 85, 5)):
+        k_json = f'{k}.json'
+        results_k_path = results_path.split('identifier_results_')[0] + 'identifier_results_' + k_json
+        score_path = score_file.split('metrics_results_')[0] + 'metrics_results_' + k_json
+        results = load_jsonl(results_k_path)
+        docids = set(chain.from_iterable([rat['docid'] for rat in res['rationales']] for res in results))
+        docs = load_flattened_documents(data_dir, docids)
+        verify_instances(results, docs)
+        # load truth
+        annotations = annotations_from_jsonl(os.path.join(data_dir, split + '.jsonl'))
+        docids |= set(
+            chain.from_iterable((ev.docid for ev in chain.from_iterable(ann.evidences)) for ann in annotations))
+
+        has_final_predictions = _has_classifications(results)
+        scores = dict()
+        if strict:
+            if not iou_thresholds:
+                raise ValueError("--iou_thresholds must be provided when running strict scoring")
+            if not has_final_predictions:
+                raise ValueError(
+                    "We must have a 'classification', 'classification_score', and 'comprehensiveness_classification_score' field in order to perform scoring!")
+        # TODO think about offering a sentence level version of these scores.
+        if _has_hard_predictions(results):
+            truth = list(chain.from_iterable(Rationale.from_annotation(ann) for ann in annotations))
+            pred = list(chain.from_iterable(Rationale.from_instance(inst) for inst in results))
+            if iou_thresholds is not None:
+                iou_scores = partial_match_score(truth, pred, iou_thresholds)
+                scores['iou_scores'] = iou_scores
+            # NER style scoring
+            rationale_level_prf = score_hard_rationale_predictions(truth, pred)
+            scores['rationale_prf'] = rationale_level_prf
+            token_level_truth = list(chain.from_iterable(rat.to_token_level() for rat in truth))
+            token_level_pred = list(chain.from_iterable(rat.to_token_level() for rat in pred))
+            token_level_prf = score_hard_rationale_predictions(token_level_truth, token_level_pred)
+            scores['token_prf'] = token_level_prf
+        else:
+            logging.info("No hard predictions detected, skipping rationale scoring")
+
+        if _has_soft_predictions(results):
+            flattened_documents = load_flattened_documents(data_dir, docids)
+            paired_scoring = PositionScoredDocument.from_results(results, annotations, flattened_documents,
+                                                                 use_tokens=True)
+            token_scores = score_soft_tokens(paired_scoring)
+            scores['token_soft_metrics'] = token_scores
+        else:
+            logging.info("No soft predictions detected, skipping rationale scoring")
+
+        if _has_soft_sentence_predictions(results):
+            documents = load_documents(data_dir, docids)
+            paired_scoring = PositionScoredDocument.from_results(results, annotations, documents, use_tokens=False)
+            sentence_scores = score_soft_tokens(paired_scoring)
+            scores['sentence_soft_metrics'] = sentence_scores
+        else:
+            logging.info("No sentence level predictions detected, skipping sentence-level diagnostic")
+
+        if has_final_predictions:
+            flattened_documents = load_flattened_documents(data_dir, docids)
+            class_results = score_classifications(results, annotations, flattened_documents, aopc_thresholds)
+            scores['classification_scores'] = class_results
+        else:
+            logging.info("No classification scores detected, skipping classification")
+
+        # pprint.pprint(scores)
+
+        if score_path:
+            with open(score_path, 'w') as of:
+                json.dump(scores, of, indent=4, sort_keys=True)
+
+    return
+
+
 def main():
-    parser = argparse.ArgumentParser(description="""Computes rationale and final class classification scores""", formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('--data_dir', dest='data_dir', required=True, help='Which directory contains a {train,val,test}.jsonl file?')
+    parser = argparse.ArgumentParser(description="""Computes rationale and final class classification scores""",
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--data_dir', dest='data_dir', required=True,
+                        help='Which directory contains a {train,val,test}.jsonl file?')
     parser.add_argument('--split', dest='split', required=True, help='Which of {train,val,test} are we scoring on?')
-    parser.add_argument('--strict', dest='strict', required=False, action='store_true', default=False, help='Do we perform strict scoring?')
+    parser.add_argument('--strict', dest='strict', required=False, action='store_true', default=False,
+                        help='Do we perform strict scoring?')
     parser.add_argument('--results', dest='results', required=True, help="""Results File
     Contents are expected to be jsonl of:
     {
@@ -600,7 +792,8 @@ def main():
     The classification, classification_score, and comprehensiveness_classification_scores
     must together be present for every instance or absent for every instance.
     """)
-    parser.add_argument('--iou_thresholds', dest='iou_thresholds', required=False, nargs='+', type=float, default=[0.5], help='''Thresholds for IOU scoring.
+    parser.add_argument('--iou_thresholds', dest='iou_thresholds', required=False, nargs='+', type=float, default=[0.5],
+                        help='''Thresholds for IOU scoring.
 
     These are used for "soft" or partial match scoring of rationale spans.
     A span is considered a match if the size of the intersection of the prediction
@@ -608,68 +801,78 @@ def main():
     the IOU threshold. This score can be computed for arbitrary thresholds.
     ''')
     parser.add_argument('--score_file', dest='score_file', required=False, default=None, help='Where to write results?')
-    parser.add_argument('--aopc_thresholds', nargs='+', required=False, type=float, default=[0.01, 0.05, 0.1, 0.2, 0.5], help='Thresholds for AOPC Thresholds')
+    parser.add_argument('--aopc_thresholds', nargs='+', required=False, type=float, default=[0.01, 0.05, 0.1, 0.2, 0.5],
+                        help='Thresholds for AOPC Thresholds')
     args = parser.parse_args()
-    results = load_jsonl(args.results)
-    docids = set(chain.from_iterable([rat['docid'] for rat in res['rationales']] for res in results))
-    docs = load_flattened_documents(args.data_dir, docids)
-    verify_instances(results, docs)
-    # load truth
-    annotations = annotations_from_jsonl(os.path.join(args.data_dir, args.split + '.jsonl'))
-    docids |= set(chain.from_iterable((ev.docid for ev in chain.from_iterable(ann.evidences)) for ann in annotations))
 
-    has_final_predictions = _has_classifications(results)
-    scores = dict()
-    if args.strict:
-        if not args.iou_thresholds:
-            raise ValueError("--iou_thresholds must be provided when running strict scoring")
-        if not has_final_predictions:
-            raise ValueError("We must have a 'classification', 'classification_score', and 'comprehensiveness_classification_score' field in order to perform scoring!")
-    # TODO think about offering a sentence level version of these scores.
-    if _has_hard_predictions(results):
-        truth = list(chain.from_iterable(Rationale.from_annotation(ann) for ann in annotations))
-        pred = list(chain.from_iterable(Rationale.from_instance(inst) for inst in results))
-        if args.iou_thresholds is not None:
-            iou_scores = partial_match_score(truth, pred, args.iou_thresholds)
-            scores['iou_scores'] = iou_scores
-        # NER style scoring
-        rationale_level_prf = score_hard_rationale_predictions(truth, pred)
-        scores['rationale_prf'] = rationale_level_prf
-        token_level_truth = list(chain.from_iterable(rat.to_token_level() for rat in truth))
-        token_level_pred = list(chain.from_iterable(rat.to_token_level() for rat in pred))
-        token_level_prf = score_hard_rationale_predictions(token_level_truth, token_level_pred)
-        scores['token_prf'] = token_level_prf
-    else:
-        logging.info("No hard predictions detected, skipping rationale scoring")
+    for k in tqdm(range(5, 85, 5)):
+        k_json = f'{k}.json'
+        results_path = args.results.split('identifier_results_')[0] + 'identifier_results_' + k_json
+        score_path = args.score_file.split('identifier_results_')[0] + 'identifier_results_' + k_json
+        results = load_jsonl(results_path)
+        docids = set(chain.from_iterable([rat['docid'] for rat in res['rationales']] for res in results))
+        docs = load_flattened_documents(args.data_dir, docids)
+        verify_instances(results, docs)
+        # load truth
+        annotations = annotations_from_jsonl(os.path.join(args.data_dir, args.split + '.jsonl'))
+        docids |= set(
+            chain.from_iterable((ev.docid for ev in chain.from_iterable(ann.evidences)) for ann in annotations))
 
-    if _has_soft_predictions(results):
-        flattened_documents = load_flattened_documents(args.data_dir, docids)
-        paired_scoring = PositionScoredDocument.from_results(results, annotations, flattened_documents, use_tokens=True)
-        token_scores = score_soft_tokens(paired_scoring)
-        scores['token_soft_metrics'] = token_scores
-    else:
-        logging.info("No soft predictions detected, skipping rationale scoring")
+        has_final_predictions = _has_classifications(results)
+        scores = dict()
+        if args.strict:
+            if not args.iou_thresholds:
+                raise ValueError("--iou_thresholds must be provided when running strict scoring")
+            if not has_final_predictions:
+                raise ValueError(
+                    "We must have a 'classification', 'classification_score', and 'comprehensiveness_classification_score' field in order to perform scoring!")
+        # TODO think about offering a sentence level version of these scores.
+        if _has_hard_predictions(results):
+            truth = list(chain.from_iterable(Rationale.from_annotation(ann) for ann in annotations))
+            pred = list(chain.from_iterable(Rationale.from_instance(inst) for inst in results))
+            if args.iou_thresholds is not None:
+                iou_scores = partial_match_score(truth, pred, args.iou_thresholds)
+                scores['iou_scores'] = iou_scores
+            # NER style scoring
+            rationale_level_prf = score_hard_rationale_predictions(truth, pred)
+            scores['rationale_prf'] = rationale_level_prf
+            token_level_truth = list(chain.from_iterable(rat.to_token_level() for rat in truth))
+            token_level_pred = list(chain.from_iterable(rat.to_token_level() for rat in pred))
+            token_level_prf = score_hard_rationale_predictions(token_level_truth, token_level_pred)
+            scores['token_prf'] = token_level_prf
+        else:
+            logging.info("No hard predictions detected, skipping rationale scoring")
 
-    if _has_soft_sentence_predictions(results):
-        documents = load_documents(args.data_dir, docids)
-        paired_scoring = PositionScoredDocument.from_results(results, annotations, documents, use_tokens=False)
-        sentence_scores = score_soft_tokens(paired_scoring)
-        scores['sentence_soft_metrics'] = sentence_scores
-    else:
-        logging.info("No sentence level predictions detected, skipping sentence-level diagnostic")
+        if _has_soft_predictions(results):
+            flattened_documents = load_flattened_documents(args.data_dir, docids)
+            paired_scoring = PositionScoredDocument.from_results(results, annotations, flattened_documents,
+                                                                 use_tokens=True)
+            token_scores = score_soft_tokens(paired_scoring)
+            scores['token_soft_metrics'] = token_scores
+        else:
+            logging.info("No soft predictions detected, skipping rationale scoring")
 
-    if has_final_predictions:
-        flattened_documents = load_flattened_documents(args.data_dir, docids)
-        class_results = score_classifications(results, annotations, flattened_documents, args.aopc_thresholds)
-        scores['classification_scores'] = class_results
-    else:
-        logging.info("No classification scores detected, skipping classification")
+        if _has_soft_sentence_predictions(results):
+            documents = load_documents(args.data_dir, docids)
+            paired_scoring = PositionScoredDocument.from_results(results, annotations, documents, use_tokens=False)
+            sentence_scores = score_soft_tokens(paired_scoring)
+            scores['sentence_soft_metrics'] = sentence_scores
+        else:
+            logging.info("No sentence level predictions detected, skipping sentence-level diagnostic")
 
-    pprint.pprint(scores)
+        if has_final_predictions:
+            flattened_documents = load_flattened_documents(args.data_dir, docids)
+            class_results = score_classifications(results, annotations, flattened_documents, args.aopc_thresholds)
+            scores['classification_scores'] = class_results
+        else:
+            logging.info("No classification scores detected, skipping classification")
 
-    if args.score_file:
-        with open(args.score_file, 'w') as of:
-            json.dump(scores, of, indent=4, sort_keys=True)
+        pprint.pprint(scores)
+
+        if args.score_file:
+            with open(score_path, 'w') as of:
+                json.dump(scores, of, indent=4, sort_keys=True)
+
 
 if __name__ == '__main__':
     main()

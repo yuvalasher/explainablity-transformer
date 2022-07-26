@@ -8,7 +8,7 @@ from transformers import BertForSequenceClassification, BertTokenizer
 
 from nlp.BERT_explainability.modules.BERT.Bert_Temp_New import BertTempSoftmaxForSequenceClassification
 from nlp.BERT_explainability.modules.BERT.BertForSequenceClassification import \
-    BertForSequenceClassification as T_BertForSequenceClassification, Amit_Temp_BertForSequenceClassification
+    BertForSequenceClassification as BertForSequenceClassificationTest, Temp_BertForSequenceClassification
 
 import matplotlib.pyplot as plt
 import os
@@ -28,10 +28,10 @@ loss_config = bert_config['loss']
 
 BertModelForSequenceClassification = NewType('BertModelForSequenceClassification',
                                              Union[
-                                                 BertForSequenceClassification, Amit_Temp_BertForSequenceClassification])
+                                                 BertForSequenceClassification, Temp_BertForSequenceClassification])
 
 bert_model_types = {'infer': BertForSequenceClassification,
-                    'softmax_temp': T_BertForSequenceClassification,
+                    'softmax_temp': Temp_BertForSequenceClassification,
                     'amit_softmax_temp': BertTempSoftmaxForSequenceClassification,
                     }
 
@@ -128,7 +128,7 @@ def load_BertModel(bert_config: Dict, model_type: str,device: str) -> BertModelF
     model = bert_model_types[model_type].from_pretrained(bert_config['model_name']).to(device)
     return model
 
-def initialize_models(params: dict, model_type: str, batch_first: bool, device: str, use_half_precision=False):
+def initialize_models(params: dict, model_type: str, batch_first: bool, device: str,load_evidence_classifier = True, use_half_precision=False):
     assert batch_first
     max_length = params['max_length']
     tokenizer = BertTokenizer.from_pretrained(params['model_name'])
@@ -140,8 +140,13 @@ def initialize_models(params: dict, model_type: str, batch_first: bool, device: 
 
     bert_dir = params['model_name']
     evidence_classes = dict((y, x) for (x, y) in enumerate(params['evidence_classifier']['classes']))
-    evidence_classifier = bert_model_types[model_type].from_pretrained(bert_dir, num_labels=len(evidence_classes)).to(device)
-    optimizer = optim.Adam([evidence_classifier.bert.encoder.x_attention], lr=bert_config['evidence_classifier']['lr'])
+    if(load_evidence_classifier):
+        evidence_classifier = bert_model_types[model_type].from_pretrained(bert_dir, num_labels=len(evidence_classes)).to(device)
+        optimizer = optim.Adam([evidence_classifier.bert.encoder.x_attention],
+                               lr=bert_config['evidence_classifier']['lr'])
+    else:
+        evidence_classifier =''
+        optimizer = ''
 
     lmbda = lambda epoch: 0.65 ** epoch
     scheduler = None #torch.optim.lr_scheduler.ExponentialLR(optimizer, lr_lambda=lmbda)

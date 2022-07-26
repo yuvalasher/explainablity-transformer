@@ -97,12 +97,76 @@ class BertEmbeddings(nn.Module):
 
         return cam
 
-
 class BertEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
         self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
+
+    def forward(
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            output_attentions=False,
+            output_hidden_states=False,
+            return_dict=False,
+    ):
+        all_hidden_states = () if output_hidden_states else None
+        all_attentions = () if output_attentions else None
+        for i, layer_module in enumerate(self.layer):
+            if output_hidden_states:
+                all_hidden_states = all_hidden_states + (hidden_states,)
+
+            layer_head_mask = head_mask[i] if head_mask is not None else None
+
+            if getattr(self.config, "gradient_checkpointing", False):
+
+                def create_custom_forward(module):
+                    def custom_forward(*inputs):
+                        return module(*inputs, output_attentions)
+
+                    return custom_forward
+
+                layer_outputs = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(layer_module),
+                    hidden_states,
+                    attention_mask,
+                    layer_head_mask,
+                )
+            else:
+                layer_outputs = layer_module(
+                    hidden_states,
+                    attention_mask,
+                    layer_head_mask,
+                    output_attentions,
+                )
+            hidden_states = layer_outputs[0]
+            if output_attentions:
+                all_attentions = all_attentions + (layer_outputs[1],)
+
+        if output_hidden_states:
+            all_hidden_states = all_hidden_states + (hidden_states,)
+
+        if not return_dict:
+            return tuple(v for v in [hidden_states, all_hidden_states, all_attentions] if v is not None)
+        return BaseModelOutput(
+            last_hidden_state=hidden_states, hidden_states=all_hidden_states, attentions=all_attentions
+        )
+
+    def relprop(self, cam, **kwargs):
+        # assuming output_hidden_states is False
+        for layer_module in reversed(self.layer):
+            cam = layer_module.relprop(cam, **kwargs)
+        return cam
+
+class Temp_BertEncoder(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+        self.layer = nn.ModuleList([Temp_BertLayer(config) for _ in range(config.num_hidden_layers)])
 
         self.gradient_checkpointing = False
         self.num_tokens = 512
@@ -172,77 +236,6 @@ class BertEncoder(nn.Module):
         return cam
 
 
-class Temp_BertEncoder(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.config = config
-        self.layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
-        self.gradient_checkpointing = False
-        self.num_tokens = 512
-        self.x_attention = nn.Parameter(
-            torch.ones(config.num_hidden_layers, config.num_attention_heads, self.num_tokens, requires_grad=True))
-        # I change it to be the correct num_tokens depends on the input and remove the +1
-
-    def forward(
-            self,
-            hidden_states,
-            attention_mask=None,
-            head_mask=None,
-            encoder_hidden_states=None,
-            encoder_attention_mask=None,
-            output_attentions=False,
-            output_hidden_states=False,
-            return_dict=False,
-    ):
-        all_hidden_states = () if output_hidden_states else None
-        all_attentions = () if output_attentions else None
-        for i, layer_module in enumerate(self.layer):
-            if output_hidden_states:
-                all_hidden_states = all_hidden_states + (hidden_states,)
-
-            layer_head_mask = head_mask[i] if head_mask is not None else None
-
-            if getattr(self.config, "gradient_checkpointing", False):
-
-                def create_custom_forward(module):
-                    def custom_forward(*inputs):
-                        return module(*inputs, output_attentions)
-
-                    return custom_forward
-
-                layer_outputs = torch.utils.checkpoint.checkpoint(
-                    create_custom_forward(layer_module),
-                    hidden_states,
-                    attention_mask,
-                    layer_head_mask,
-                )
-            else:
-                layer_outputs = layer_module(
-                    hidden_states,
-                    attention_mask,
-                    layer_head_mask,
-                    output_attentions,
-                )
-            hidden_states = layer_outputs[0]
-            if output_attentions:
-                all_attentions = all_attentions + (layer_outputs[1],)
-
-        if output_hidden_states:
-            all_hidden_states = all_hidden_states + (hidden_states,)
-
-        if not return_dict:
-            return tuple(v for v in [hidden_states, all_hidden_states, all_attentions] if v is not None)
-        return BaseModelOutput(
-            last_hidden_state=hidden_states, hidden_states=all_hidden_states, attentions=all_attentions
-        )
-
-    def relprop(self, cam, **kwargs):
-        # assuming output_hidden_states is False
-        for layer_module in reversed(self.layer):
-            cam = layer_module.relprop(cam, **kwargs)
-        return cam
-
-
 # not adding relprop since this is only pooling at the end of the network, does not impact tokens importance
 class BertPooler(nn.Module):
     def __init__(self, config):
@@ -276,9 +269,66 @@ class BertPooler(nn.Module):
 
 
 class BertAttention(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.self = BertSelfAttention(config)
+        self.output = BertSelfOutput(config)
+        self.pruned_heads = set()
+        self.clone = Clone()
+
+    def prune_heads(self, heads):
+        if len(heads) == 0:
+            return
+        heads, index = find_pruneable_heads_and_indices(
+            heads, self.self.num_attention_heads, self.self.attention_head_size, self.pruned_heads
+        )
+
+        # Prune linear layers
+        self.self.query = prune_linear_layer(self.self.query, index)
+        self.self.key = prune_linear_layer(self.self.key, index)
+        self.self.value = prune_linear_layer(self.self.value, index)
+        self.output.dense = prune_linear_layer(self.output.dense, index, dim=1)
+
+        # Update hyper params and store pruned heads
+        self.self.num_attention_heads = self.self.num_attention_heads - len(heads)
+        self.self.all_head_size = self.self.attention_head_size * self.self.num_attention_heads
+        self.pruned_heads = self.pruned_heads.union(heads)
+
+    def forward(
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            output_attentions=False,
+    ):
+        h1, h2 = self.clone(hidden_states, 2)
+        self_outputs = self.self(
+            h1,
+            attention_mask,
+            head_mask,
+            encoder_hidden_states,
+            encoder_attention_mask,
+            output_attentions,
+        )
+        attention_output = self.output(self_outputs[0], h2)
+        outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
+        return outputs
+
+    def relprop(self, cam, **kwargs):
+        # assuming that we don't ouput the attentions (outputs = (attention_output,)), self_outputs=(context_layer,)
+        (cam1, cam2) = self.output.relprop(cam, **kwargs)
+        #print(cam1.sum(), cam2.sum(), (cam1 + cam2).sum())
+        cam1 = self.self.relprop(cam1, **kwargs)
+        #print(cam1.sum(), cam2.sum(), (cam1 + cam2).sum())
+
+        return self.clone.relprop((cam1, cam2), **kwargs)
+
+class Temp_BertAttention(nn.Module):
     def __init__(self, config, position_embedding_type=None):
         super().__init__()
-        self.self = BertSelfAttention(config, position_embedding_type=position_embedding_type)
+        self.self = Temp_BertSelfAttention(config, position_embedding_type=position_embedding_type)
         self.output = BertSelfOutput(config)
         self.pruned_heads = set()
         self.clone = Clone()
@@ -337,7 +387,170 @@ class BertAttention(nn.Module):
         return self.clone.relprop((cam1, cam2), **kwargs)
 
 
+
 class BertSelfAttention(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
+            raise ValueError(
+                "The hidden size (%d) is not a multiple of the number of attention "
+                "heads (%d)" % (config.hidden_size, config.num_attention_heads)
+            )
+
+        self.num_attention_heads = config.num_attention_heads
+        self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
+        self.all_head_size = self.num_attention_heads * self.attention_head_size
+
+        self.query = Linear(config.hidden_size, self.all_head_size)
+        self.key = Linear(config.hidden_size, self.all_head_size)
+        self.value = Linear(config.hidden_size, self.all_head_size)
+
+        self.dropout = Dropout(config.attention_probs_dropout_prob)
+
+        self.matmul1 = MatMul()
+        self.matmul2 = MatMul()
+        self.softmax = Softmax(dim=-1)
+        self.add = Add()
+        self.mul = Mul()
+        self.head_mask = None
+        self.attention_mask = None
+        self.clone = Clone()
+
+        self.attn_cam = None
+        self.attn = None
+        self.attn_gradients = None
+
+    def get_attn(self):
+        return self.attn
+
+    def save_attn(self, attn):
+        self.attn = attn
+
+    def save_attn_cam(self, cam):
+        self.attn_cam = cam
+
+    def get_attn_cam(self):
+        return self.attn_cam
+
+    def save_attn_gradients(self, attn_gradients):
+        self.attn_gradients = attn_gradients
+
+    def get_attn_gradients(self):
+        return self.attn_gradients
+
+    def transpose_for_scores(self, x):
+        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        x = x.view(*new_x_shape)
+        return x.permute(0, 2, 1, 3)
+
+    def transpose_for_scores_relprop(self, x):
+        return x.permute(0, 2, 1, 3).flatten(2)
+
+    def forward(
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            encoder_hidden_states=None,
+            encoder_attention_mask=None,
+            output_attentions=False,
+    ):
+        self.head_mask = head_mask
+        self.attention_mask = attention_mask
+
+        h1, h2, h3 = self.clone(hidden_states, 3)
+        mixed_query_layer = self.query(h1)
+
+        # If this is instantiated as a cross-attention module, the keys
+        # and values come from an encoder; the attention mask needs to be
+        # such that the encoder's padding tokens are not attended to.
+        if encoder_hidden_states is not None:
+            mixed_key_layer = self.key(encoder_hidden_states)
+            mixed_value_layer = self.value(encoder_hidden_states)
+            attention_mask = encoder_attention_mask
+        else:
+            mixed_key_layer = self.key(h2)
+            mixed_value_layer = self.value(h3)
+
+        query_layer = self.transpose_for_scores(mixed_query_layer)
+        key_layer = self.transpose_for_scores(mixed_key_layer)
+        value_layer = self.transpose_for_scores(mixed_value_layer)
+
+        # Take the dot product between "query" and "key" to get the raw attention scores.
+        attention_scores = self.matmul1([query_layer, key_layer.transpose(-1, -2)])
+        attention_scores = attention_scores / math.sqrt(self.attention_head_size)
+        if attention_mask is not None:
+            # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
+            attention_scores = self.add([attention_scores, attention_mask])
+
+        # Normalize the attention scores to probabilities.
+        attention_probs = self.softmax(attention_scores)
+
+        self.save_attn(attention_probs)
+        attention_probs.register_hook(self.save_attn_gradients)
+
+        # This is actually dropping out entire tokens to attend to, which might
+        # seem a bit unusual, but is taken from the original Transformer paper.
+        attention_probs = self.dropout(attention_probs)
+
+        # Mask heads if we want to
+        if head_mask is not None:
+            attention_probs = attention_probs * head_mask
+
+        context_layer = self.matmul2([attention_probs, value_layer])
+
+        context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
+        new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
+        context_layer = context_layer.view(*new_context_layer_shape)
+
+        outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
+        return outputs
+
+    def relprop(self, cam, **kwargs):
+        # Assume output_attentions == False
+        cam = self.transpose_for_scores(cam)
+
+        # [attention_probs, value_layer]
+        (cam1, cam2) = self.matmul2.relprop(cam, **kwargs)
+        cam1 /= 2
+        cam2 /= 2
+        if self.head_mask is not None:
+            # [attention_probs, head_mask]
+            (cam1, _)= self.mul.relprop(cam1, **kwargs)
+
+
+        self.save_attn_cam(cam1)
+
+        cam1 = self.dropout.relprop(cam1, **kwargs)
+
+        cam1 = self.softmax.relprop(cam1, **kwargs)
+
+        if self.attention_mask is not None:
+            # [attention_scores, attention_mask]
+            (cam1, _) = self.add.relprop(cam1, **kwargs)
+
+        # [query_layer, key_layer.transpose(-1, -2)]
+        (cam1_1, cam1_2) = self.matmul1.relprop(cam1, **kwargs)
+        cam1_1 /= 2
+        cam1_2 /= 2
+
+        # query
+        cam1_1 = self.transpose_for_scores_relprop(cam1_1)
+        cam1_1 = self.query.relprop(cam1_1, **kwargs)
+
+        # key
+        cam1_2 = self.transpose_for_scores_relprop(cam1_2.transpose(-1, -2))
+        cam1_2 = self.key.relprop(cam1_2, **kwargs)
+
+        # value
+        cam2 = self.transpose_for_scores_relprop(cam2)
+        cam2 = self.value.relprop(cam2, **kwargs)
+
+        cam = self.clone.relprop((cam1_1, cam1_2, cam2), **kwargs)
+
+        return cam
+
+class Temp_BertSelfAttention(nn.Module):
     def __init__(self, config,position_embedding_type=None):
         super().__init__()
         if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
@@ -517,6 +730,7 @@ class BertSelfAttention(nn.Module):
         return cam
 
 
+
 class BertSelfOutput(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -599,6 +813,48 @@ class BertLayer(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.attention = BertAttention(config)
+        self.intermediate = BertIntermediate(config)
+        self.output = BertOutput(config)
+        self.clone = Clone()
+
+    def forward(
+            self,
+            hidden_states,
+            attention_mask=None,
+            head_mask=None,
+            output_attentions=False,
+    ):
+        self_attention_outputs = self.attention(
+            hidden_states,
+            attention_mask,
+            head_mask,
+            output_attentions=output_attentions,
+        )
+        attention_output = self_attention_outputs[0]
+        outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
+
+        ao1, ao2 = self.clone(attention_output, 2)
+        intermediate_output = self.intermediate(ao1)
+        layer_output = self.output(intermediate_output, ao2)
+
+        outputs = (layer_output,) + outputs
+        return outputs
+
+    def relprop(self, cam, **kwargs):
+        (cam1, cam2) = self.output.relprop(cam, **kwargs)
+        # print("output", cam1.sum(), cam2.sum(), cam1.sum() + cam2.sum())
+        cam1 = self.intermediate.relprop(cam1, **kwargs)
+        # print("intermediate", cam1.sum())
+        cam = self.clone.relprop((cam1, cam2), **kwargs)
+        # print("clone", cam.sum())
+        cam = self.attention.relprop(cam, **kwargs)
+        # print("attention", cam.sum())
+        return cam
+
+class Temp_BertLayer(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.attention = Temp_BertAttention(config)
         self.intermediate = BertIntermediate(config)
         self.output = BertOutput(config)
         self.clone = Clone()

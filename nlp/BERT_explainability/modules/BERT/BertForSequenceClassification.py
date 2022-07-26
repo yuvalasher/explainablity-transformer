@@ -90,7 +90,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         # print("conservation: ", cam.sum())
         return cam
 
-class Amit_Temp_BertForSequenceClassification(BertPreTrainedModel):
+class Temp_BertForSequenceClassification(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
