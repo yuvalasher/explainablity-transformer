@@ -26,7 +26,7 @@ class ImageSegDataModule(pl.LightningDataModule):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False, #TODO - change to True
         )
 
     def val_dataloader(self):

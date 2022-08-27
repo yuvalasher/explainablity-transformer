@@ -1,4 +1,5 @@
 import os
+
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from pathlib import Path
@@ -21,16 +22,22 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
-# torch.cuda.set_device(3)
-print(torch.cuda.current_device())
+if torch.cuda.is_available():
+    print(torch.cuda.current_device())
+    torch.cuda.empty_cache()
+
 vit_config = config['vit']
+loss_config = vit_config['seg_cls']['loss']
 seed_everything(config['general']['seed'])
 import gc
 import torch
 
-torch.cuda.empty_cache()
 gc.collect()
-exp_name = f'pred_loss_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_loss_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}'
+base_exp_name = f'pred_loss_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_loss'
+if loss_config['mask_loss'] == 'bce':
+    exp_name = f'{base_exp_name}_bce_to_0_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}'
+else:
+    exp_name = f'{base_exp_name}_l1_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}'
 
 feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-basic',
                                                                     is_wolf_transforms=vit_config[
@@ -68,11 +75,14 @@ wandb_logger = WandbLogger(
 
 model = freeze_multitask_model(model=model, freezing_transformer=vit_config['freezing_transformer'],
                                freeze_classification_head=vit_config['freeze_classification_head'])
+print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 trainer = pl.Trainer(
-    callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=3)],
+    # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
+    # TODO - change
     # , early_stop_callback],
     logger=[wandb_logger],
+    # logger=[],
     max_epochs=vit_config['n_epochs'],
     gpus=vit_config['gpus'],
     progress_bar_refresh_rate=30,

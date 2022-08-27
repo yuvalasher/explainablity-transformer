@@ -1,3 +1,4 @@
+from icecream import ic
 from pathlib import Path
 from typing import Tuple, Callable
 
@@ -24,8 +25,13 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
 
 
+def l1_loss(tokens_mask) -> Tensor:
+    return torch.abs(tokens_mask).sum()
+
+
 def prediction_loss(output, target):
-    return ce_loss(output, torch.argmax(target, dim=1))  # maximize the pred to original model
+    argmax_target = torch.argmax(target, dim=1)
+    return ce_loss(output, argmax_target)  # maximize the pred to original model
 
 
 def encourage_token_mask_to_prior_loss(tokens_mask: Tensor, prior: int = 0):
@@ -49,14 +55,24 @@ def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tenso
     Loss between the original prediction's distribution of the model and the prediction's distribution of the new model
     + average of the BCE of the x * self-attention
     """
-    bce_turn_off_patches_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
-    pred_loss = prediction_loss(output, target)
-    # print(f'prediction_loss: {pred_loss}, bce_turn_off_patches_loss: {bce_turn_off_patches_loss}')
+    if loss_config['mask_loss'] == 'bce':
+        mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
+    else:
+        mask_loss = l1_loss(tokens_mask)
+    pred_loss = prediction_loss(output=output, target=target)
+    print(f'prediction_loss: {pred_loss}, mask_loss: {mask_loss}')
     prediction_loss_multiplied = loss_config['prediction_loss_mul'] * pred_loss
-    mask_loss_multiplied = loss_config['mask_loss_mul'] * bce_turn_off_patches_loss
+    mask_loss_multiplied = loss_config['mask_loss_mul'] * mask_loss
     loss = prediction_loss_multiplied + mask_loss_multiplied
     return loss, prediction_loss_multiplied, mask_loss_multiplied
 
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
 
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     """
@@ -72,24 +88,22 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         super().__init__()
         self.vit_with_classification_head = vit_with_classification_head
         self.vit_without_classification_head = vit_without_classification_head
+        # self.vit_without_classification_head.pooler = Identity()  # remove pooler layer from automodel
         self.criterion = criterion
         self.n_classes = n_classes
         self.image_classification = nn.Linear(emb_size, n_classes)
         self.image_classification.load_state_dict(vit_with_classification_head.classifier.state_dict())
-        self.token_classification = nn.Linear(emb_size,
-                                              1)  # regression to a number between 0 to 1 or classification to 2 units
+        self.token_classification = nn.Linear(emb_size, 1)  # regression to a number between 0 to 1 or classification to 2 units
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.batch_size = batch_size
         self.feature_extractor = feature_extractor
         self.plot_path = plot_path
 
+
     def forward(self, inputs, original_image) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         tokens_classification = []
-
         vit_cls_output = self.vit_with_classification_head(inputs)
-        # vit_correct_class_idx = torch.argmax(vit_cls_output.logits, dim=1)
-        # image_classification = self.image_classification(vit_cls_output.logits)
         token_embeddings = self.vit_without_classification_head(inputs).last_hidden_state
         for token_idx in range(1, token_embeddings.shape[1]):
             token_emb = token_embeddings[:, token_idx]
@@ -103,6 +117,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             [self.feature_extractor(images=img, return_tensors="pt")['pixel_values'] for img in masked_image]).squeeze(
             1).to(device)
         vit_masked_output = self.vit_with_classification_head(masked_image_inputs)
+        # vit_masked_output = self.image_classification(self.vit_without_classification_head(masked_image_inputs).pooler_output[:, 0])
         loss, prediction_loss_multiplied, mask_loss_multiplied = self.criterion(output=vit_masked_output.logits,
                                                                                 target=vit_cls_output.logits,
                                                                                 tokens_mask=patches_mask)  # TODO - if won't be regularized, the mask will be all full - sanity check
@@ -114,27 +129,33 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         original_image = batch['original_transformed_image']
         loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, patches_mask = self(
             inputs, original_image)
-        self.log("train_loss", loss, prog_bar=True, logger=True)
-        self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
-        self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
+        # ic(prediction_loss_multiplied)
+        # print(f'******************** epoch_idx: {epoch_idx} ***********')
+        # ic(loss, prediction_loss_multiplied, mask_loss_multiplied)
+        print(patches_mask)
+        # self.log("train_loss", loss, prog_bar=True, logger=True)
+        # self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
+        # self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
         return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
                 "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
                 'masked_image': masked_image_inputs,
                 "original_image": original_image, 'patches_mask': patches_mask}
 
     def validation_step(self, batch, batch_idx):
-        # print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
+        pass
+        """# print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
         inputs = batch['pixel_values'].squeeze(1)
         original_image = batch['original_transformed_image']
         loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, patches_mask = self(
             inputs, original_image)
+
         self.log("val_loss", loss, prog_bar=True, logger=True)
         self.log("val_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
         self.log("val_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
         return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
                 "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
                 'masked_image': masked_image_inputs,
-                "original_image": original_image, 'patches_mask': patches_mask}
+                "original_image": original_image, 'patches_mask': patches_mask}"""
 
     def _visualize_outputs(self, outputs, stage: str, epoch_idx: int, n_batches: int = None):
         """
@@ -148,6 +169,12 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
                     zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
+                if epoch_idx >= 0 and stage == 'train':
+                    # print(idx)
+                    # print(f'******************** epoch_idx: {epoch_idx} ***********')
+                    # print(mask)
+                    # print(1)
+                    pass
                 visu(original_image=image, transformer_attribution=mask,
                      file_name=Path(epoch_path, f"{str(batch_idx)}_{str(idx)}").resolve())
 
@@ -170,7 +197,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         # print('training_epoch_end')
         self._visualize_outputs(outputs, stage='train', n_batches=5, epoch_idx=self.current_epoch)
 
-
     def validation_epoch_end(self, outputs) -> None:
         # print('training_epoch_end')
-        self._visualize_outputs(outputs, stage='val', n_batches=10, epoch_idx=self.current_epoch)
+        # self._visualize_outputs(outputs, stage='val', n_batches=10, epoch_idx=self.current_epoch)
+        pass
