@@ -35,7 +35,7 @@ vit:
 #    - image_name: 0000000005.JPEG # catdog
 #      correct_class: 282 # cat
 #      contrastive_class: 243 # dog
-  batch_size: 1
+  batch_size: 16
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
   n_epochs: 30
