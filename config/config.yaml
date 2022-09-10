@@ -7,8 +7,8 @@ general:
   wandb_entity: yuvalasher
 
 vit:
-  train_images_path: train_data_exp #train_data_exp
-  val_images_path: val_data_exp #val_data
+  train_images_path: train_data #train_data_exp
+  val_images_path: val_data #val_data_exp
   gpus: 1
   model_name: google/vit-base-patch16-224
   img_size: 224
@@ -45,12 +45,14 @@ vit:
   discard_ratio: 0.6
   log: False
   verbose: False
-  plot_visualizations: True
+  plot_visualizations: False
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
+  max_perturbation_stage: 9
   seg_cls:
-    n_samples: 5
+    train_n_samples: 300
+    val_n_samples: -1
     loss:
       mask_loss: l1 # bce
       prediction_loss_mul: 1
@@ -65,7 +67,7 @@ vit:
     original_image_name: 224x224.JPEG
     batch_size: 1
     num_samples_to_evaluate: 5
-    experiment_folder_name: temp_softmax_grad_rollout_entropy_1000
+    experiment_folder_name: seg_cls_l1_pred_1_mask_1
     perturbation_type: pos
 
 #bert:

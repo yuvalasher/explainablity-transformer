@@ -9,17 +9,25 @@ from pathlib import WindowsPath, Path
 
 from utils import get_image_from_path
 from vit_utils import get_image_and_inputs_and_transformed_image
+from config import config
 
+vit_config = config['vit']
+print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_samples']}")
+print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_samples']}")
 
 class ImageSegDataset(Dataset):
     def __init__(
             self,
             images_path: Union[str, WindowsPath],
             feature_extractor: ViTFeatureExtractor,
+            n_samples: int
     ):
         self.feature_extractor = feature_extractor
         self.images_path = images_path
-        self.images_name = list(Path(images_path).iterdir())[:10000]
+        print(f"Total images: {len(list(Path(images_path).iterdir()))}")
+        self.images_name = list(Path(images_path).iterdir())
+        n_samples = n_samples if n_samples > 0 else len(self.images_name)
+        self.images_name = self.images_name[:n_samples]
 
     def __len__(self):
         return len(self.images_name)

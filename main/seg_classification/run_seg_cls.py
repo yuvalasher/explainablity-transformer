@@ -46,7 +46,8 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=v
 vit_with_classification_head = ViTForImageClassification.from_pretrained(vit_config['model_name'])
 vit_without_classification_head = AutoModel.from_pretrained(vit_config['model_name'])
 data_module = ImageSegDataModule(feature_extractor=feature_extractor, train_images_path=str(TRAIN_IMAGES_FOLDER_PATH),
-                                 val_images_path=str(VAL_IMAGES_FOLDER_PATH), batch_size=vit_config['batch_size'])
+                                 val_images_path=str(VAL_IMAGES_FOLDER_PATH), batch_size=vit_config['batch_size'],
+                                 train_n_samples=vit_config['seg_cls']['train_n_samples'], val_n_samples=vit_config['seg_cls']['val_n_samples'])
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(n_epochs=vit_config['n_epochs'],
                                                                                train_samples_length=len(list(Path(
@@ -59,7 +60,8 @@ model = ImageClassificationWithTokenClassificationModel(vit_with_classification_
                                                         plot_path=plot_path,
                                                         warmup_steps=warmup_steps,
                                                         total_training_steps=total_training_steps,
-                                                        batch_size=vit_config['batch_size'])
+                                                        batch_size=vit_config['batch_size'],
+                                                        max_perturbation_stage=vit_config['max_perturbation_stage'])
 
 wandb.login()
 wandb_logger = WandbLogger(

@@ -1,3 +1,4 @@
+import numpy as np
 from icecream import ic
 from pathlib import Path
 from typing import Tuple, Callable
@@ -11,7 +12,10 @@ from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 
 from config import config
+from evaluation.evaluation_utils import patch_score_to_image
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test, run_perturbation_test
 from feature_extractor import ViTFeatureExtractor
+from utils import save_obj_to_disk
 from vit_utils import visu
 
 pl.seed_everything(config['general']['seed'])
@@ -84,7 +88,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(self, vit_with_classification_head, vit_without_classification_head, warmup_steps: int,
                  total_training_steps: int, feature_extractor: ViTFeatureExtractor, plot_path,
                  criterion: Callable = prediction_loss_plus_bce_turn_off_patches_loss, emb_size: int = 768,
-                 n_classes: int = 1000, n_patches: int = 196, batch_size: int = 8):
+                 n_classes: int = 1000, n_patches: int = 196, batch_size: int = 8, max_perturbation_stage: int = 5):
         super().__init__()
         self.vit_with_classification_head = vit_with_classification_head
         self.vit_without_classification_head = vit_without_classification_head
@@ -93,13 +97,13 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.n_classes = n_classes
         self.image_classification = nn.Linear(emb_size, n_classes)
         self.image_classification.load_state_dict(vit_with_classification_head.classifier.state_dict())
-        self.token_classification = nn.Linear(emb_size, 1)  # regression to a number between 0 to 1 or classification to 2 units
+        self.token_classification = nn.Linear(emb_size, 1)  # regression to a number 0-1 or classification to 2 units
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.batch_size = batch_size
         self.feature_extractor = feature_extractor
         self.plot_path = plot_path
-
+        self.max_perturbation_stage = max_perturbation_stage
 
     def forward(self, inputs, original_image) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         tokens_classification = []
@@ -132,18 +136,27 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         # ic(prediction_loss_multiplied)
         # print(f'******************** epoch_idx: {epoch_idx} ***********')
         # ic(loss, prediction_loss_multiplied, mask_loss_multiplied)
-        print(patches_mask)
+        # print(patches_mask)
         # self.log("train_loss", loss, prog_bar=True, logger=True)
         # self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
         # self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
+        images_mask = self.mask_patches_to_image_scores(patches_mask)
         return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
                 "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
                 'masked_image': masked_image_inputs,
-                "original_image": original_image, 'patches_mask': patches_mask}
+                "original_image": original_image, 'patches_mask': patches_mask,
+                'image_mask': images_mask
+                }
+
+    def mask_patches_to_image_scores(self, patches_mask):
+        images_mask = []
+        for mask in patches_mask:
+            images_mask.append(patch_score_to_image(transformer_attribution=mask, output_2d_tensor=False))
+        images_mask = torch.stack(images_mask).squeeze(1)
+        return images_mask
 
     def validation_step(self, batch, batch_idx):
-        pass
-        """# print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
+        # print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
         inputs = batch['pixel_values'].squeeze(1)
         original_image = batch['original_transformed_image']
         loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, patches_mask = self(
@@ -152,10 +165,12 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("val_loss", loss, prog_bar=True, logger=True)
         self.log("val_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
         self.log("val_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
+        images_mask = self.mask_patches_to_image_scores(patches_mask)
+
         return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
                 "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
                 'masked_image': masked_image_inputs,
-                "original_image": original_image, 'patches_mask': patches_mask}"""
+                "original_image": original_image, 'patches_mask': patches_mask, 'image_mask': images_mask}
 
     def _visualize_outputs(self, outputs, stage: str, epoch_idx: int, n_batches: int = None):
         """
@@ -194,10 +209,13 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         )
 
     def training_epoch_end(self, outputs):
-        # print('training_epoch_end')
-        self._visualize_outputs(outputs, stage='train', n_batches=5, epoch_idx=self.current_epoch)
+        print('training_epoch_end')
+        run_perturbation_test(feature_extractor=self.feature_extractor, model=self.vit_with_classification_head,
+                              max_perturbation_stage=self.max_perturbation_stage, outputs=outputs, stage='train')
 
     def validation_epoch_end(self, outputs) -> None:
-        # print('training_epoch_end')
+        print('val_epoch_end')
+        run_perturbation_test(feature_extractor=self.feature_extractor, model=self.vit_with_classification_head,
+                              max_perturbation_stage=self.max_perturbation_stage, outputs=outputs, stage='val')
         # self._visualize_outputs(outputs, stage='val', n_batches=10, epoch_idx=self.current_epoch)
         pass
