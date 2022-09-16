@@ -149,3 +149,4 @@ mp_gpu.py
 main/seg_classification/lightning_logs/*
 **/data/*
 !data/
+data/ILSVRC2012_val - Updated-DGX
