@@ -148,3 +148,4 @@ research/plots/head_layer_temp_softmax_lr0_003_temp_1\+l1_0\+kl_loss_0\+entropy_
 mp_gpu.py
 main/seg_classification/lightning_logs/*
 **/data/*
+!data/
