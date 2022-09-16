@@ -64,4 +64,9 @@ def load_obj(obj_name: str) -> Any:
         return pickle.load(f)
 
 
-
+def remove_old_results_dfs(experiment_path: str):
+    stages = ['train', 'val']
+    for stage in stages:
+        output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
+        if os.path.exists(output_csv_path):
+            os.remove(output_csv_path)

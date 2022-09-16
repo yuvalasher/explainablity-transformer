@@ -137,9 +137,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         # print(f'******************** epoch_idx: {epoch_idx} ***********')
         # ic(loss, prediction_loss_multiplied, mask_loss_multiplied)
         # print(patches_mask)
-        # self.log("train_loss", loss, prog_bar=True, logger=True)
-        # self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
-        # self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
+        self.log("train_loss", loss, prog_bar=True, logger=True)
+        self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
+        self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
         images_mask = self.mask_patches_to_image_scores(patches_mask)
         return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
                 "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,

@@ -1,5 +1,7 @@
 import os
 
+from utils import remove_old_results_dfs
+
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from pathlib import Path
@@ -10,10 +12,9 @@ import wandb
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
 from main.seg_classification.image_token_data_module import ImageSegDataModule
-from main.seg_classification.image_token_dataset import ImageSegDataset
 import pytorch_lightning as pl
 from config import config
-from utils.consts import VAL_IMAGES_FOLDER_PATH, TRAIN_IMAGES_FOLDER_PATH
+from utils.consts import VAL_IMAGES_FOLDER_PATH, TRAIN_IMAGES_FOLDER_PATH, EXPERIMENTS_FOLDER_PATH
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     freeze_multitask_model, print_number_of_trainable_and_not_trainable_params
 from transformers import AutoModel, ViTForImageClassification
@@ -63,10 +64,11 @@ model = ImageClassificationWithTokenClassificationModel(vit_with_classification_
                                                         batch_size=vit_config['batch_size'],
                                                         max_perturbation_stage=vit_config['max_perturbation_stage'])
 
+run = wandb.init(project='run_seg_cls_2', entity="yuvalasher", config=wandb.config)
 wandb.login()
 wandb_logger = WandbLogger(
     name=f'seg_cls; {exp_name}',
-    project='run_seg_cls', )
+    project='run_seg_cls_2', )
 
 # early_stop_callback = EarlyStopping(
 #    monitor='val_loss',
@@ -75,6 +77,9 @@ wandb_logger = WandbLogger(
 #    verbose=False,
 #    mode='min')
 
+
+experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
+remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(model=model, freezing_transformer=vit_config['freezing_transformer'],
                                freeze_classification_head=vit_config['freeze_classification_head'])
 print(exp_name)

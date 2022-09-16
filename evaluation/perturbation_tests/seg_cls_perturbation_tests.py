@@ -126,12 +126,13 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
 
             model_index += len(target)
             perturb_index += len(target)
+    print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')
     auc = get_auc(num_correct_pertub=num_correct_pertub)
-    save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
-                 dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
-                 dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
-                 prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
-                 perturbation_steps=perturbation_steps)
+    # save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
+    #              dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
+    #              dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
+    #              prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
+    #              perturbation_steps=perturbation_steps)
     return auc
 
 
@@ -145,7 +146,7 @@ def get_auc(num_correct_pertub):
     mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0,
                                       1)  # TODO - accuracy for class. Now its top-class (predicted)
     auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
-    print(f'AUC: {auc}% for {num_correct_pertub.shape[1]} records')
+    print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
     return auc
 
 
@@ -160,8 +161,7 @@ def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, n
     # print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
     # print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
     # print(f'Perturbation Steps: {perturbation_steps}')
-    print(
-        f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')  # , std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
+    print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')  # , std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
     # print(
     #     f'Mean dissimilarity_pertub : {np.mean(dissimilarity_pertub, axis=1)}, std dissimilarity_pertub {np.std(dissimilarity_pertub, axis=1)}')
 
@@ -211,26 +211,29 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
     return results_df.append({'vis_type': vis_type, 'auc': auc}, ignore_index=True)
 
 
-def run_perturbation_test(feature_extractor, model, max_perturbation_stage: int, outputs, stage: str):
+def run_perturbation_test(feature_extractor, model, max_perturbation_stage: int, outputs, stage: str, epoch_idx: int):
     # print('Running Perturbation tests')
-    results_df = pd.DataFrame(columns=['vis_type', 'auc'])
-    VIS_TYPES = [f'vis_seg_cls_{stage}']
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
 
+    VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
+    output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
+    if os.path.exists(output_csv_path):
+        results_df = pd.read_csv(output_csv_path)
+    else:
+        results_df = pd.DataFrame(columns=['vis_type', 'auc'])
     model.to(device)
     model.eval()
     for vis_type in VIS_TYPES:
         print(vis_type)
-        vit_type_experiment_path = create_folder(Path(experiment_path, vis_type))
-        # imagenet_ds = ImagenetResults(path=experiment_path, vis_type=vis_type)
-        # sample_loader = DataLoader(imagenet_ds, batch_size=evaluation_config['batch_size'], shuffle=False)
+        vit_type_experiment_path = Path(experiment_path, vis_type)
+        # vit_type_experiment_path = create_folder(vit_type_experiment_path)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
                                      feature_extractor=feature_extractor, max_perturbation_stage=max_perturbation_stage,
                                      outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
-        results_df.to_csv(Path(experiment_path, 'results_df.csv'), index=False)
-        print(f"Saved results at: {Path(experiment_path, 'results_df.csv')}")
+        results_df.to_csv(output_csv_path, index=False)
+        # print(f"Saved results at: {output_csv_path}")
 
 # if __name__ == "__main__":
 #     MAX_PERTURBATION_STAGE = 5
