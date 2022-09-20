@@ -365,17 +365,23 @@ def handle_model_config_and_freezing_for_task(model: VitModelForClassification,
 
 def freeze_multitask_model(model, freezing_transformer: bool = True, freeze_classification_head: bool = True):
     if freezing_transformer:
-        for param in model.vit_with_classification_head.vit.parameters():
-            param.requires_grad = False
-        for param in model.vit_without_classification_head.encoder.parameters():
+        for param in model.vit_for_classification_image.vit.parameters():
             param.requires_grad = False
 
-        for param in model.vit_without_classification_head.layernorm.parameters():
+        for param in model.vit_for_patch_classification.vit.embeddings.parameters():
             param.requires_grad = False
-        for param in model.vit_without_classification_head.pooler.parameters():
-            param.requires_grad = False
+        # for param in model.vit_for_patch_classification.vit.encoder.parameters():
+        #     param.requires_grad = False
+        # for param in model.vit_for_patch_classification.vit.layernorm.parameters():
+        #     param.requires_grad = False
+
+        # for param in model.vit_for_patch_classification.classifier.parameters():
+        #     param.requires_grad = True
+
+        # for param in model.vit_for_patch_classification.pooler.parameters():
+        #     param.requires_grad = False
     if freeze_classification_head:
-        for param in model.image_classification.parameters():
+        for param in model.vit_for_classification_image.classifier.parameters():
             param.requires_grad = False
     return model
 

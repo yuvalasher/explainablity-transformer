@@ -11,6 +11,7 @@ import wandb
 
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
+from models.modeling_vit_patch_classification import ViTForPatchClassification
 from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from config import config
@@ -44,8 +45,8 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=v
                                                                     is_wolf_transforms=vit_config[
                                                                         'is_wolf_transforms'])  # TODO if vit-for-dino is relevant
 
-vit_with_classification_head = ViTForImageClassification.from_pretrained(vit_config['model_name'])
-vit_without_classification_head = AutoModel.from_pretrained(vit_config['model_name'])
+vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config['model_name'])
+vit_for_patch_classification = ViTForPatchClassification.from_pretrained(vit_config['model_name'])
 data_module = ImageSegDataModule(feature_extractor=feature_extractor, train_images_path=str(TRAIN_IMAGES_FOLDER_PATH),
                                  val_images_path=str(VAL_IMAGES_FOLDER_PATH), batch_size=vit_config['batch_size'],
                                  train_n_samples=vit_config['seg_cls']['train_n_samples'], val_n_samples=vit_config['seg_cls']['val_n_samples'])
@@ -55,8 +56,8 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(n
                                                                                    TRAIN_IMAGES_FOLDER_PATH).iterdir())),
                                                                                batch_size=vit_config['batch_size'])
 plot_path = Path(vit_config['plot_path'], exp_name)
-model = ImageClassificationWithTokenClassificationModel(vit_with_classification_head=vit_with_classification_head,
-                                                        vit_without_classification_head=vit_without_classification_head,
+model = ImageClassificationWithTokenClassificationModel(vit_for_classification_image=vit_for_classification_image,
+                                                        vit_for_patch_classification=vit_for_patch_classification,
                                                         feature_extractor=feature_extractor,
                                                         plot_path=plot_path,
                                                         warmup_steps=warmup_steps,
@@ -64,11 +65,11 @@ model = ImageClassificationWithTokenClassificationModel(vit_with_classification_
                                                         batch_size=vit_config['batch_size'],
                                                         max_perturbation_stage=vit_config['max_perturbation_stage'])
 
-run = wandb.init(project='run_seg_cls_2', entity="yuvalasher", config=wandb.config)
-wandb.login()
-wandb_logger = WandbLogger(
-    name=f'seg_cls; {exp_name}',
-    project='run_seg_cls_2', )
+WANDB_PROJECT = 'run_seg_cls_4'
+run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
+# wandb.login()
+wandb_logger = WandbLogger(name=f'seg_cls; {exp_name}', project=WANDB_PROJECT)
+
 
 # early_stop_callback = EarlyStopping(
 #    monitor='val_loss',

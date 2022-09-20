@@ -37,4 +37,5 @@ class ImageSegDataModule(pl.LightningDataModule):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
+            shuffle=False
         )

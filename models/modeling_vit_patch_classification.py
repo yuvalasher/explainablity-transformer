@@ -614,7 +614,8 @@ class ViTForPatchClassification(ViTPreTrainedModel):
 
         # Classifier head
         # self.classifier = nn.Linear(config.hidden_size, config.num_labels) if config.num_labels > 0 else nn.Identity()
-        self.classifier = nn.ModuleList([nn.Linear(config.hidden_size, 1) for _ in range(196)])
+        # self.classifier = nn.ModuleList([nn.Linear(config.hidden_size, 1) for _ in range(196)]) # regression to one number
+        self.classifier = nn.Linear(config.hidden_size, 1) # regression to one number
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -675,8 +676,10 @@ class ViTForPatchClassification(ViTPreTrainedModel):
         tokens_output = sequence_output[:, 1:, :] # [1, 196, 768]
         logits = []
         for token_idx in range(tokens_output.shape[1]):
-            logits.append(self.classifier[token_idx](tokens_output[0, token_idx, :]))
-        logits = torch.stack(logits).reshape(1, -1)
+            # seg_output = torch.sigmoid(self.classifier(tokens_output[:, token_idx, :]))
+            seg_output = self.classifier(tokens_output[:, token_idx, :])
+            logits.append(seg_output)
+        logits = torch.stack(logits, dim=1)
 
         loss = None
         if labels is not None:
