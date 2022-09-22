@@ -18,10 +18,10 @@ print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_samples']}")
 
 class ImageSegDataset(Dataset):
     def __init__(
-            self,
-            images_path: Union[str, WindowsPath],
-            feature_extractor: ViTFeatureExtractor,
-            n_samples: int
+        self,
+        images_path: Union[str, WindowsPath],
+        feature_extractor: ViTFeatureExtractor,
+        n_samples: int,
     ):
         self.feature_extractor = feature_extractor
         self.images_path = images_path

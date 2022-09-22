@@ -27,7 +27,7 @@ device = torch.device("cuda" if cuda else "cpu")
 def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFeatureExtractor,
                            max_perturbation_stage: int, outputs) -> float:
     num_samples = 0
-    n_samples = sum(output['patches_mask'].shape[0] for output in outputs)
+    n_samples = sum(output["original_image"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
     dissimilarity_model = np.zeros((n_samples))
     model_index = 0
@@ -47,7 +47,7 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
     prob_diff_pertub = np.zeros((max_perturbation_stage, n_samples))
     perturb_index = 0
     for batch in tqdm(outputs):
-        for data, vis in zip(batch['original_image'], batch['image_mask']):
+        for data, vis in zip(batch["original_image"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
             num_samples += len(data)
