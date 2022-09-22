@@ -1,5 +1,7 @@
+from matplotlib import pyplot as plt
 import numpy as np
 from icecream import ic
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple, Callable
 
@@ -7,16 +9,23 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from torch import Tensor
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 
 from config import config
 from evaluation.evaluation_utils import patch_score_to_image
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test, run_perturbation_test
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
+    eval_perturbation_test,
+    run_perturbation_test,
+)
 from feature_extractor import ViTFeatureExtractor
 from utils import save_obj_to_disk
 from vit_utils import visu
+from models.modeling_vit_patch_classification import ViTForMaskGeneration
+from transformers import ViTForImageClassification
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
@@ -30,7 +39,8 @@ device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
 
 
 def l1_loss(tokens_mask) -> Tensor:
-    return torch.abs(tokens_mask).sum()
+    # return torch.abs(tokens_mask).sum() # should be limited by batch_size * num_tokens
+    return torch.abs(tokens_mask).mean()
 
 
 def prediction_loss(output, target):
@@ -45,31 +55,64 @@ def encourage_token_mask_to_prior_loss(tokens_mask: Tensor, prior: int = 0):
         target_encourage_patches = torch.ones_like(tokens_mask)
     else:
         raise NotImplementedError
-    bce_encourage_prior_patches_loss = bce_with_logits_loss(tokens_mask,
-                                                            target_encourage_patches)  # turn off token masks
+    bce_encourage_prior_patches_loss = bce_with_logits_loss(
+        tokens_mask, target_encourage_patches
+    )  # turn off token masks
     return bce_encourage_prior_patches_loss
 
 
-def prediction_loss_plus_bce_turn_off_patches_loss(output: Tensor, target: Tensor, tokens_mask: Tensor) -> Tuple[
-    Tensor, Tensor, Tensor, Tensor, Tensor]:
-    """
-    Objective 1 - Keep the classification as original with as much as dark tokens
-    This will be applied on the token classification by encourage the sigmoid to go to zero & CE with the original
+@dataclass
+class LossLossOutput:
+    loss: Tensor
+    prediction_loss_multiplied: Tensor
+    mask_loss_multiplied: Tensor
+    pred_loss: Tensor
+    mask_loss: Tensor
 
-    Loss between the original prediction's distribution of the model and the prediction's distribution of the new model
-    + average of the BCE of the x * self-attention
-    """
-    if loss_config['mask_loss'] == 'bce':
-        mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
-    else:
-        mask_loss = l1_loss(tokens_mask)
-    pred_loss = prediction_loss(output=output, target=target)
-    prediction_loss_multiplied = loss_config['prediction_loss_mul'] * pred_loss
-    mask_loss_multiplied = loss_config['mask_loss_mul'] * mask_loss
-    print(
-        f'prediction_loss: {pred_loss} * {loss_config["prediction_loss_mul"]}, mask_loss: {mask_loss} * {loss_config["mask_loss_mul"]}')
-    loss = prediction_loss_multiplied + mask_loss_multiplied
-    return loss, prediction_loss_multiplied, mask_loss_multiplied, pred_loss, mask_loss
+
+@dataclass
+class LossLoss:
+    mask_loss: str = loss_config["mask_loss"]
+    prediction_loss_mul: float = loss_config["prediction_loss_mul"]
+    mask_loss_mul: float = loss_config["mask_loss_mul"]
+
+    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor) -> LossLossOutput:
+        """
+        Objective 1 - Keep the classification as original with as much as dark tokens
+        This will be applied on the token classification by encourage the sigmoid to go to zero & CE with the original
+
+        Loss between the original prediction's distribution of the model and the prediction's distribution of the new model
+        + average of the BCE of the x * self-attention
+        """
+        if self.mask_loss == "bce":
+            mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
+        else:
+            mask_loss = l1_loss(tokens_mask)
+
+        pred_loss = prediction_loss(output=output, target=target)
+
+        prediction_loss_multiplied = self.prediction_loss_mul * pred_loss
+        mask_loss_multiplied = self.mask_loss_mul * mask_loss
+        loss = prediction_loss_multiplied + mask_loss_multiplied
+        # print(
+        #     f'prediction_loss: {pred_loss} * {self.prediction_loss_mul}, mask_loss: {mask_loss} * {self.mask_loss_mul}')
+        return LossLossOutput(
+            loss=loss,
+            prediction_loss_multiplied=prediction_loss_multiplied,
+            mask_loss_multiplied=mask_loss_multiplied,
+            pred_loss=pred_loss,
+            mask_loss=mask_loss,
+        )
+
+
+@dataclass
+class ImageClassificationWithTokenClassificationModelOutput:
+    lossloss_output: LossLossOutput
+    vit_masked_output: SequenceClassifierOutput
+    masked_image: Tensor
+    interpolated_mask: Tensor
+    tokens_mask: Tensor
+    original_image: Tensor
 
 
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
@@ -79,16 +122,26 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     TODO - read about segmentation in ViT - https://arxiv.org/pdf/2105.05633.pdf
     """
 
-    def __init__(self, vit_for_classification_image, vit_for_patch_classification, warmup_steps: int,
-                 total_training_steps: int, feature_extractor: ViTFeatureExtractor, plot_path,
-                 criterion: Callable = prediction_loss_plus_bce_turn_off_patches_loss, emb_size: int = 768,
-                 n_classes: int = 1000, n_patches: int = 196, batch_size: int = 8, max_perturbation_stage: int = 5):
+    def __init__(
+            self,
+            vit_for_classification_image: ViTForImageClassification,
+            vit_for_patch_classification: ViTForMaskGeneration,
+            warmup_steps: int,
+            total_training_steps: int,
+            feature_extractor: ViTFeatureExtractor,
+            plot_path,
+            criterion: LossLoss = LossLoss(),
+            emb_size: int = 768,
+            n_classes: int = 1000,
+            n_patches: int = 196,
+            batch_size: int = 8,
+            max_perturbation_stage: int = 5,
+    ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
         self.vit_for_patch_classification = vit_for_patch_classification
         self.criterion = criterion
         self.n_classes = n_classes
-        # self.token_classification = nn.Linear(emb_size, 1)  # regression to a number 0-1 or classification to 2 units
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.batch_size = batch_size
@@ -96,44 +149,76 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.plot_path = plot_path
         self.max_perturbation_stage = max_perturbation_stage
 
-    def forward(self, inputs, original_image) -> Tuple[
-        Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, inputs, original_image) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
-        patches_mask = self.vit_for_patch_classification(inputs).logits  # [batch_size, n_patches]
-        patches_mask_reshaped = patches_mask.reshape(inputs.shape[0], 1, 14, 14)
-        interpolated_mask = torch.nn.functional.interpolate(patches_mask_reshaped, scale_factor=16,
-                                                            mode='bilinear').cpu().detach()
-        masked_image = inputs.cpu().detach() * interpolated_mask
-        masked_image_inputs = torch.stack(
-            [self.feature_extractor(images=img, return_tensors="pt")['pixel_values'] for img in masked_image]).squeeze(
-            1).to(device)
-        vit_masked_output = self.vit_for_classification_image(masked_image_inputs)
-        loss, prediction_loss_multiplied, mask_loss_multiplied, pred_loss, mask_loss = self.criterion(
-            output=vit_masked_output.logits,
-            target=vit_cls_output.logits,
-            tokens_mask=patches_mask)  # TODO - if won't be regularized, the mask will be all full - sanity check
-        return loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, patches_mask, pred_loss, mask_loss
+        interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
+        masked_image = inputs * interpolated_mask  # TODO - check dimensions
+
+        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
+        lossloss_output = self.criterion(
+            output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
+        )  # TODO - if won't be regularized, the mask will be all full - sanity check
+        return ImageClassificationWithTokenClassificationModelOutput(
+            lossloss_output=lossloss_output,
+            vit_masked_output=vit_masked_output,
+            interpolated_mask=interpolated_mask,
+            masked_image=masked_image,
+            tokens_mask=tokens_mask,
+            original_image=original_image,
+        )
 
     def training_step(self, batch, batch_idx):
-        # print(f'Train. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
-        inputs = batch['pixel_values'].squeeze(1)
-        original_image = batch['original_transformed_image']
-        loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, \
-        patches_mask, pred_loss, mask_loss = self(inputs, original_image)
-        # ic(prediction_loss_multiplied)
-        # print(f'******************** epoch_idx: {epoch_idx} ***********')
-        # ic(loss, prediction_loss_multiplied, mask_loss_multiplied)
-        # print(patches_mask)
-        self.log("train_loss", loss, prog_bar=True, logger=True)
-        self.log("train_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
-        self.log("train_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
-        images_mask = self.mask_patches_to_image_scores(patches_mask)
-        return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
-                "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
-                'masked_image': masked_image_inputs,
-                "original_image": original_image, 'patches_mask': patches_mask,
-                'image_mask': images_mask
+        inputs = batch["pixel_values"].squeeze(1)
+        original_image = batch["original_transformed_image"]
+        output = self.forward(inputs, original_image)
+
+        # self.log("train/loss", output.lossloss_output.loss, prog_bar=True, logger=True)
+        # self.log("train/prediction_loss", output.lossloss_output.pred_loss, prog_bar=True, logger=True)
+        # self.log("train/mask_loss", output.lossloss_output.mask_loss, prog_bar=True, logger=True)
+        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        return {"loss": output.lossloss_output.loss, "pred_loss": output.lossloss_output.pred_loss,
+                "mask_loss": output.lossloss_output.mask_loss,
+                "original_image": output.original_image, 'image_mask': images_mask,
                 }
+
+    def validation_step(self, batch, batch_idx):
+        # print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
+        inputs = batch["pixel_values"].squeeze(1)
+        original_image = batch["original_transformed_image"]
+        output = self.forward(inputs, original_image)
+
+        return output
+
+    def training_epoch_end(self, outputs):
+        loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
+        pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
+        mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
+
+        # self.log("val/loss", loss, prog_bar=True, logger=True)
+        self.log("train/prediction_loss", pred_loss, prog_bar=True, logger=True)
+        self.log("train/mask_loss", mask_loss, prog_bar=True, logger=True)
+        # print(f'training_epoch_end: {self.current_epoch}')
+        if self.current_epoch > 10:
+            run_perturbation_test(feature_extractor=self.feature_extractor, model=self.vit_for_classification_image,
+                                  max_perturbation_stage=self.max_perturbation_stage, outputs=outputs, stage='train',
+                                  epoch_idx=self.current_epoch)
+
+        # path = '/home/yuvalas/explainability/pickles/outputs.pkl'
+        # save_obj_to_disk(path=path, obj=outputs)
+        # print(f'Saved outputs at {path}')
+        # self._visualize_outputs(outputs, stage='train', n_batches=5, epoch_idx=self.current_epoch)
+        # return {"loss": loss, "pred_loss": pred_loss, "mask_loss": mask_loss}
+
+    def validation_epoch_end(self, outputs):
+        loss = torch.mean(torch.stack([output.lossloss_output.loss for output in outputs]))
+        pred_loss = torch.mean(torch.stack([output.lossloss_output.pred_loss for output in outputs]))
+        mask_loss = torch.mean(torch.stack([output.lossloss_output.mask_loss for output in outputs]))
+
+        # self.log("val/loss", loss, prog_bar=True, logger=True)
+        self.log("val/prediction_loss", pred_loss, prog_bar=True, logger=True)
+        self.log("val/mask_loss", mask_loss, prog_bar=True, logger=True)
+
+        return {"loss": loss}
 
     def mask_patches_to_image_scores(self, patches_mask):
         images_mask = []
@@ -142,22 +227,14 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         images_mask = torch.stack(images_mask).squeeze(1)
         return images_mask
 
-    def validation_step(self, batch, batch_idx):
-        # print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
-        inputs = batch['pixel_values'].squeeze(1)
-        original_image = batch['original_transformed_image']
-        loss, prediction_loss_multiplied, mask_loss_multiplied, vit_masked_output, masked_image_inputs, original_image, \
-        patches_mask, pred_loss, mask_loss = self(inputs, original_image)
-
-        self.log("val_loss", loss, prog_bar=True, logger=True)
-        self.log("val_prediction_loss_multiplied", prediction_loss_multiplied, prog_bar=True, logger=True)
-        self.log("val_mask_loss_multiplied", mask_loss_multiplied, prog_bar=True, logger=True)
-        images_mask = self.mask_patches_to_image_scores(patches_mask)
-
-        return {"loss": loss, "prediction_loss_multiplied": prediction_loss_multiplied,
-                "mask_loss_multiplied": mask_loss_multiplied, "predictions": vit_masked_output,
-                'masked_image': masked_image_inputs,
-                "original_image": original_image, 'patches_mask': patches_mask, 'image_mask': images_mask}
+    def configure_optimizers(self):
+        optimizer = AdamW(self.parameters(), lr=vit_config["lr"])
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=self.n_warmup_steps,
+            num_training_steps=self.n_training_steps,
+        )
+        return dict(optimizer=optimizer, lr_scheduler=dict(scheduler=scheduler, interval="step"))
 
     def _visualize_outputs(self, outputs, stage: str, epoch_idx: int, n_batches: int = None):
         """
@@ -170,39 +247,26 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
-                if epoch_idx >= 0 and stage == 'train':
+                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())
+            ):
+                if epoch_idx >= 0 and stage == "train":
                     # print(idx)
                     # print(f'******************** epoch_idx: {epoch_idx} ***********')
                     # print(mask)
                     # print(1)
                     pass
-                visu(original_image=image, transformer_attribution=mask,
-                     file_name=Path(epoch_path, f"{str(batch_idx)}_{str(idx)}").resolve())
+                visu(
+                    original_image=image,
+                    transformer_attribution=mask,
+                    file_name=Path(epoch_path, f"{str(batch_idx)}_{str(idx)}").resolve(),
+                )
 
-    def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=vit_config['lr'])
-        scheduler = get_linear_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.n_warmup_steps,
-            num_training_steps=self.n_training_steps
-        )
-        return dict(
-            optimizer=optimizer,
-            lr_scheduler=dict(
-                scheduler=scheduler,
-                interval='step'
-            )
-        )
 
-    def training_epoch_end(self, outputs):
-        print('training_epoch_end')
-        run_perturbation_test(feature_extractor=self.feature_extractor, model=self.vit_with_classification_head,
-                              max_perturbation_stage=self.max_perturbation_stage, outputs=outputs, stage='train')
+def show_image_inputs(inputs):
+    _ = plt.imshow(inputs[0].permute(1, 2, 0))
+    plt.show()
 
-    def validation_epoch_end(self, outputs) -> None:
-        print('val_epoch_end')
-        run_perturbation_test(feature_extractor=self.feature_extractor, model=self.vit_with_classification_head,
-                              max_perturbation_stage=self.max_perturbation_stage, outputs=outputs, stage='val')
-        # self._visualize_outputs(outputs, stage='val', n_batches=10, epoch_idx=self.current_epoch)
-        pass
+
+def show_mask(mask):
+    _ = plt.imshow(mask[0][0])
+    plt.show()
