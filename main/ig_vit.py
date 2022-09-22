@@ -1,5 +1,6 @@
 import torch
 from tqdm import tqdm
+
 # from utils.utils import *
 from evaluation.evaluation_utils import load_obj_from_path
 from loss_utils import *
@@ -13,14 +14,17 @@ import torchvision
 from torchvision.io import read_image
 import tensorflow as tf
 
-vit_config = config['vit']
-loss_config = vit_config['loss']
+vit_config = config["vit"]
+loss_config = vit_config["loss"]
 
-seed_everything(config['general']['seed'])
-feature_extractor, vit_model = load_feature_extractor_and_vit_model(vit_config=vit_config, model_type='vit-for-dino',
-                                                                    is_wolf_transforms=vit_config['is_wolf_transforms'])
+seed_everything(config["general"]["seed"])
+feature_extractor, vit_model = load_feature_extractor_and_vit_model(
+    vit_config=vit_config,
+    model_type="vit-for-dino",
+    is_wolf_transforms=vit_config["is_wolf_transforms"],
+)
 MEAN_AGG = False
-mobile_net = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
+mobile_net = torch.hub.load("pytorch/vision:v0.10.0", "mobilenet_v2", pretrained=True)
 mobile_net.eval()
 
 MOBILE_NET_TYPE = torchvision.models.mobilenetv2.MobileNetV2
@@ -52,7 +56,9 @@ def resize(image, size: int = 224):
 
 def read_image_from_disk(image_name: Union[WindowsPath, str], size: int):
     image = read_image(str(image_name))
-    image = torchvision.transforms.functional.convert_image_dtype(image.permute(1, 2, 0), dtype=torch.float32)
+    image = torchvision.transforms.functional.convert_image_dtype(
+        image.permute(1, 2, 0), dtype=torch.float32
+    )
     image = resize(image=image.permute(2, 0, 1), size=size)
     return image.permute(1, 2, 0).float()
 
@@ -68,8 +74,12 @@ def get_interpolated_images(image, baseline, n_steps):
     return interpolated_images
 
 
-def preds_and_grads(model, resized_image, baseline, target_idx, n_steps: int) -> Tuple[torch.tensor, torch.tensor]:
-    interpolated_images = get_interpolated_images(image=resized_image, baseline=baseline, n_steps=n_steps)
+def preds_and_grads(
+    model, resized_image, baseline, target_idx, n_steps: int
+) -> Tuple[torch.tensor, torch.tensor]:
+    interpolated_images = get_interpolated_images(
+        image=resized_image, baseline=baseline, n_steps=n_steps
+    )
     preds = model(interpolated_images.permute(0, 3, 1, 2))
     if isinstance(model, ViTBasicForForImageClassification):
         preds = preds.logits
@@ -93,10 +103,10 @@ def plot_interpolated_images(image, interpolated_images: Tensor, n_steps: int) -
     for alpha, image in zip(alphas, interpolated_images):
         i += 1
         plt.subplot(1, len(alphas), i)
-        plt.title(f'alpha: {alpha:.1f}')
+        plt.title(f"alpha: {alpha:.1f}")
         plt.imshow(image.detach().numpy())
-        plt.axis('off')
-        plt.tight_layout();
+        plt.axis("off")
+        plt.tight_layout()
 
 
 def scores_to_plot(array):
@@ -105,20 +115,23 @@ def scores_to_plot(array):
 
 def avg_gradients_to_scores(acc_grads, image, baseline_tensor):
     s = scores_to_plot(
-        (((image - baseline_tensor) * acc_grads.permute(2, 0, 1).unsqueeze(0)).squeeze(0)).permute(1, 2, 0))
+        (((image - baseline_tensor) * acc_grads.permute(2, 0, 1).unsqueeze(0)).squeeze(0)).permute(
+            1, 2, 0
+        )
+    )
     return s
 
 
 def plot_heatmap(scores, image):
     cmap = None
     fig, axs = plt.subplots(nrows=1, ncols=2, squeeze=False, figsize=(8, 8))
-    axs[0, 0].set_title('Attribution mask')
+    axs[0, 0].set_title("Attribution mask")
     axs[0, 0].imshow(scores, cmap=cmap)
-    axs[0, 0].axis('off')
-    axs[0, 1].set_title('Overlay IG on Input image ')
+    axs[0, 0].axis("off")
+    axs[0, 1].set_title("Overlay IG on Input image ")
     axs[0, 1].imshow(scores, cmap=cmap)
-    axs[0, 1].imshow(image.permute(1, 2, 0), alpha=0.4, interpolation='nearest')
-    axs[0, 1].axis('off')
+    axs[0, 1].imshow(image.permute(1, 2, 0), alpha=0.4, interpolation="nearest")
+    axs[0, 1].axis("off")
     plt.tight_layout()
 
 
@@ -128,7 +141,7 @@ def optimize_params(model, vit_model: ViTForImageClassification, criterion: Call
     #     model=load_ViTModel(vit_config, model_type='vit-for-dino-grad'),
     #     freezing_transformer=False)
 
-    for idx, image_dict in enumerate(vit_config['images']):
+    for idx, image_dict in enumerate(vit_config["images"]):
         image_name, correct_class_idx, contrastive_class_idx = get_image_spec(image_dict)
         # optimizer = optim.Adam(vit_unfreezed.parameters(), lr=vit_config['lr'])
         # image_plot_folder_path = get_and_create_image_plot_folder_path(images_folder_path=IMAGES_FOLDER_PATH,
@@ -141,11 +154,18 @@ def optimize_params(model, vit_model: ViTForImageClassification, criterion: Call
         image_to_display = image.permute(2, 0, 1)
         torch_baseline = torch.zeros((1, 3, 224, 224))
         n_steps = 10
-        preds, grads = preds_and_grads(model=model, resized_image=image.unsqueeze(0), baseline=torch_baseline,
-                                       target_idx=correct_class_idx, n_steps=n_steps)
+        preds, grads = preds_and_grads(
+            model=model,
+            resized_image=image.unsqueeze(0),
+            baseline=torch_baseline,
+            target_idx=correct_class_idx,
+            n_steps=n_steps,
+        )
 
         accumulated_gradients = grads[0].mean(dim=0) if MEAN_AGG else torch.trapz(grads[0], dim=0)
-        s = avg_gradients_to_scores(acc_grads=accumulated_gradients, image=image_to_display, baseline_tensor=torch_baseline)
+        s = avg_gradients_to_scores(
+            acc_grads=accumulated_gradients, image=image_to_display, baseline_tensor=torch_baseline
+        )
         plot_heatmap(scores=s, image=image_to_display)
         plt.show()
 
@@ -179,7 +199,7 @@ def optimize_params(model, vit_model: ViTForImageClassification, criterion: Call
         # optimizer.step()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     experiment_name = f"pasten"
     _ = create_folder(Path(PLOTS_PATH, experiment_name))
     optimize_params(model=vit_model, vit_model=vit_model, criterion=objective_grad_rollout)

@@ -18,12 +18,12 @@ from feature_extractor import ViTFeatureExtractor
 from utils import save_obj_to_disk
 from vit_utils import visu
 
-pl.seed_everything(config['general']['seed'])
-vit_config = config['vit']
-loss_config = vit_config['seg_cls']['loss']
+pl.seed_everything(config["general"]["seed"])
+vit_config = config["vit"]
+loss_config = vit_config["seg_cls"]["loss"]
 
-bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction='mean')
-ce_loss = nn.CrossEntropyLoss(reduction='mean')
+bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction="mean")
+ce_loss = nn.CrossEntropyLoss(reduction="mean")
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
