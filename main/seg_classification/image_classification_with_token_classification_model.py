@@ -262,11 +262,16 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 )
 
 
-def show_image_inputs(inputs):
-    _ = plt.imshow(inputs[0].permute(1, 2, 0))
+from matplotlib import pyplot as plt
+from torch import Tensor
+
+
+def show_image_inputs(inputs: Tensor):  # [1, 3, 224, 224]
+    inputs = inputs[0] if len(inputs.shape) == 4 else inputs
+    _ = plt.imshow(inputs.permute(1, 2, 0))
     plt.show()
 
 
-def show_mask(mask):
+def show_mask(mask: Tensor):  # [1, 1, 224, 224]
     _ = plt.imshow(mask[0][0])
     plt.show()
