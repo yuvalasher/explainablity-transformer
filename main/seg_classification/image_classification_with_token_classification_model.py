@@ -219,7 +219,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
         # print(f'training_epoch_end: {self.current_epoch}')
         self._visualize_outputs(outputs, stage='train', n_batches=10, epoch_idx=self.current_epoch)
-        if self.current_epoch > vit_config['epoch_to_evaluate_perturb'] and self.current_epoch % 5 == 0:
+        if self.current_epoch > vit_config['epoch_to_evaluate_perturb'] and self.current_epoch % 1 == 0:
             run_perturbation_test(
                 feature_extractor=self.feature_extractor,
                 model=self.vit_for_classification_image,
@@ -227,7 +227,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 outputs=outputs,
                 stage="train",
                 epoch_idx=self.current_epoch,
-                n_batches=5,
             )
 
         # path = '/home/yuvalas/explainability/pickles/outputs.pkl'
@@ -257,7 +256,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,
-                n_batches=None,
             )
         return {"loss": loss}
 
