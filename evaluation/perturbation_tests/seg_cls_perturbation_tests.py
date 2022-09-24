@@ -24,8 +24,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFeatureExtractor,
-                           max_perturbation_stage: int, outputs) -> float:
+def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFeatureExtractor, outputs) -> float:
     num_samples = 0
     n_samples = sum(output["original_image"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
@@ -41,10 +40,10 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
     # else:
     #     raise Exception('scale not valid')
 
-    num_correct_pertub = np.zeros((max_perturbation_stage, n_samples))  # 9 is the num perturbation steps
-    dissimilarity_pertub = np.zeros((max_perturbation_stage, n_samples))
-    logit_diff_pertub = np.zeros((max_perturbation_stage, n_samples))
-    prob_diff_pertub = np.zeros((max_perturbation_stage, n_samples))
+    num_correct_pertub = np.zeros((len(perturbation_steps), n_samples))  # 9 is the num perturbation steps
+    dissimilarity_pertub = np.zeros((len(perturbation_steps), n_samples))
+    logit_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
+    prob_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
     for batch in tqdm(outputs):
         for data, vis in zip(batch["original_image"], batch["image_mask"]):
@@ -86,7 +85,7 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
 
             vis = vis.reshape(org_shape[0], -1)
 
-            for i in range(len(perturbation_steps[:max_perturbation_stage])):
+            for i in range(len(perturbation_steps)):
                 _data = data.clone()
                 _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
                                              base_size=base_size)
@@ -211,7 +210,7 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
     return results_df.append({'vis_type': vis_type, 'auc': auc}, ignore_index=True)
 
 
-def run_perturbation_test(feature_extractor, model, max_perturbation_stage: int, outputs, stage: str, epoch_idx: int):
+def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_idx: int):
     # print('Running Perturbation tests')
 
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
@@ -228,7 +227,7 @@ def run_perturbation_test(feature_extractor, model, max_perturbation_stage: int,
         vit_type_experiment_path = Path(experiment_path, vis_type)
         # vit_type_experiment_path = create_folder(vit_type_experiment_path)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
-                                     feature_extractor=feature_extractor, max_perturbation_stage=max_perturbation_stage,
+                                     feature_extractor=feature_extractor,
                                      outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
@@ -236,11 +235,9 @@ def run_perturbation_test(feature_extractor, model, max_perturbation_stage: int,
         # print(f"Saved results at: {output_csv_path}")
 
 # if __name__ == "__main__":
-#     MAX_PERTURBATION_STAGE = 5
 #     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")
 #
 #     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
 #                                                                     model_type='vit-basic',
 #                                                                     is_wolf_transforms=vit_config['is_wolf_transforms'])
-#     run_perturbation_test(feature_extractor=feature_extractor, model=model,
-#                           max_perturbation_stage=MAX_PERTURBATION_STAGE, outputs=outputs)
+#     run_perturbation_test(feature_extractor=feature_extractor, model=model, outputs=outputs)

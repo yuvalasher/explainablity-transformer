@@ -50,7 +50,6 @@ vit:
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
-  max_perturbation_stage: 9
   seg_cls:
     train_n_samples: 12000
     val_n_samples: 3000
