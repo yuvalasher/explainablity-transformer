@@ -18,7 +18,6 @@ from transformers import get_linear_schedule_with_warmup
 from config import config
 from evaluation.evaluation_utils import patch_score_to_image
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
-    eval_perturbation_test,
     run_perturbation_test,
 )
 from feature_extractor import ViTFeatureExtractor
@@ -135,7 +134,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         n_classes: int = 1000,
         n_patches: int = 196,
         batch_size: int = 8,
-        max_perturbation_stage: int = 5,
     ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
@@ -147,7 +145,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.batch_size = batch_size
         self.feature_extractor = feature_extractor
         self.plot_path = plot_path
-        self.max_perturbation_stage = max_perturbation_stage
 
     def forward(self, inputs) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
@@ -187,12 +184,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         }
 
     def validation_step(self, batch, batch_idx):
-        # print(f'Val. batch_idx: {batch_idx}, len_batch: {len(batch["image_name"])}')
         inputs = batch["pixel_values"].squeeze(1)
-        # original_image = batch["original_transformed_image"]
         output = self.forward(inputs)
 
-        # return output
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
             "loss": output.lossloss_output.loss,
@@ -217,22 +211,15 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("train/mask_loss", mask_loss, prog_bar=True, logger=True)
         self.log("train/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
         self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        # print(f'training_epoch_end: {self.current_epoch}')
-        self._visualize_outputs(outputs, stage='train', n_batches=10, epoch_idx=self.current_epoch)
-        if self.current_epoch > vit_config['epoch_to_evaluate_perturb'] and self.current_epoch % 1 == 0:
+        if self.current_epoch > vit_config["start_epoch_to_evaluate"] and self.current_epoch % 1 == 0:
+            self._visualize_outputs(outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch)
             run_perturbation_test(
                 feature_extractor=self.feature_extractor,
                 model=self.vit_for_classification_image,
-                max_perturbation_stage=self.max_perturbation_stage,
                 outputs=outputs,
                 stage="train",
                 epoch_idx=self.current_epoch,
             )
-
-        # path = '/home/yuvalas/explainability/pickles/outputs.pkl'
-        # save_obj_to_disk(path=path, obj=outputs)
-        # print(f'Saved outputs at {path}')
-        # return {"loss": loss, "pred_loss": pred_loss, "mask_loss": mask_loss}
 
     def validation_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
@@ -246,13 +233,12 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("val/mask_loss", mask_loss, prog_bar=True, logger=True)
         self.log("val/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
         self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        self._visualize_outputs(outputs, stage='val', n_batches=10, epoch_idx=self.current_epoch)
 
-        if self.current_epoch > vit_config['epoch_to_evaluate_perturb'] and self.current_epoch % 5 == 0:
+        if self.current_epoch > vit_config["start_epoch_to_evaluate"] and self.current_epoch % 5 == 0:
+            self._visualize_outputs(outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch)
             run_perturbation_test(
                 feature_extractor=self.feature_extractor,
                 model=self.vit_for_classification_image,
-                max_perturbation_stage=self.max_perturbation_stage,
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,
@@ -280,7 +266,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         :param outputs: batched outputs
         """
         n_batches = n_batches if n_batches is not None else len(outputs)
-        # print(f'Stage: {stage}; Num of batches visualizing: {n_batches}, len(outputs): {len(outputs)}')
         epoch_path = Path(self.plot_path, stage, f"epoch_{str(epoch_idx)}")
         print(epoch_path)
         if not epoch_path.exists():
@@ -289,12 +274,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             for idx, (image, mask) in enumerate(
                 zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())
             ):
-                # if epoch_idx >= 0 and stage == "train":
-                    # print(idx)
-                    # print(f'******************** epoch_idx: {epoch_idx} ***********')
-                    # print(mask)
-                    # print(1)
-                    # pass
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
