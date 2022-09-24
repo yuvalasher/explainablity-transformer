@@ -46,7 +46,7 @@ if loss_config["mask_loss"] == "bce":
 else:
     exp_name = f'{base_exp_name}_l1_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}_sigmoid:{vit_config["is_sigmoid_segmentation"]}'
 
-feature_extractor, vit_model = load_feature_extractor_and_vit_model(
+feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
     model_type="vit-basic",
     is_wolf_transforms=vit_config["is_wolf_transforms"],
