@@ -77,7 +77,6 @@ model = ImageClassificationWithTokenClassificationModel(
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
     batch_size=vit_config["batch_size"],
-    max_perturbation_stage=vit_config["max_perturbation_stage"],
 )
 
 WANDB_PROJECT = "run_seg_cls_4"
