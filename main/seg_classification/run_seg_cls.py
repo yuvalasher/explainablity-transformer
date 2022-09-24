@@ -53,7 +53,7 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(
 )  # TODO if vit-for-dino is relevant
 
 vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-vit_for_patch_classification = ViTForPatchClassification.from_pretrained(vit_config['model_name'])
+vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
     train_images_path=str(TRAIN_IMAGES_FOLDER_PATH),
