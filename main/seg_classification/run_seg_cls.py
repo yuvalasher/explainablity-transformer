@@ -38,7 +38,8 @@ loss_config = vit_config["seg_cls"]["loss"]
 seed_everything(config["general"]["seed"])
 import gc
 import torch
-
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 base_exp_name = f'pred_loss_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_loss'
 if loss_config["mask_loss"] == "bce":
