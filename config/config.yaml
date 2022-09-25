@@ -1,5 +1,6 @@
 general:
   seed: 42
+  images_folder_test_DGX: ILSVRC2012_test_sampled
   images_folder_name_DGX: ILSVRC2012_val - Updated-DGX
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
@@ -10,7 +11,8 @@ vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp
   gpus: 1
-  is_sigmoid_segmentation: True
+  is_sigmoid_segmentation: False
+  is_mlp_on_segmentation: False
   model_name: google/vit-base-patch16-224
   img_size: 224
   patch_size: 16
@@ -39,7 +41,7 @@ vit:
   batch_size: 64
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
-  start_epoch_to_evaluate: 3
+  start_epoch_to_evaluate: 2
   n_batches_to_visualize: 5
   n_epochs: 100
   lr: 2.0e-3
