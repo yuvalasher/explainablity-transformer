@@ -151,3 +151,4 @@ main/seg_classification/lightning_logs/*
 !data/
 data/ILSVRC2012_val - Updated-DGX
 data/ILSVRC2012_test
+research
