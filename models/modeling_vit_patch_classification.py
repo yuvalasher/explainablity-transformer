@@ -58,11 +58,11 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         hidden_size = tokens_output.shape[2]
 
         logits = self.patch_classifier(tokens_output.reshape(-1, hidden_size))
-        logits = logits.view(batch_size, -1, 1)
+        mask = logits.view(batch_size, -1, 1)
         # logits - [batch_size, tokens_count]
 
         if vit_config["is_sigmoid_segmentation"]:
-            mask = torch.sigmoid(logits)
+            mask = torch.sigmoid(mask)
 
         mask = mask.view(batch_size, 1, 14, 14)
 
