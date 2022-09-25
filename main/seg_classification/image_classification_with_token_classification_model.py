@@ -122,18 +122,18 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     """
 
     def __init__(
-        self,
-        vit_for_classification_image: ViTForImageClassification,
-        vit_for_patch_classification: ViTForMaskGeneration,
-        warmup_steps: int,
-        total_training_steps: int,
-        feature_extractor: ViTFeatureExtractor,
-        plot_path,
-        criterion: LossLoss = LossLoss(),
-        emb_size: int = 768,
-        n_classes: int = 1000,
-        n_patches: int = 196,
-        batch_size: int = 8,
+            self,
+            vit_for_classification_image: ViTForImageClassification,
+            vit_for_patch_classification: ViTForMaskGeneration,
+            warmup_steps: int,
+            total_training_steps: int,
+            feature_extractor: ViTFeatureExtractor,
+            plot_path,
+            criterion: LossLoss = LossLoss(),
+            emb_size: int = 768,
+            n_classes: int = 1000,
+            n_patches: int = 196,
+            batch_size: int = 8,
     ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
@@ -211,15 +211,16 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("train/mask_loss", mask_loss, prog_bar=True, logger=True)
         self.log("train/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
         self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        if self.current_epoch > vit_config["start_epoch_to_evaluate"] and self.current_epoch % 1 == 0:
-            self._visualize_outputs(outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch)
-            run_perturbation_test(
-                feature_extractor=self.feature_extractor,
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="train",
-                epoch_idx=self.current_epoch,
-            )
+        self._visualize_outputs(outputs, stage="train", n_batches=vit_config["n_batches_to_visualize"],
+                                epoch_idx=self.current_epoch)
+        # if self.current_epoch >= vit_config["start_epoch_to_evaluate"] and self.current_epoch % 2 == 0:
+        #     run_perturbation_test(
+        #         feature_extractor=self.feature_extractor,
+        #         model=self.vit_for_classification_image,
+        #         outputs=outputs,
+        #         stage="train",
+        #         epoch_idx=self.current_epoch,
+        #     )
 
     def validation_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
@@ -234,8 +235,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("val/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
         self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
 
-        if self.current_epoch > vit_config["start_epoch_to_evaluate"] and self.current_epoch % 5 == 0:
-            self._visualize_outputs(outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch)
+        self._visualize_outputs(outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"],
+                                epoch_idx=self.current_epoch)
+        if self.current_epoch >= vit_config["start_epoch_to_evaluate"] and self.current_epoch % 2 == 0:
             run_perturbation_test(
                 feature_extractor=self.feature_extractor,
                 model=self.vit_for_classification_image,
@@ -272,7 +274,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())
+                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())
             ):
                 visu(
                     original_image=image,
