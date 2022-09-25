@@ -7,10 +7,12 @@ device = torch.device("cuda" if cuda else "cpu")
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 DATA_PATH: Path = Path(ROOT_DIR, 'data')
+# TEST_IMAGENET_DATA_PATH: Path = Path(DATA_PATH, config["general"]["images_folder_test_DGX"])
+TRAIN_IMAGES_FOLDER_PATH: Path = Path(DATA_PATH, config["general"]["images_folder_test_DGX"])
 PLOTS_PATH: Path = Path(ROOT_DIR, 'research', 'plots')
 ORIGINAL_IMAGES_FOLDER_PATH = Path(DATA_PATH, config['general']['images_folder_name'])
 DGX_IMAGES_FOLDER_PATH = Path(DATA_PATH, config['general']['images_folder_name_DGX'])
-TRAIN_IMAGES_FOLDER_PATH = Path(DATA_PATH, config['vit']['train_images_path'])
+# TRAIN_IMAGES_FOLDER_PATH = Path(DATA_PATH, config['vit']['train_images_path'])
 VAL_IMAGES_FOLDER_PATH = Path(DATA_PATH, config['vit']['val_images_path'])
 IMAGES_FOLDER_PATH = ORIGINAL_IMAGES_FOLDER_PATH if not cuda else DGX_IMAGES_FOLDER_PATH
 # IMAGES_FOLDER_PATH = DGX_IMAGES_FOLDER_PATH
