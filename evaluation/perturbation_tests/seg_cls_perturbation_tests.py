@@ -28,17 +28,10 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
     num_samples = 0
     n_samples = sum(output["original_image"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
-    dissimilarity_model = np.zeros((n_samples))
     model_index = 0
 
-    # if args.scale == 'per':
     base_size = 224 * 224
     perturbation_steps = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    # elif args.scale == '100':  # TODO - what is it mean?
-    #     base_size = 100
-    #     perturbation_steps = [5, 10, 15, 20, 25, 30, 35, 40, 45]
-    # else:
-    #     raise Exception('scale not valid')
 
     num_correct_pertub = np.zeros((len(perturbation_steps), n_samples))  # 9 is the num perturbation steps
     dissimilarity_pertub = np.zeros((len(perturbation_steps), n_samples))
@@ -138,7 +131,7 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
 def get_auc(num_correct_pertub):
     """
     num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
-    Each cell represent if the prediction at that step is the right prediction (0 / 1) and average of the images axis to
+    Each cell represents if the prediction at that step is the right prediction (0 / 1) and average of the images axis to
     get the number of average correct prediction at each perturbation step and then trapz integral (auc) to get final val
     """
     mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
@@ -211,8 +204,6 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
 
 
 def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_idx: int):
-    # print('Running Perturbation tests')
-
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
     output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
@@ -236,8 +227,7 @@ def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_i
 
 # if __name__ == "__main__":
 #     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")
-#
 #     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
 #                                                                     model_type='vit-basic',
 #                                                                     is_wolf_transforms=vit_config['is_wolf_transforms'])
-#     run_perturbation_test(feature_extractor=feature_extractor, model=model, outputs=outputs)
+#     run_perturbation_test(feature_extractor=feature_extractor, model=model, outputs=outputs, stage='train', epoch_idx=0)
