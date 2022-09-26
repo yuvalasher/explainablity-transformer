@@ -6,15 +6,15 @@ from main.seg_classification.image_token_dataset import ImageSegDataset
 
 class ImageSegDataModule(pl.LightningDataModule):
     def __init__(
-            self,
-            feature_extractor,
-            batch_size: int,
-            train_images_path: str,
-            train_n_samples: int,
-            val_images_path: str,
-            val_n_samples: int,
-            test_images_path: str,
-            test_n_samples: int,
+        self,
+        feature_extractor,
+        batch_size: int,
+        train_images_path: str,
+        train_n_samples: int,
+        val_images_path: str,
+        val_n_samples: int,
+        test_images_path: str,
+        test_n_samples: int,
     ):
         super().__init__()
         self.batch_size = batch_size
@@ -54,15 +54,7 @@ class ImageSegDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False
-        )
+        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False)
 
     def test_dataloader(self):
-        return DataLoader(
-            dataset=self.test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False
-        )
+        return DataLoader(dataset=self.test_dataset, batch_size=self.batch_size, shuffle=False)
