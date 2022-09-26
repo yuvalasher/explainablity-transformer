@@ -149,7 +149,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def forward(self, inputs) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        masked_image = inputs * interpolated_mask  # TODO - check dimensions
+        masked_image = inputs * interpolated_mask
 
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
         lossloss_output = self.criterion(
@@ -178,7 +178,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": inputs,
+            "original_image": batch["original_transformed_image"],
             "image_mask": images_mask,
             "patches_mask": output.tokens_mask,
         }
