@@ -16,7 +16,8 @@ from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from config import config
-from utils.consts import VAL_IMAGES_FOLDER_PATH, TRAIN_IMAGES_FOLDER_PATH, EXPERIMENTS_FOLDER_PATH
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, IMAGENET_TEST_IMAGES_FOLDER_PATH, EXPERIMENTS_FOLDER_PATH, \
+    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
 from vit_utils import (
     load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
@@ -55,18 +56,22 @@ feature_extractor, _ = load_feature_extractor_and_vit_model(
 
 vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
 vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+ic(IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_TEST_IMAGES_ES_FOLDER_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH)
+
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
-    train_images_path=str(TRAIN_IMAGES_FOLDER_PATH),
-    val_images_path=str(VAL_IMAGES_FOLDER_PATH),
     batch_size=vit_config["batch_size"],
+    train_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     train_n_samples=vit_config["seg_cls"]["train_n_samples"],
+    val_images_path=str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
     val_n_samples=vit_config["seg_cls"]["val_n_samples"],
+    test_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
+    test_n_samples=vit_config["seg_cls"]["test_n_samples"],
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     n_epochs=vit_config["n_epochs"],
-    train_samples_length=len(list(Path(TRAIN_IMAGES_FOLDER_PATH).iterdir())),
+    train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
     batch_size=vit_config["batch_size"],
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
@@ -99,7 +104,7 @@ remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
     freezing_transformer=vit_config["freezing_transformer"],
-    freeze_classification_head=vit_config["freeze_classification_head"],
+    is_segmentation_transformer_freeze=vit_config["is_segmentation_transformer_freeze"],
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)

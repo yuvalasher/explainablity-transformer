@@ -402,7 +402,7 @@ def calculate_percentage_of_trainable_params(model) -> str:
     return f"{round(calculate_num_of_trainable_params(model) / calculate_num_of_params(model), 2) * 100}%"
 
 
-def print_number_of_trainable_and_not_trainable_params(model: VitModelForClassification) -> None:
+def print_number_of_trainable_and_not_trainable_params(model) -> None:
     print(
         f"Number of params: {calculate_num_of_params(model)}, Number of trainable params: {calculate_num_of_trainable_params(model)}"
     )
@@ -449,14 +449,14 @@ def handle_model_config_and_freezing_for_task(
 
 
 def freeze_multitask_model(
-    model, freezing_transformer: bool = True, freeze_classification_head: bool = False
+    model, freezing_transformer: bool = True, is_segmentation_transformer_freeze: bool = False
 ):
     if freezing_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-
-        # for param in model.vit_for_patch_classification.vit.embeddings.parameters():
-        #     param.requires_grad = False
+    if is_segmentation_transformer_freeze:
+        for param in model.vit_for_patch_classification.vit.parameters():
+            param.requires_grad = False
         # for param in model.vit_for_patch_classification.vit.encoder.parameters():
         #     param.requires_grad = False
         # for param in model.vit_for_patch_classification.vit.layernorm.parameters():
