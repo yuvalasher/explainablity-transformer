@@ -1,7 +1,8 @@
 general:
   seed: 42
   images_folder_test_DGX: ILSVRC2012_test_sampled
-  images_folder_name_DGX: ILSVRC2012_val - Updated-DGX
+  images_folder_test_ES_DGX: ILSVRC2012_test_earlystopping
+  images_folder_name_DGX: ILSVRC2012_val_Updated_DGX
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
   wandb_project: vit-temp-softmax3
@@ -13,6 +14,7 @@ vit:
   gpus: 1
   is_sigmoid_segmentation: False
   is_mlp_on_segmentation: False
+  is_segmentation_transformer_freeze: False
   model_name: google/vit-base-patch16-224
   img_size: 224
   patch_size: 16
@@ -57,6 +59,7 @@ vit:
   seg_cls:
     train_n_samples: 12000
     val_n_samples: 3000
+    test_n_samples: 3000
     loss:
       mask_loss: l1 # bce
       prediction_loss_mul: 1
