@@ -64,6 +64,9 @@ vit:
       mask_loss: l1 # bce
       prediction_loss_mul: 1
       mask_loss_mul: 10
+    earlystopping:
+      min_delta: 0.0001
+      patience: 3
   loss:
     kl_loss_multiplier: 0
     pred_loss_multiplier: 10

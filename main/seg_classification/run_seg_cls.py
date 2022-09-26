@@ -1,3 +1,4 @@
+from icecream import ic
 import os
 
 from utils import remove_old_results_dfs
@@ -5,7 +6,6 @@ from utils import remove_old_results_dfs
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 from pathlib import Path
-from typing import Tuple
 
 import wandb
 
@@ -16,8 +16,12 @@ from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from config import config
-from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, IMAGENET_TEST_IMAGES_FOLDER_PATH, EXPERIMENTS_FOLDER_PATH, \
-    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
+from utils.consts import (
+    IMAGENET_VAL_IMAGES_FOLDER_PATH,
+    IMAGENET_TEST_IMAGES_FOLDER_PATH,
+    EXPERIMENTS_FOLDER_PATH,
+    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
+)
 from vit_utils import (
     load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
@@ -43,7 +47,7 @@ from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-base_exp_name = f''
+# exp_name = f'test_data_pred_l_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_l_{vit_config["seg_cls"]["loss"]["mask_loss"]}_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_freezed_seg_transformer_{vit_config["is_segmentation_transformer_freeze"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 exp_name = f'test_data_pred_l_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_l_{vit_config["seg_cls"]["loss"]["mask_loss"]}_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_freezed_seg_transformer_{vit_config["is_segmentation_transformer_freeze"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
@@ -54,7 +58,11 @@ feature_extractor, _ = load_feature_extractor_and_vit_model(
 
 vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
 vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
-ic(IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_TEST_IMAGES_ES_FOLDER_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH)
+ic(
+    str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
+    str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
+    str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
+)
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
@@ -83,18 +91,13 @@ model = ImageClassificationWithTokenClassificationModel(
     batch_size=vit_config["batch_size"],
 )
 
-WANDB_PROJECT = "run_seg_cls_4"
-run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
-# wandb.login()
-wandb_logger = WandbLogger(name=f'seg_cls; {exp_name}', project=WANDB_PROJECT)
-
-
-# early_stop_callback = EarlyStopping(
-#    monitor='val_loss',
-#    min_delta=0.0001,
-#    patience=3,
-#    verbose=False,
-#    mode='min')
+early_stop_callback = EarlyStopping(
+    monitor="val/loss",
+    min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
+    patience=vit_config["seg_cls"]["earlystopping"]["patience"],
+    verbose=False,
+    mode="min",
+)
 
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, "seg_cls", vit_config["evaluation"]["experiment_folder_name"])
@@ -106,10 +109,14 @@ model = freeze_multitask_model(
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
+
+WANDB_PROJECT = "run_seg_cls_4"
+# wandb.login()
+run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
+wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
     # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
-    # TODO - change
-    # , early_stop_callback],
+    callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
     max_epochs=vit_config["n_epochs"],
@@ -117,5 +124,4 @@ trainer = pl.Trainer(
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
 )
-
 trainer.fit(model=model, datamodule=data_module)
