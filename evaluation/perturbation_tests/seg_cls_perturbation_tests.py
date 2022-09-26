@@ -51,7 +51,8 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
             # Compute model accuracy
             if vit_config['verbose']:
                 plot_image(data)
-            inputs = {'pixel_values': data}
+            inputs = feature_extractor(images=data.squeeze(0).cpu(), return_tensors="pt")
+            inputs = {'pixel_values': inputs['pixel_values'].to(device)}
             pred = model(**inputs)
             probs = torch.softmax(pred.logits, dim=1)
             # target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
@@ -83,7 +84,8 @@ def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFe
                                              base_size=base_size)
                 if vit_config['verbose']:
                     plot_image(_data, step_idx=i)
-                inputs = {'pixel_values': _data}
+                inputs = feature_extractor(images=_data.squeeze(0).cpu(), return_tensors="pt")
+                inputs = {'pixel_values': inputs['pixel_values'].to(device)}
                 out = model(**inputs)
 
                 # Probabilities Comparison
