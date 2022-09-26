@@ -78,32 +78,3 @@ vit:
     batch_size: 1
     experiment_folder_name: seg_cls_l1_pred_1_mask_1
     perturbation_type: pos
-
-#bert:
-#  general:
-#    - seed: 42
-#  model_name: "textattack/bert-base-uncased-SST-2"
-#  max_tokens: 512
-#  n_heads: 12
-#  n_layers: 12
-#  freezing_transformer: True
-#  num_labels: 2
-#  save_every: 50
-#  log: False
-#  verbose: False
-#  lr: 2.0e-5
-#  num_steps: 5
-#  print_every: 1
-#  loss:
-#    kl_loss_multiplier: 0
-#    pred_loss_multiplier: 10
-#    entropy_loss_multiplier: 100
-#    l1_loss_multiplier: 0
-#    other_loss_multiplier: 0
-#  text_batch:
-##    - text: This movie was the best movie I have ever seen! some scenes were ridiculous, but acting was great.
-##      correct_class: 1
-##      contrastive_class: 0
-#    - text: I really didn't like this movie. Some of the actors were good, but overall the movie was boring.
-#      correct_class: 0
-#      contrastive_class: 1
