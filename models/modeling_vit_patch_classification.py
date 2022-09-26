@@ -12,8 +12,8 @@ from config import config
 
 vit_config = config["vit"]
 
-class ViTForMaskGeneration(ViTPreTrainedModel):
 
+class ViTForMaskGeneration(ViTPreTrainedModel):
     vit: ViTModel
     patch_classifier: nn.Linear
 
@@ -24,21 +24,22 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         self.vit = ViTModel(config, add_pooling_layer=False)
 
         # Classifier head
-        # self.classifier = nn.Linear(config.hidden_size, config.num_labels) if config.num_labels > 0 else nn.Identity() # TODO - delete
+        self.patch_pooler = nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = nn.Tanh()
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.patch_classifier = nn.Linear(config.hidden_size, 1)  # regression to one number
 
         # Initialize weights and apply final processing
         self.post_init()
 
     def forward(
-        self,
-        pixel_values=None,
-        head_mask=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        interpolate_pos_encoding=None,
+            self,
+            pixel_values=None,
+            head_mask=None,
+            output_attentions=None,
+            output_hidden_states=None,
+            interpolate_pos_encoding=None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         outputs: BaseModelOutputWithPooling = self.vit(
             pixel_values,
             head_mask=head_mask,
@@ -57,9 +58,13 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         batch_size = tokens_output.shape[0]
         hidden_size = tokens_output.shape[2]
 
-        logits = self.patch_classifier(tokens_output.reshape(-1, hidden_size))
-        mask = logits.view(batch_size, -1, 1)
-        # logits - [batch_size, tokens_count]
+        tokens_output_reshaped = tokens_output.reshape(-1, hidden_size)
+        if vit_config["is_mlp_on_segmentation"]:
+            tokens_output_reshaped = self.patch_pooler(tokens_output_reshaped)
+            tokens_output_reshaped = self.activation(tokens_output_reshaped)
+            tokens_output_reshaped = self.dropout(tokens_output_reshaped)
+        logits = self.patch_classifier(tokens_output_reshaped)
+        mask = logits.view(batch_size, -1, 1) # logits - [batch_size, tokens_count]
 
         if vit_config["is_sigmoid_segmentation"]:
             mask = torch.sigmoid(mask)
