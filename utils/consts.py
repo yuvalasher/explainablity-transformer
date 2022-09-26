@@ -2,7 +2,8 @@ from pathlib import Path
 from config import config
 import torch
 
-DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/yuvalas/explainability_transformers/data/ILSVRC2012_val_Updated_DGX"
+# DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/yuvalas/explainability_transformers/data/ILSVRC2012_val_Updated_DGX"
+DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
