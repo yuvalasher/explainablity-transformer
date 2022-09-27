@@ -165,12 +165,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        # original_image = batch["original_transformed_image"]
+        original_image = batch["original_transformed_image"]
         output = self.forward(inputs)
 
-        # self.log("train/loss", output.lossloss_output.loss, prog_bar=True, logger=True)
-        # self.log("train/prediction_loss", output.lossloss_output.pred_loss, prog_bar=True, logger=True)
-        # self.log("train/mask_loss", output.lossloss_output.mask_loss, prog_bar=True, logger=True)
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
             "loss": output.lossloss_output.loss,
