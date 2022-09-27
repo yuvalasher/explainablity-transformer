@@ -36,6 +36,7 @@ class ImageSegDataset(Dataset):
     def __getitem__(self, index: int):
         image_name = os.path.basename(self.images_name[index])
         image = get_image_from_path(path=Path(self.images_path, image_name))
+        image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
         inputs, original_transformed_image = get_image_and_inputs_and_transformed_image(
             image=image, feature_extractor=self.feature_extractor
         )
