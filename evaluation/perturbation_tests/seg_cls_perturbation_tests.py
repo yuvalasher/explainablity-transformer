@@ -24,7 +24,7 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def eval_perturbation_test(experiment_dir: Path, model, feature_extractor: ViTFeatureExtractor, outputs) -> float:
+def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
     num_samples = 0
     n_samples = sum(output["original_image"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
@@ -201,7 +201,7 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
     return results_df.append({'vis_type': vis_type, 'auc': auc}, ignore_index=True)
 
 
-def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_idx: int):
+def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
     output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
@@ -216,7 +216,6 @@ def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_i
         vit_type_experiment_path = Path(experiment_path, vis_type)
         # vit_type_experiment_path = create_folder(vit_type_experiment_path)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
-                                     feature_extractor=feature_extractor,
                                      outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
@@ -225,7 +224,7 @@ def run_perturbation_test(feature_extractor, model, outputs, stage: str, epoch_i
 
 # if __name__ == "__main__":
 #     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")
-#     feature_extractor, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
+#     _, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
 #                                                                     model_type='vit-basic',
 #                                                                     is_wolf_transforms=vit_config['is_wolf_transforms'])
-#     run_perturbation_test(feature_extractor=feature_extractor, model=model, outputs=outputs, stage='train', epoch_idx=0)
+#     run_perturbation_test(model=model, outputs=outputs, stage='train', epoch_idx=0)
