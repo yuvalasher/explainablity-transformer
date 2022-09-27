@@ -454,9 +454,9 @@ def freeze_multitask_model(
     if freezing_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-    if is_segmentation_transformer_freeze:
-        for param in model.vit_for_patch_classification.vit.parameters():
-            param.requires_grad = False
+    # if is_segmentation_transformer_freeze:
+    #     for param in model.vit_for_patch_classification.vit.parameters():
+    #         param.requires_grad = False
     # for param in model.vit_for_patch_classification.patch_pooler.parameters():
     #     param.requires_grad = False
     # for param in model.vit_for_classification_image.patch_classifier.parameters():
