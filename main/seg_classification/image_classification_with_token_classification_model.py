@@ -154,7 +154,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
         lossloss_output = self.criterion(
             output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
-        )  # TODO - if won't be regularized, the mask will be all full - sanity check
+        )
         return ImageClassificationWithTokenClassificationModelOutput(
             lossloss_output=lossloss_output,
             vit_masked_output=vit_masked_output,
