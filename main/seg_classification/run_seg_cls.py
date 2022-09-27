@@ -2,6 +2,7 @@ from icecream import ic
 import os
 
 from utils import remove_old_results_dfs
+from vit_loader.load_vit import load_vit_pretrained
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
@@ -55,8 +56,8 @@ feature_extractor, _ = load_feature_extractor_and_vit_model(
     is_wolf_transforms=vit_config["is_wolf_transforms"],
 )  # TODO if vit-for-dino is relevant
 
-vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
+
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
