@@ -10,8 +10,10 @@ device = torch.device("cuda" if cuda else "cpu")
 ROOT_DIR: Path = Path(__file__).parent.parent
 DATA_PATH: Path = Path(ROOT_DIR, 'data')
 
-IMAGENET_TEST_IMAGES_FOLDER_PATH = Path(DATA_PATH, config["general"]["images_folder_test_DGX"])
-IMAGENET_TEST_IMAGES_ES_FOLDER_PATH = Path(DATA_PATH, config['general']['images_folder_test_ES_DGX'])
+# IMAGENET_TEST_IMAGES_FOLDER_PATH = Path(DATA_PATH, config["general"]["images_folder_test_DGX"])
+# IMAGENET_TEST_IMAGES_ES_FOLDER_PATH = Path(DATA_PATH, config['general']['images_folder_test_ES_DGX'])
+IMAGENET_TEST_IMAGES_ES_FOLDER_PATH = "/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping"
+IMAGENET_TEST_IMAGES_FOLDER_PATH = "/home/yuvalas/explainability/data/ILSVRC2012_test_sampled"
 IMAGENET_VAL_IMAGES_FOLDER_PATH = DGX_IMAGENET_ALL_VALIDATION_PATH
 
 PLOTS_PATH: Path = Path(ROOT_DIR, 'research', 'plots')

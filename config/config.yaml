@@ -12,7 +12,7 @@ vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp
   gpus: 1
-  is_sigmoid_segmentation: False
+  is_sigmoid_segmentation: True
   is_mlp_on_segmentation: False
   is_segmentation_transformer_freeze: False
   model_name: google/vit-base-patch16-224
@@ -24,7 +24,7 @@ vit:
     - objective_gumble_minimize_softmax
     - objective_opposite_gumble_softmax
   freezing_transformer: True
-  freeze_classification_head: True
+  freeze_classification_head: False
   num_labels: 1000
   save_every: 5
   images:
@@ -40,7 +40,7 @@ vit:
 #    - image_name: 0000000005.JPEG # catdog
 #      correct_class: 282 # cat
 #      contrastive_class: 243 # dog
-  batch_size: 64
+  batch_size: 32
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
   start_epoch_to_evaluate: 2
@@ -57,9 +57,9 @@ vit:
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
   seg_cls:
-    train_n_samples: 12000
-    val_n_samples: 3000
-    test_n_samples: 3000
+    train_n_samples: 6000
+    val_n_samples: 2000
+    test_n_samples: 2000
     loss:
       mask_loss: l1 # bce
       prediction_loss_mul: 1

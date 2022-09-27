@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import Union, List
 
 from torch.utils.data import Dataset
 import torch
@@ -29,6 +29,7 @@ class ImageSegDataset(Dataset):
         self.images_name = list(Path(images_path).iterdir())
         n_samples = n_samples if n_samples > 0 else len(self.images_name)
         self.images_name = self.images_name[:n_samples]
+        print(f"After filter images: {len(self.images_name)}")
 
     def __len__(self):
         return len(self.images_name)

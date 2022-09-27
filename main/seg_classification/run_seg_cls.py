@@ -47,7 +47,6 @@ from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-# exp_name = f'test_data_pred_l_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_l_{vit_config["seg_cls"]["loss"]["mask_loss"]}_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_freezed_seg_transformer_{vit_config["is_segmentation_transformer_freeze"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 exp_name = f'test_data_pred_l_{vit_config["seg_cls"]["loss"]["prediction_loss_mul"]}_mask_l_{vit_config["seg_cls"]["loss"]["mask_loss"]}_{vit_config["seg_cls"]["loss"]["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_freezed_seg_transformer_{vit_config["is_segmentation_transformer_freeze"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
@@ -116,7 +115,7 @@ run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
     # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
-    callbacks=[early_stop_callback],
+    # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
     max_epochs=vit_config["n_epochs"],

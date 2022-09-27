@@ -212,14 +212,14 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self._visualize_outputs(
             outputs, stage="train", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
         )
-        # if self.current_epoch >= vit_config["start_epoch_to_evaluate"] and self.current_epoch % 2 == 0:
-        #     run_perturbation_test(
-        #         feature_extractor=self.feature_extractor,
-        #         model=self.vit_for_classification_image,
-        #         outputs=outputs,
-        #         stage="train",
-        #         epoch_idx=self.current_epoch,
-        #     )
+        if self.current_epoch >= vit_config["start_epoch_to_evaluate"] and self.current_epoch % 4 == 0:
+            run_perturbation_test(
+                feature_extractor=self.feature_extractor,
+                model=self.vit_for_classification_image,
+                outputs=outputs,
+                stage="train",
+                epoch_idx=self.current_epoch,
+            )
 
     def validation_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
