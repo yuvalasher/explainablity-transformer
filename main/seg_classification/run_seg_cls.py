@@ -116,7 +116,7 @@ run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
     # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
-    callbacks=[early_stop_callback],
+    # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
     max_epochs=vit_config["n_epochs"],
