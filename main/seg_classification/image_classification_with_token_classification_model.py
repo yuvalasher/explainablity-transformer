@@ -166,6 +166,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
         original_image = batch["original_transformed_image"]
+        image_resized = batch["image"]
         output = self.forward(inputs)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
@@ -177,12 +178,14 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "original_image": original_image,
             "image_mask": images_mask,
+            "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
         }
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
         original_image = batch["original_transformed_image"]
+        image_resized = batch["image"]
         output = self.forward(inputs)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
@@ -194,6 +197,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "original_image": original_image,
             "image_mask": images_mask,
+            "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
         }
 
