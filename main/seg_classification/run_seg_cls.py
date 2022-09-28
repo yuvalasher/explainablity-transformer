@@ -1,11 +1,13 @@
-from icecream import ic
 import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+import torch
+from config import config
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+from icecream import ic
 
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 from pathlib import Path
 
 import wandb
@@ -16,7 +18,6 @@ from main.seg_classification.image_classification_with_token_classification_mode
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
-from config import config
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
@@ -35,12 +36,13 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
+vit_config = config["vit"]
+loss_config = vit_config["seg_cls"]["loss"]
+
 if torch.cuda.is_available():
     print(torch.cuda.current_device())
     torch.cuda.empty_cache()
 
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 seed_everything(config["general"]["seed"])
 import gc
 import torch
