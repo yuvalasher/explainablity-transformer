@@ -6,8 +6,11 @@ from torchvision import transforms
 
 from datasets.imagenet_results_dataset import ImagenetResults
 from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
-from utils.consts import EXPERIMENTS_FOLDER_PATH
-from vit_utils import *
+# from utils.consts import EXPERIMENTS_FOLDER_PATH
+EXPERIMENTS_FOLDER_PATH = "/home/yuvalas/explainability/research/"
+# from vit_utils import *
+from pathlib import Path
+from matplotlib import pyplot as plt
 import torch
 import os
 
@@ -162,7 +165,6 @@ def plot_image(data, step_idx: int = None) -> None:
         plt.imshow(im)
         plt.show()
 
-
 def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[float, int], base_size: int):
     """
     vis - Masking of the image (1, 224, 224)
@@ -219,7 +221,7 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
                                      outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
-        results_df.to_csv(output_csv_path, index=False)
+        # results_df.to_csv(output_csv_path, index=False)
         # print(f"Saved results at: {output_csv_path}")
 
 # if __name__ == "__main__":
