@@ -15,20 +15,26 @@ from torch.utils.data import Dataset
 
 class ImageNetDataset(Dataset):
 
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, n_samples: int, transform=None):
         self.root_dir = root_dir
         self.transform = transform
         self.listdir = os.listdir(root_dir)
         self.targets = list(range(len(self.listdir)))
 
+        n_samples = n_samples if n_samples > 0 else len(self.listdir)
+        self.images_name = self.listdir[:n_samples]
+        print(f"After filter images: {len(self.images_name)}")
+        # print(self.images_name)
+
     def __len__(self):
-        return len(self.listdir)
+        return len(self.images_name)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.item()
 
-        image_name = self.listdir[idx]
+        # image_name = self.listdir[idx]
+        image_name = self.images_name[idx]
         image_path = Path(self.root_dir, image_name)
         image = Image.open(image_path)
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
