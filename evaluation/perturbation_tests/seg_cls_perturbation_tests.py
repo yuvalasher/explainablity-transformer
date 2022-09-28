@@ -215,7 +215,9 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
 
 def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, 'seg_cls', vit_config['evaluation']['experiment_folder_name'])
+    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
+    if not os.path.exists(experiment_path):
+        os.makedirs(experiment_path, exist_ok=True)
     output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
     if os.path.exists(output_csv_path):
         results_df = pd.read_csv(output_csv_path)
@@ -231,8 +233,8 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
                                      outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
-        # results_df.to_csv(output_csv_path, index=False)
-        # print(f"Saved results at: {output_csv_path}")
+        results_df.to_csv(output_csv_path, index=False)
+        print(f"Saved results at: {output_csv_path}")
 
 # if __name__ == "__main__":
 #     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")
