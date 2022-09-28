@@ -26,10 +26,17 @@ evaluation_config = vit_config['evaluation']
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
+def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+    dtype = tensor.dtype
+    mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+    std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+    tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+    return tensor
+
 
 def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
     num_samples = 0
-    n_samples = sum(output["original_image"].shape[0] for output in outputs)
+    n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
     model_index = 0
 
@@ -42,7 +49,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
     prob_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
     for batch in tqdm(outputs):
-        for data, vis in zip(batch["original_image"], batch["image_mask"]):
+        for data, vis in zip(batch["image_resized"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
             num_samples += len(data)
@@ -54,7 +61,9 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
             # Compute model accuracy
             if vit_config['verbose']:
                 plot_image(data)
-            inputs = {'pixel_values': data}
+
+            norm_data = normalize(data.clone())
+            inputs = {'pixel_values': norm_data}
             pred = model(**inputs)
             probs = torch.softmax(pred.logits, dim=1)
             # target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
@@ -84,9 +93,10 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
                 _data = data.clone()
                 _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
                                              base_size=base_size)
+                _norm_data = normalize(_data)
                 if vit_config['verbose']:
-                    plot_image(_data, step_idx=i)
-                inputs = {'pixel_values': _data}
+                    plot_image(_norm_data, step_idx=i)
+                inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
 
                 # Probabilities Comparison
