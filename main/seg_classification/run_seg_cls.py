@@ -99,8 +99,7 @@ early_stop_callback = EarlyStopping(
     mode="min",
 )
 
-
-experiment_path = Path(EXPERIMENTS_FOLDER_PATH, "seg_cls", vit_config["evaluation"]["experiment_folder_name"])
+experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
