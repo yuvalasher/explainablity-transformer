@@ -1319,3 +1319,20 @@ def get_warmup_steps_and_total_training_steps(
     total_training_steps = steps_per_epoch * n_epochs
     warmup_steps = total_training_steps // 5
     return warmup_steps, total_training_steps
+
+
+def normalize_losses(mask_loss_mul: float, prediction_loss_mul: float) -> Tuple[float, float]:
+    s = mask_loss_mul + prediction_loss_mul
+    mask_loss_mul_norm = mask_loss_mul / s
+    pred_loss_mul_norm = prediction_loss_mul / s
+    return mask_loss_mul_norm, pred_loss_mul_norm
+
+
+def get_loss_multipliers(loss_config) -> Dict[str, float]:
+    if loss_config["normalize"]:
+        mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=loss_config["mask_loss_mul"],
+                                                              prediction_loss_mul=loss_config["prediction_loss_mul"])
+    else:
+        prediction_loss_mul = loss_config["prediction_loss_mul"]
+        mask_loss_mul = loss_config["mask_loss_mul"]
+    return dict(prediction_loss_mul=prediction_loss_mul, mask_loss_mul=mask_loss_mul)

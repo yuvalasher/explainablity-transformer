@@ -22,7 +22,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
 )
 from feature_extractor import ViTFeatureExtractor
 from utils import save_obj_to_disk
-from vit_utils import visu
+from vit_utils import visu, get_loss_multipliers
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 from transformers.modeling_outputs import SequenceClassifierOutput
@@ -75,6 +75,13 @@ class LossLoss:
     mask_loss: str = loss_config["mask_loss"]
     prediction_loss_mul: float = loss_config["prediction_loss_mul"]
     mask_loss_mul: float = loss_config["mask_loss_mul"]
+
+    def __post_init__(self):
+        loss_multipliers = get_loss_multipliers(loss_config=loss_config)
+        self.mask_loss = loss_config["mask_loss"]
+        self.prediction_loss_mul = loss_multipliers["prediction_loss_mul"]
+        self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
+        print(f"loss multipliers: {self.mask_loss_mul}; self.prediction_loss_mul")
 
     def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor) -> LossLossOutput:
         """
