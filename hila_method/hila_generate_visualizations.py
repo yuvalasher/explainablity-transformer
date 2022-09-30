@@ -1,18 +1,11 @@
-from pathlib import Path
-from typing import List, Dict
-
-from torch import Tensor
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test
 from hila_method.utils.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from hila_method.utils.ViT_explanation_generator import LRP
 from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
 from vit_loader.load_vit import load_vit_pretrained
-
-# from vit_utils import visu
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
@@ -24,15 +17,13 @@ seed_everything(config["general"]["seed"])
 import numpy as np
 import torch
 from torch import Tensor
-from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
-from typing import Dict, Tuple, Union, NewType, List, Optional
-from pathlib import Path, WindowsPath
-from config import config
-
+from typing import Dict, List
+from pathlib import Path
 
 HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
+
 
 def show_cam_on_image(img, mask):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
@@ -119,7 +110,8 @@ if __name__ == '__main__':
         transforms.ToTensor(),
     ])
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
-    n_samples = config["vit"]["seg_cls"]["val_n_samples"]
+    # n_samples = config["vit"]["seg_cls"]["val_n_samples"]
+    n_samples = 208
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VALIDATION_PATH, n_samples=n_samples, transform=transform)
     sample_loader = torch.utils.data.DataLoader(
         imagenet_ds,
@@ -129,6 +121,7 @@ if __name__ == '__main__':
     )
     outputs = compute_saliency_and_save(dataloader=sample_loader)
     visualize_outputs(outputs=outputs)
+    # remove_old_results_dfs(experiment_path=experiment_path)
 
     auc = run_perturbation_test(
         model=vit_for_classification_image,
