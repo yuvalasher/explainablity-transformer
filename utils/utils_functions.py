@@ -49,11 +49,10 @@ def get_image_from_path(path: str) -> Image:
     return Image.open(path)
 
 
-def save_obj_to_disk(path: Union[WindowsPath, str], obj) -> None:
+import pickle
+def save_obj_to_disk(path, obj) -> None:
     if type(path) == str and path[-4:] != '.pkl':
         path += '.pkl'
-    elif type(path) == WindowsPath and path.suffix != '.pkl':
-        path = path.with_suffix('.pkl')
 
     with open(path, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)

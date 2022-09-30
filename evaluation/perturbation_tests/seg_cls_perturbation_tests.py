@@ -1,13 +1,14 @@
 import glob
-from typing import Union
+from typing import Union, Any
 import pandas as pd
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from datasets.imagenet_results_dataset import ImagenetResults
 from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
+
 # from utils.consts import EXPERIMENTS_FOLDER_PATH
-EXPERIMENTS_FOLDER_PATH = "/home/yuvalas/explainability/research/"
+EXPERIMENTS_FOLDER_PATH = "/home/yuvalas/explainability/research/experiments"
 # from vit_utils import *
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -213,8 +214,43 @@ def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
     return results_df.append({'vis_type': vis_type, 'auc': auc}, ignore_index=True)
 
 
+import pickle
+
+
+def save_obj_to_disk(path, obj) -> None:
+    if type(path) == str and path[-4:] != '.pkl':
+        path += '.pkl'
+
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def save_best_auc_objects_to_disk(path, auc: float, vis, original_image, epoch_idx: int) -> None:
+    object = {'auc': auc, 'vis': vis, 'original_image': original_image, 'epoch_idx': epoch_idx}
+    save_obj_to_disk(path=path, obj=object)
+
+
+def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experiment_path=None):
+    VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
+
+    if experiment_path is None:
+        experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
+    if not os.path.exists(experiment_path):
+        os.makedirs(experiment_path, exist_ok=True)
+
+    model.to(device)
+    model.eval()
+    for vis_type in VIS_TYPES:
+        print(vis_type)
+        vit_type_experiment_path = Path(experiment_path, vis_type)
+        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
+                                     outputs=outputs)
+        return auc
+
+
 def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
+
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     if not os.path.exists(experiment_path):
         os.makedirs(experiment_path, exist_ok=True)
