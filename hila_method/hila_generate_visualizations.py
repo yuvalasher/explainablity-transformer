@@ -32,6 +32,8 @@ from pathlib import Path, WindowsPath
 from config import config
 
 
+HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
+
 def show_cam_on_image(img, mask):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
@@ -89,8 +91,6 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
         data = data.cpu()
         Res = Res.data.cpu()
         outputs.append({'image_resized': data, 'image_mask': Res, 'patches_mask': Res_patches})
-        if len(outputs) == 100:
-            return outputs
     return outputs
 
 
@@ -107,8 +107,8 @@ def visualize_outputs(outputs):
 
 
 if __name__ == '__main__':
-    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
-    HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
+    # IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
+    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_sampled'
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
     model_LRP = vit_LRP(pretrained=True).cuda()
@@ -121,8 +121,6 @@ if __name__ == '__main__':
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
     n_samples = config["vit"]["seg_cls"]["val_n_samples"]
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VALIDATION_PATH, n_samples=n_samples, transform=transform)
-    # print(imagenet_ds[0])
-    # imagenet_ds = ImageNet(args.imagenet_validation_path, split='val', download=False, transform=transform)
     sample_loader = torch.utils.data.DataLoader(
         imagenet_ds,
         batch_size=BATCH_SIZE,
@@ -132,9 +130,9 @@ if __name__ == '__main__':
     outputs = compute_saliency_and_save(dataloader=sample_loader)
     visualize_outputs(outputs=outputs)
 
-    # auc = run_perturbation_test(
-    #     model=vit_for_classification_image,
-    #     outputs=outputs,
-    #     stage="hila",
-    #     epoch_idx=0,
-    # )
+    auc = run_perturbation_test(
+        model=vit_for_classification_image,
+        outputs=outputs,
+        stage="hila",
+        epoch_idx=0,
+    )
