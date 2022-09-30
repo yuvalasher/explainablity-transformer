@@ -448,9 +448,7 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(
-    model, freezing_transformer: bool = True, is_segmentation_transformer_freeze: bool = False
-):
+def freeze_multitask_model(model, freezing_transformer: bool = True):
     if freezing_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False

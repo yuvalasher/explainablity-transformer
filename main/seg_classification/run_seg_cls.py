@@ -106,13 +106,11 @@ remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
     freezing_transformer=vit_config["freezing_transformer"],
-    is_segmentation_transformer_freeze=vit_config["is_segmentation_transformer_freeze"],
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
 WANDB_PROJECT = "run_seg_cls_4"
-# wandb.login()
 run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
@@ -120,6 +118,8 @@ trainer = pl.Trainer(
     # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
+    accelerator='gpu',
+    auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,

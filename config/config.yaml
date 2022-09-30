@@ -15,7 +15,7 @@ vit:
   gpus: 1
   is_sigmoid_segmentation: True
   is_relu_segmentation: False
-  is_segmentation_transformer_freeze: False
+  is_mlp_on_segmentation: True
   model_name: google/vit-base-patch16-224
   img_size: 224
   patch_size: 16
