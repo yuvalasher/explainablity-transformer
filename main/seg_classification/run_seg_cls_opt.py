@@ -167,6 +167,7 @@ if __name__ == '__main__':
             gpus=vit_config["gpus"],
             resume_from_checkpoint=CKPT_PATH,
             progress_bar_refresh_rate=30,
+            enable_checkpointing=False,
             default_root_dir=vit_config["default_root_dir"],
         )
         trainer.fit(model=model, datamodule=data_module)
