@@ -97,8 +97,8 @@ def get_attention_probs_by_layer_of_the_CLS(model, layer: int = -1) -> Tensor:
     num_heads = get_head_num_heads(model=model)
     attentions = (
         model.vit.encoder.layer[layer]
-        .attention.attention.attention_probs[0, :, 0, 1:]
-        .reshape(num_heads, -1)
+            .attention.attention.attention_probs[0, :, 0, 1:]
+            .reshape(num_heads, -1)
     )
     return attentions
 
@@ -117,8 +117,8 @@ def get_attention_grads_probs(model, apply_relu: bool = True) -> List[Tensor]:
 def get_gradient_attention_probs(vit_model, apply_relu: bool = True):
     grads = (
         vit_model.vit.encoder.layer[-1]
-        .attention.attention.attention_probs.grad[0, :, 0, 1:]
-        .reshape(12, -1)
+            .attention.attention.attention_probs.grad[0, :, 0, 1:]
+            .reshape(12, -1)
     )
     if apply_relu:
         return F.relu(grads)
@@ -132,10 +132,10 @@ def generate_grad_cam_vector(vit_sigmoid_model, cls_attentions_probs):
 
 
 def dino_method_attention_probs_cls_on_tokens_last_layer(
-    vit_sigmoid_model: ViTSigmoidForImageClassification,
-    path: Union[str, WindowsPath, Path],
-    image_size: int = config["vit"]["img_size"],
-    patch_size: int = config["vit"]["patch_size"],
+        vit_sigmoid_model: ViTSigmoidForImageClassification,
+        path: Union[str, WindowsPath, Path],
+        image_size: int = config["vit"]["img_size"],
+        patch_size: int = config["vit"]["patch_size"],
 ) -> None:
     image_dino_plots_folder = Path(path, "dino")
     os.makedirs(image_dino_plots_folder, exist_ok=True)
@@ -185,12 +185,12 @@ def dino_method_attention_probs_cls_on_tokens_last_layer(
 
 
 def plot_attention_rollout(
-    attention_probs,
-    path,
-    patch_size: int,
-    iteration_idx: int,
-    head_fusion: str = "max",
-    original_image=None,
+        attention_probs,
+        path,
+        patch_size: int,
+        iteration_idx: int,
+        head_fusion: str = "max",
+        original_image=None,
 ) -> None:
     image_rollout_plots_folder = create_folder(Path(path, "rollout"))
     mask_rollout = rollout(attentions=attention_probs, head_fusion=head_fusion)
@@ -206,21 +206,21 @@ def plot_attention_rollout(
                 scale_factor=patch_size,
                 mode="bilinear",
             )[0]
-            .cpu()
-            .detach()
-            .numpy()
+                .cpu()
+                .detach()
+                .numpy()
         )
         plt.imsave(fname=f"{file_path}.png", arr=attention_rollout_original_size[0], format="png")
 
 
 def plot_attn_probs(
-    attentions: Tensor,
-    image_size: int,
-    patch_size: int,
-    num_heads: int,
-    path: Path,
-    iteration_idx: int = None,
-    only_fusion: bool = True,
+        attentions: Tensor,
+        image_size: int,
+        patch_size: int,
+        num_heads: int,
+        path: Path,
+        iteration_idx: int = None,
+        only_fusion: bool = True,
 ) -> None:
     w_featmap, h_featmap = image_size // patch_size, image_size // patch_size
     attentions = attentions.reshape(num_heads, w_featmap, h_featmap)
@@ -228,9 +228,9 @@ def plot_attn_probs(
         nn.functional.interpolate(
             attentions.unsqueeze(0), scale_factor=patch_size, mode="bilinear"
         )[0]
-        .cpu()
-        .detach()
-        .numpy()
+            .cpu()
+            .detach()
+            .numpy()
     )
 
     # plt.imsave(fname=Path(path, f'iter_{iteration_idx}_max_fusion.png'), arr=attentions.max(axis=0), format='png')
@@ -252,9 +252,9 @@ def plot_attn_probs(
 
 
 def get_scores(
-    scores: torch.Tensor,
-    image_size: int = config["vit"]["img_size"],
-    patch_size: int = config["vit"]["patch_size"],
+        scores: torch.Tensor,
+        image_size: int = config["vit"]["img_size"],
+        patch_size: int = config["vit"]["patch_size"],
 ) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 
@@ -267,20 +267,20 @@ def get_scores(
     scores = scores.reshape(1, w_featmap, h_featmap)
     scores = (
         nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="bilinear")[0]
-        .cpu()
-        .detach()
-        .numpy()
+            .cpu()
+            .detach()
+            .numpy()
     )
     scores_image = scores[0]
     return scores_image
 
 
 def save_saliency_map(
-    image: Tensor,
-    saliency_map: Tensor,
-    filename: Path,
-    verbose: bool = False,
-    image_size: int = 224,
+        image: Tensor,
+        saliency_map: Tensor,
+        filename: Path,
+        verbose: bool = False,
+        image_size: int = 224,
 ) -> None:
     """
     Save saliency map on image.
@@ -337,12 +337,12 @@ def visu(original_image, transformer_attribution, file_name: str):
     )
     transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
-        transformer_attribution.max() - transformer_attribution.min()
+            transformer_attribution.max() - transformer_attribution.min()
     )
     image_transformer_attribution = original_image.permute(1, 2, 0).data.cpu().numpy()
     image_transformer_attribution = (
-        image_transformer_attribution - image_transformer_attribution.min()
-    ) / (image_transformer_attribution.max() - image_transformer_attribution.min())
+                                            image_transformer_attribution - image_transformer_attribution.min()
+                                    ) / (image_transformer_attribution.max() - image_transformer_attribution.min())
     vis = show_cam_on_image(image_transformer_attribution, transformer_attribution)
     vis = np.uint8(255 * vis)
     vis = cv2.cvtColor(np.array(vis), cv2.COLOR_RGB2BGR)
@@ -375,7 +375,7 @@ def setup_model_config(model: VitModelForClassification) -> VitModelForClassific
 
 
 def get_logits_for_image(
-    model: VitModelForClassification, feature_extractor: ViTFeatureExtractor, image: Image
+        model: VitModelForClassification, feature_extractor: ViTFeatureExtractor, image: Image
 ) -> Tensor:
     inputs = feature_extractor(images=image, return_tensors="pt")
     outputs = model(
@@ -423,7 +423,7 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
 
 
 def load_feature_extractor_and_vit_model(
-    vit_config: Dict, model_type: str, is_wolf_transforms: bool = False
+        vit_config: Dict, model_type: str, is_wolf_transforms: bool = False
 ) -> Tuple[ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(
         vit_config=vit_config, is_wolf_transforms=is_wolf_transforms
@@ -440,7 +440,7 @@ def load_vit_model_by_type(vit_config: Dict, model_type: str):
 
 
 def handle_model_config_and_freezing_for_task(
-    model: VitModelForClassification, freezing_transformer: bool = True
+        model: VitModelForClassification, freezing_transformer: bool = True
 ) -> VitModelForClassification:
     model = setup_model_config(model=model)
     if freezing_transformer:
@@ -472,25 +472,25 @@ def freeze_multitask_model(
 
 
 def verify_transformer_params_not_changed(
-    vit_model: ViTForImageClassification,
-    vit_sigmoid_model: ViTSigmoidForImageClassification,
-    x_attention_param_idx: int = 5,
+        vit_model: ViTForImageClassification,
+        vit_sigmoid_model: ViTSigmoidForImageClassification,
+        x_attention_param_idx: int = 5,
 ):
     for idx, (tensor_a, tensor_b) in enumerate(
-        zip(
-            list(vit_sigmoid_model.parameters())[: x_attention_param_idx - 1],
-            list(vit_model.parameters())[: x_attention_param_idx - 1],
-        )
+            zip(
+                list(vit_sigmoid_model.parameters())[: x_attention_param_idx - 1],
+                list(vit_model.parameters())[: x_attention_param_idx - 1],
+            )
     ):
         if not torch.equal(tensor_a, tensor_b):
             print(f"Not Equal at idx {idx}")
             return False
 
     for idx, (tensor_a, tensor_b) in enumerate(
-        zip(
-            list(vit_sigmoid_model.parameters())[x_attention_param_idx:],
-            list(vit_model.parameters())[x_attention_param_idx - 1 :],
-        )
+            zip(
+                list(vit_sigmoid_model.parameters())[x_attention_param_idx:],
+                list(vit_model.parameters())[x_attention_param_idx - 1:],
+            )
     ):
         if not torch.equal(tensor_a, tensor_b):
             print(f"Not Equal at idx {idx}")
@@ -499,12 +499,12 @@ def verify_transformer_params_not_changed(
 
 
 def plot_scores(
-    scores: torch.Tensor,
-    file_name: str,
-    iteration_idx: int,
-    image_plot_folder_path: Union[str, Path],
-    image_size: int = 224,
-    patch_size: int = 16,
+        scores: torch.Tensor,
+        file_name: str,
+        iteration_idx: int,
+        image_plot_folder_path: Union[str, Path],
+        image_size: int = 224,
+        patch_size: int = 16,
 ) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 
@@ -517,9 +517,9 @@ def plot_scores(
     scores = scores.reshape(1, w_featmap, h_featmap)
     scores = (
         nn.functional.interpolate(scores.unsqueeze(0), scale_factor=patch_size, mode="nearest")[0]
-        .cpu()
-        .detach()
-        .numpy()
+            .cpu()
+            .detach()
+            .numpy()
     )
     scores_image = scores[0]
     plt.imsave(
@@ -541,19 +541,19 @@ def save_resized_original_picture(image_size, picture_path, dst_path) -> None:
 
 def check_stop_criterion(x_attention: Tensor) -> bool:
     if (
-        len(torch.where(F.sigmoid(x_attention) >= float(config["vit"]["stop_prob_criterion"]))[0])
-        == 0
+            len(torch.where(F.sigmoid(x_attention) >= float(config["vit"]["stop_prob_criterion"]))[0])
+            == 0
     ):
         return True
     return False
 
 
 def get_and_create_image_plot_folder_path(
-    images_folder_path: Path,
-    experiment_name: str,
-    image_name: str,
-    is_contrastive_run: bool = False,
-    save_image: bool = True,
+        images_folder_path: Path,
+        experiment_name: str,
+        image_name: str,
+        is_contrastive_run: bool = False,
+        save_image: bool = True,
 ) -> Path:
     """
     Also saving the original picture in the models' resolution (img_size, img_size)
@@ -591,12 +591,12 @@ def get_patches_by_discard_ratio(array: Tensor, discard_ratio: float, top: bool 
 
 
 def rollout(
-    attentions,
-    discard_ratio: float = 0,
-    start_layer=0,
-    head_fusion="max",
-    gradients=None,
-    return_resized: bool = True,
+        attentions,
+        discard_ratio: float = 0,
+        start_layer=0,
+        head_fusion="max",
+        gradients=None,
+        return_resized: bool = True,
 ):
     all_layer_attentions = []
     attn = []
@@ -636,8 +636,8 @@ def compute_rollout_attention(all_layer_matrices, start_layer=0):
     batch_size = all_layer_matrices[0].shape[0]
     eye = (
         torch.eye(num_tokens)
-        .expand(batch_size, num_tokens, num_tokens)
-        .to(all_layer_matrices[0].device)
+            .expand(batch_size, num_tokens, num_tokens)
+            .to(all_layer_matrices[0].device)
     )
     # print(eye.shape)
     all_layer_matrices = [all_layer_matrices[i] + eye for i in range(len(all_layer_matrices))]
@@ -690,12 +690,12 @@ def rollout(attentions, discard_ratio: float = 0.9, head_fusion: str = 'max', re
 
 
 def get_minimum_predictions_string(
-    image_name: str,
-    total_losses: List[float],
-    prediction_losses: List[float],
-    logits: List[float],
-    correct_class_probs: List[float],
-    k: int = 25,
+        image_name: str,
+        total_losses: List[float],
+        prediction_losses: List[float],
+        logits: List[float],
+        correct_class_probs: List[float],
+        k: int = 25,
 ) -> str:
     (
         min_pred_loss_iter,
@@ -713,11 +713,11 @@ def get_minimum_predictions_string(
 
 
 def get_best_k_values_iterations(
-    prediction_losses: List[float],
-    total_losses: List[float],
-    correct_class_probs: List[float],
-    logits: List[float],
-    k: int = 3,
+        prediction_losses: List[float],
+        total_losses: List[float],
+        correct_class_probs: List[float],
+        logits: List[float],
+        k: int = 3,
 ):
     min_pred_loss_iter = get_top_k_mimimum_values_indices(
         array=prediction_losses, k=k, is_largest=False
@@ -751,7 +751,7 @@ def convert_probability_vector_to_bernoulli_kl(p) -> Tensor:
 
 
 def compare_between_predicted_classes(
-    vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Optional[Tensor] = None
+        vit_logits: Tensor, vit_s_logits: Tensor, contrastive_class_idx: Optional[Tensor] = None
 ) -> Tuple[bool, float]:
     target_class_idx = (
         contrastive_class_idx.item()
@@ -766,12 +766,12 @@ def compare_between_predicted_classes(
 
 
 def compare_results_each_n_steps(
-    iteration_idx: int,
-    target: Tensor,
-    output: Tensor,
-    prev_x_attention: Tensor,
-    sampled_binary_patches: Tensor = None,
-    contrastive_class_idx: Tensor = None,
+        iteration_idx: int,
+        target: Tensor,
+        output: Tensor,
+        prev_x_attention: Tensor,
+        sampled_binary_patches: Tensor = None,
+        contrastive_class_idx: Tensor = None,
 ):
     target_class_idx = (
         contrastive_class_idx.item()
@@ -816,7 +816,7 @@ def save_objects(path: Path, objects_dict: Dict) -> None:
 
 
 def plot_different_visualization_methods(
-    path: Path, inputs, patch_size: int, vit_config: Dict, original_image=None
+        path: Path, inputs, patch_size: int, vit_config: Dict, original_image=None
 ) -> None:
     """
     Plotting Dino supervise, & rollout methods
@@ -874,12 +874,12 @@ def read_file(path: Path) -> str:
 
 
 def get_minimum_prediction_string_and_write_to_disk(
-    image_plot_folder_path,
-    image_name,
-    total_losses,
-    prediction_losses,
-    correct_class_logits,
-    correct_class_probs,
+        image_plot_folder_path,
+        image_name,
+        total_losses,
+        prediction_losses,
+        correct_class_logits,
+        correct_class_probs,
 ):
     minimum_predictions = get_minimum_predictions_string(
         image_name=image_name,
@@ -894,19 +894,19 @@ def get_minimum_prediction_string_and_write_to_disk(
 
 
 def visualize_attentions_and_temps(
-    cls_attentions_probs,
-    iteration_idx,
-    mean_folder,
-    median_folder,
-    max_folder,
-    min_folder,
-    original_transformed_image,
-    temp,
-    temp_tokens_mean_folder=None,
-    temp_tokens_median_folder=None,
-    temp_tokens_max_folder=None,
-    temp_tokens_min_folder=None,
-    temp_tokens_folder=None,
+        cls_attentions_probs,
+        iteration_idx,
+        mean_folder,
+        median_folder,
+        max_folder,
+        min_folder,
+        original_transformed_image,
+        temp,
+        temp_tokens_mean_folder=None,
+        temp_tokens_median_folder=None,
+        temp_tokens_max_folder=None,
+        temp_tokens_min_folder=None,
+        temp_tokens_folder=None,
 ):
     visualize_attention_scores(
         cls_attentions_probs=cls_attentions_probs,
@@ -931,14 +931,14 @@ def visualize_attentions_and_temps(
 
 
 def visualize_temp(
-    iteration_idx,
-    original_transformed_image,
-    temp,
-    temp_tokens_folder,
-    temp_tokens_max_folder=None,
-    temp_tokens_mean_folder=None,
-    temp_tokens_median_folder=None,
-    temp_tokens_min_folder=None,
+        iteration_idx,
+        original_transformed_image,
+        temp,
+        temp_tokens_folder,
+        temp_tokens_max_folder=None,
+        temp_tokens_mean_folder=None,
+        temp_tokens_median_folder=None,
+        temp_tokens_min_folder=None,
 ):
     if len(temp.shape) > 1:
         if temp_tokens_mean_folder is not None:
@@ -974,15 +974,15 @@ def visualize_temp(
 
 
 def visualize_attention_scores_with_rollout(
-    original_transformed_image,
-    cls_attentions_probs,
-    rollout_vector,
-    iteration_idx,
-    max_folder=None,
-    mean_folder=None,
-    median_folder=None,
-    min_folder=None,
-    rollout_folder=None,
+        original_transformed_image,
+        cls_attentions_probs,
+        rollout_vector,
+        iteration_idx,
+        max_folder=None,
+        mean_folder=None,
+        median_folder=None,
+        min_folder=None,
+        rollout_folder=None,
 ):
     if mean_folder is not None:
         visu(
@@ -1018,13 +1018,13 @@ def visualize_attention_scores_with_rollout(
 
 
 def visualize_attention_scores(
-    cls_attentions_probs,
-    original_transformed_image,
-    iteration_idx,
-    max_folder=None,
-    mean_folder=None,
-    median_folder=None,
-    min_folder=None,
+        cls_attentions_probs,
+        original_transformed_image,
+        iteration_idx,
+        max_folder=None,
+        mean_folder=None,
+        median_folder=None,
+        min_folder=None,
 ):
     if mean_folder is not None:
         visu(
@@ -1106,7 +1106,7 @@ def create_folders(image_plot_folder_path: Path):
 
 
 def visualize_attention_scores_by_layer_idx(
-    model, image_plot_folder_path, original_image, iteration_idx
+        model, image_plot_folder_path, original_image, iteration_idx
 ):
     attention_scores_folder = create_folder(Path(image_plot_folder_path, "attention_scores"))
     for layer_idx in range(get_num_layers(model=model)):
@@ -1126,18 +1126,18 @@ def visualize_attention_scores_by_layer_idx(
 
 
 def visualize_temp_tokens_and_attention_scores(
-    iteration_idx,
-    vit_sigmoid_model,
-    cls_attentions_probs,
-    original_transformed_image,
-    max_folder=None,
-    mean_folder=None,
-    median_folder=None,
-    min_folder=None,
-    temp_tokens_max_folder=None,
-    temp_tokens_mean_folder=None,
-    temp_tokens_median_folder=None,
-    temp_tokens_min_folder=None,
+        iteration_idx,
+        vit_sigmoid_model,
+        cls_attentions_probs,
+        original_transformed_image,
+        max_folder=None,
+        mean_folder=None,
+        median_folder=None,
+        min_folder=None,
+        temp_tokens_max_folder=None,
+        temp_tokens_mean_folder=None,
+        temp_tokens_median_folder=None,
+        temp_tokens_min_folder=None,
 ):
     # visualize_attention_scores_by_layer_idx(model=vit_sigmoid_model, image_plot_folder_path=mean_folder.parent,
     #                                         original_image=original_transformed_image, iteration_idx=iteration_idx)
@@ -1161,13 +1161,13 @@ def visualize_temp_tokens_and_attention_scores(
 
 
 def visualize_attention_scores_only(
-    iteration_idx,
-    max_folder,
-    mean_folder,
-    median_folder,
-    min_folder,
-    original_transformed_image,
-    vit_sigmoid_model,
+        iteration_idx,
+        max_folder,
+        mean_folder,
+        median_folder,
+        min_folder,
+        original_transformed_image,
+        vit_sigmoid_model,
 ):
     cls_attentions_probs = get_attention_probs_by_layer_of_the_CLS(model=vit_sigmoid_model)
     visualize_attention_scores(
@@ -1184,7 +1184,7 @@ def visualize_attention_scores_only(
 
 
 def start_run_save_files_plot_visualizations_create_folders(
-    model: nn.Module, image_plot_folder_path: Path, inputs, run, original_image=None
+        model: nn.Module, image_plot_folder_path: Path, inputs, run, original_image=None
 ):
     print_number_of_trainable_and_not_trainable_params(model=model)
     if run is not None:
@@ -1223,18 +1223,18 @@ def start_run_save_files_plot_visualizations_create_folders(
 
 
 def end_iteration(
-    correct_class_logits,
-    correct_class_probs,
-    image_name,
-    image_plot_folder_path,
-    iteration_idx,
-    objects_path,
-    prediction_losses,
-    tokens_mask,
-    total_losses,
-    temps,
-    vit_sigmoid_model,
-    gradients=None,
+        correct_class_logits,
+        correct_class_probs,
+        image_name,
+        image_plot_folder_path,
+        iteration_idx,
+        objects_path,
+        prediction_losses,
+        tokens_mask,
+        total_losses,
+        temps,
+        vit_sigmoid_model,
+        gradients=None,
 ):
     if is_iteration_to_action(iteration_idx=iteration_idx, action="save"):
         objects_dict = {
@@ -1270,7 +1270,7 @@ def get_iteration_target_class_stats(output, target_class_idx: Tensor):
     correct_class_logit = output.logits[0][target_class_idx].item()
     correct_class_prob = F.softmax(output.logits[0], dim=-1)[target_class_idx].item()
     prediction_loss = (
-        ce_loss(output.logits, target_class_idx.unsqueeze(0)) * loss_config["pred_loss_multiplier"]
+            ce_loss(output.logits, target_class_idx.unsqueeze(0)) * loss_config["pred_loss_multiplier"]
     )
     return correct_class_logit, correct_class_prob, prediction_loss
 
@@ -1280,9 +1280,9 @@ def is_iteration_to_action(iteration_idx: int, action: str = "print") -> bool:
     :param action: 'print' / 'save'
     """
     is_iter_to_action = (
-        iteration_idx > 0
-        and iteration_idx % vit_config[f"{action}_every"] == 0
-        or iteration_idx == vit_config["num_steps"] - 1
+            iteration_idx > 0
+            and iteration_idx % vit_config[f"{action}_every"] == 0
+            or iteration_idx == vit_config["num_steps"] - 1
     )
     if action == "print":
         return vit_config["verbose"] and is_iter_to_action
@@ -1290,10 +1290,10 @@ def is_iteration_to_action(iteration_idx: int, action: str = "print") -> bool:
 
 
 def get_image_and_inputs_and_transformed_image(
-    feature_extractor: ViTFeatureExtractor,
-    image_name: str = None,
-    image=None,
-    is_wolf_transforms: bool = False,
+        feature_extractor: ViTFeatureExtractor,
+        image_name: str = None,
+        image=None,
+        is_wolf_transforms: bool = False,
 ):
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
@@ -1315,7 +1315,7 @@ def setup_model_and_optimizer(model_name: str):
 
 
 def get_warmup_steps_and_total_training_steps(
-    n_epochs: int, train_samples_length: int, batch_size: int
+        n_epochs: int, train_samples_length: int, batch_size: int
 ) -> Tuple[int, int]:
     steps_per_epoch = train_samples_length // batch_size
     total_training_steps = steps_per_epoch * n_epochs
