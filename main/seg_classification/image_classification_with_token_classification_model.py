@@ -283,8 +283,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())
-            ):
+                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
