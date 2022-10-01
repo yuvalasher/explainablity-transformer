@@ -1,4 +1,5 @@
 import os
+
 from typing import Tuple, Any
 
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
@@ -6,11 +7,12 @@ from main.seg_classification.image_classification_with_token_classification_mode
 from main.seg_classification.image_token_data_module_opt import ImageSegOptDataModule
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import torch
 from config import config
 import numpy as np
 
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 from icecream import ic
 
 from utils import remove_old_results_dfs
@@ -47,9 +49,9 @@ import torch
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 
-if torch.cuda.is_available():
-    print(torch.cuda.current_device())
-    torch.cuda.empty_cache()
+# if torch.cuda.is_available():
+#     print(torch.cuda.current_device())
+#     torch.cuda.empty_cache()
 
 seed_everything(config["general"]["seed"])
 import gc
