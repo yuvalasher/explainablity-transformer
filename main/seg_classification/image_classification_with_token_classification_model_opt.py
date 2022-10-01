@@ -84,7 +84,7 @@ class LossLoss:
         self.mask_loss = loss_config["mask_loss"]
         self.prediction_loss_mul = loss_multipliers["prediction_loss_mul"]
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
-        print(f"loss multipliers: {self.mask_loss_mul}; self.prediction_loss_mul")
+        print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
     def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor) -> LossLossOutput:
         """
