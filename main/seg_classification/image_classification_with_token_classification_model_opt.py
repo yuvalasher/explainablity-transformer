@@ -206,7 +206,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 stage="train_step",
                 epoch_idx=self.current_epoch,
             )
-            print(f'Basemodel - AUC: {round(auc, 3)} !')
+            # print(f'Basemodel - AUC: {round(auc, 3)} !')
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
@@ -359,7 +359,6 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         """
         n_batches = n_batches if n_batches is not None else len(outputs)
         epoch_path = Path(self.plot_path, stage, f"epoch_{str(epoch_idx)}")
-        # print(epoch_path)
         if not epoch_path.exists():
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
