@@ -66,7 +66,10 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-EXP_NAME = 'ft_3000'
+EXP_NAME = 'ft_50000'
+# BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
+# BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+
 BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
 BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
@@ -110,10 +113,9 @@ def load_pickles_and_calculate_auc(path):
     return np.mean(aucs)
 
 
-
-# BASE_MODEL_BEST_AUC_PLOT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/verify_base_model/opt_objects_plot"  # TODO - change base_model
 CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-DIRECT_PATH = IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
+# DIRECT_PATH = IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
+DIRECT_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
 # DIRECT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/problematic_opt_img"
 # DIRECT_PATH = "/home/yuvalas/explainability/data/random/bells"
 model = OptImageClassificationWithTokenClassificationModel(
@@ -154,9 +156,9 @@ WANDB_PROJECT = "run_seg_cls_4"
 
 if __name__ == '__main__':
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
-    print(os.listdir(DIRECT_PATH))
+    # print(os.listdir(DIRECT_PATH))
     start_time = dt.now()
-    for image_path in list(Path(DIRECT_PATH).iterdir())[:3000]:  # TODO - increase
+    for image_path in list(Path(DIRECT_PATH).iterdir()):
         print(f"Image name: {image_path}")
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,
