@@ -2,13 +2,14 @@ import argparse
 import torch
 import numpy as np
 from numpy import *
+device = torch.device(type='cuda', index=0)
 
 # compute rollout between attention layers
 def compute_rollout_attention(all_layer_matrices, start_layer=0):
     # adding residual consideration- code adapted from https://github.com/samiraabnar/attention_flow
     num_tokens = all_layer_matrices[0].shape[1]
     batch_size = all_layer_matrices[0].shape[0]
-    eye = torch.eye(num_tokens).expand(batch_size, num_tokens, num_tokens).to(all_layer_matrices[0].device)
+    eye = torch.eye(num_tokens).expand(batch_size, num_tokens, num_tokens).to(device)#to(all_layer_matrices[0].device)
     all_layer_matrices = [all_layer_matrices[i] + eye for i in range(len(all_layer_matrices))]
     matrices_aug = [all_layer_matrices[i] / all_layer_matrices[i].sum(dim=-1, keepdim=True)
                           for i in range(len(all_layer_matrices))]
@@ -27,18 +28,21 @@ class LRP:
         kwargs = {"alpha": 1}
         if index == None:
             index = np.argmax(output.cpu().data.numpy(), axis=-1)
-
         one_hot = np.zeros((1, output.size()[-1]), dtype=np.float32)
         one_hot[0, index] = 1
         one_hot_vector = one_hot
         one_hot = torch.from_numpy(one_hot).requires_grad_(True)
-        one_hot = torch.sum(one_hot.cuda() * output)
+        # print(f"output.device: {output.device}, one_hot.device: {one_hot.device}, one_hot.to(device): {one_hot.to(device).device}")
+        # one_hot = torch.sum(one_hot.cuda() * output)
+        one_hot = torch.sum(one_hot.to(device) * output)
 
         self.model.zero_grad()
         one_hot.backward(retain_graph=True)
 
-        return self.model.relprop(torch.tensor(one_hot_vector).to(input.device), method=method, is_ablation=is_ablation,
+        return self.model.relprop(torch.tensor(one_hot_vector).to(device), method=method, is_ablation=is_ablation,
                                   start_layer=start_layer, **kwargs)
+        # return self.model.relprop(torch.tensor(one_hot_vector).to(input.device), method=method, is_ablation=is_ablation,
+        #                           start_layer=start_layer, **kwargs)
 
 
 
@@ -48,14 +52,16 @@ class Baselines:
         self.model.eval()
 
     def generate_cam_attn(self, input, index=None):
-        output = self.model(input.cuda(), register_hook=True)
+        # output = self.model(input.cuda(), register_hook=True)
+        output = self.model(input.to(device), register_hook=True)
         if index == None:
             index = np.argmax(output.cpu().data.numpy())
 
         one_hot = np.zeros((1, output.size()[-1]), dtype=np.float32)
         one_hot[0][index] = 1
         one_hot = torch.from_numpy(one_hot).requires_grad_(True)
-        one_hot = torch.sum(one_hot.cuda() * output)
+        one_hot = torch.sum(one_hot.to(device) * output)
+        # one_hot = torch.sum(one_hot.cuda() * output)
 
         self.model.zero_grad()
         one_hot.backward(retain_graph=True)

@@ -23,6 +23,7 @@ class ImageNetDataset(Dataset):
 
         n_samples = n_samples if n_samples > 0 else len(self.listdir)
         self.images_name = self.listdir[:n_samples]
+        print(self.images_name[:10])
         print(f"After filter images: {len(self.images_name)}")
         # print(self.images_name)
 
