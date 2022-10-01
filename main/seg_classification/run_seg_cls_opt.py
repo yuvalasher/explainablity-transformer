@@ -178,7 +178,8 @@ if __name__ == '__main__':
             max_epochs=vit_config["n_epochs"],
             # devices=[1,2,3],
             resume_from_checkpoint=CKPT_PATH,
-            progress_bar_refresh_rate=30,
+            enable_progress_bar=False,
+            # progress_bar_refresh_rate=30,
             enable_checkpointing=False,
             default_root_dir=vit_config["default_root_dir"],
         )
