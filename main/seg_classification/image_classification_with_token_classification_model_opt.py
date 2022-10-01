@@ -222,7 +222,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           epoch_idx=self.current_epoch,
                                           )
 
-            self.visualize_images_by_outputs(outputs=outputs)
+            # self.visualize_images_by_outputs(outputs=outputs)
             if auc < AUC_STOP_VALUE:
                 self.trainer.should_stop = True
 
