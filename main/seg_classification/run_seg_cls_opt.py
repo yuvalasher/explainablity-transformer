@@ -92,8 +92,6 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     batch_size=vit_config["batch_size"],
 )
 
-import pickle
-
 
 def load_obj(path) -> Any:
     with open(Path(path), 'rb') as f:
@@ -112,7 +110,6 @@ def load_pickles_and_calculate_auc(path):
     return np.mean(aucs)
 
 
-from datetime import datetime as dt
 
 # BASE_MODEL_BEST_AUC_PLOT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/verify_base_model/opt_objects_plot"  # TODO - change base_model
 CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
