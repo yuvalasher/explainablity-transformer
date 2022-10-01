@@ -115,10 +115,6 @@ def load_pickles_and_calculate_auc(path):
 
 
 CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-# DIRECT_PATH = IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
-DIRECT_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
-# DIRECT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/problematic_opt_img"
-# DIRECT_PATH = "/home/yuvalas/explainability/data/random/bells"
 model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
@@ -154,6 +150,7 @@ WANDB_PROJECT = "run_seg_cls_4"
 # run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
 # wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 
+DIRECT_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
 
 if __name__ == '__main__':
     print(f"Total Images in path: {len(os.listdir(DIRECT_PATH))}")
