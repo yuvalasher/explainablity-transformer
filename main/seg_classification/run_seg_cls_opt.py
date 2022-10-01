@@ -63,8 +63,15 @@ loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
-BEST_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'],
-                             'opt_objects')  # /home/yuvalas/explainability/research/experiments/seg_cls/opt_objects
+CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
+
+BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
+    'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
+EXP_NAME = 'ft_3000'
+BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
+BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
+os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
+os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -89,7 +96,7 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 import pickle
 
 
-def load_obj(path: str) -> Any:
+def load_obj(path) -> Any:
     with open(Path(path), 'rb') as f:
         return pickle.load(f)
 
@@ -98,20 +105,21 @@ def load_pickles_and_calculate_auc(path):
     aucs = []
     for pkl_path in list(Path(path).iterdir()):
         # print(pkl_path)
-        auc = load_obj(pkl_path)['auc']
+        loaded_obj = load_obj(pkl_path)
+        auc = loaded_obj['auc']
         aucs.append(auc)
-    print(aucs)
+    print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     return np.mean(aucs)
 
-from datetime import datetime as dt
-start_time = dt.now()
-CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
-BEST_AUC_PLOT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/opt_objects_plot"
-CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-# DIRECT_PATH = IMAGENET_TEST_IMAGES_FOLDER_PATH
-DIRECT_PATH = "/home/yuvalas/explainability/data/random/bells"
 
+from datetime import datetime as dt
+
+# BASE_MODEL_BEST_AUC_PLOT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/verify_base_model/opt_objects_plot"  # TODO - change base_model
+CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
+DIRECT_PATH = IMAGENET_TEST_IMAGES_ES_FOLDER_PATH
+# DIRECT_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/problematic_opt_img"
+# DIRECT_PATH = "/home/yuvalas/explainability/data/random/bells"
 model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
@@ -149,7 +157,10 @@ WANDB_PROJECT = "run_seg_cls_4"
 
 
 if __name__ == '__main__':
-    for image_path in list(Path(DIRECT_PATH).iterdir())[:500]:
+    ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
+    print(os.listdir(DIRECT_PATH))
+    start_time = dt.now()
+    for image_path in list(Path(DIRECT_PATH).iterdir())[:3000]:  # TODO - increase
         print(f"Image name: {image_path}")
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,
@@ -162,22 +173,18 @@ if __name__ == '__main__':
             # logger=[wandb_logger],
             logger=[],
             accelerator='gpu',
-            auto_select_gpus=True,
+            gpus=1,
+            devices=[1, 2],
+            num_sanity_val_steps=0,
+            check_val_every_n_epoch=100,
             max_epochs=vit_config["n_epochs"],
-            gpus=vit_config["gpus"],
+            # devices=[1,2,3],
             resume_from_checkpoint=CKPT_PATH,
             progress_bar_refresh_rate=30,
             enable_checkpointing=False,
             default_root_dir=vit_config["default_root_dir"],
         )
         trainer.fit(model=model, datamodule=data_module)
-
-    print('Finish')
-    # remove files form directory
-    # calculate auc from saved pickles
-    """
-    mean_auc = load_pickles_and_calculate_auc(
-        path="/home/yuvalas/explainability/research/experiments/seg_cls/opt_objects")
-    print(f"Mean AUC: {mean_auc}")
     print(f"Time diff: {dt.now() - start_time}")
-    """
+    mean_auc = load_pickles_and_calculate_auc(path=BEST_AUC_OBJECTS_PATH)
+    print(f"Mean AUC: {mean_auc}")
