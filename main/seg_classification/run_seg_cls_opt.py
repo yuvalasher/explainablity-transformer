@@ -103,12 +103,13 @@ def load_obj(path) -> Any:
 
 def load_pickles_and_calculate_auc(path):
     aucs = []
-    for pkl_path in list(Path(path).iterdir()):
+    listdir = sorted(list(Path(path).iterdir()))
+    for pkl_path in listdir:
         # print(pkl_path)
         loaded_obj = load_obj(pkl_path)
         auc = loaded_obj['auc']
         aucs.append(auc)
-    print(f'AUCS: {aucs}')
+    # print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     return np.mean(aucs)
 
