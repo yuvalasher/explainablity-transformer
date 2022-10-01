@@ -14,14 +14,12 @@ import numpy as np
 
 # device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 from icecream import ic
-
+import pickle
+from datetime import datetime as dt
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
-
 from pathlib import Path
-
 import wandb
-
 from main.seg_classification.image_classification_with_token_classification_model import (
     ImageClassificationWithTokenClassificationModel,
 )
@@ -44,7 +42,6 @@ from transformers import AutoModel, ViTForImageClassification
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
-import torch
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
@@ -55,7 +52,7 @@ loss_config = vit_config["seg_cls"]["loss"]
 
 seed_everything(config["general"]["seed"])
 import gc
-import torch
+
 from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
