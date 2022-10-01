@@ -74,6 +74,7 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
     outputs: List[Dict[str, Tensor]] = []
     for batch_idx, (data, target) in enumerate(tqdm(dataloader)):
         # target = target.to(device)
+        original_image = data.clone()
         data = normalize(data)
         data = data.to(device)
         data.requires_grad_()
@@ -89,7 +90,7 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
             # ic(data.device, Res.device, Res_patches.device)
             # target = target.cpu()
             # ic(target.device)
-        outputs.append({'image_resized': data, 'image_mask': Res, 'patches_mask': Res_patches})
+        outputs.append({'image_resized': original_image, 'image_mask': Res, 'patches_mask': Res_patches})
     return outputs
 
 
