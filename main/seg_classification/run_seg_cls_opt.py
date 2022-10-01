@@ -155,10 +155,11 @@ WANDB_PROJECT = "run_seg_cls_4"
 
 
 if __name__ == '__main__':
+    print(f"Total Images in path: {len(os.listdir(DIRECT_PATH))}")
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
-    # print(os.listdir(DIRECT_PATH))
     start_time = dt.now()
-    for image_path in list(Path(DIRECT_PATH).iterdir()):
+    listdir = sorted(list(Path(DIRECT_PATH).iterdir()))
+    for image_path in listdir:
         print(f"Image name: {image_path}")
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,

@@ -18,7 +18,7 @@ class ImageNetDataset(Dataset):
     def __init__(self, root_dir, n_samples: int, transform=None):
         self.root_dir = root_dir
         self.transform = transform
-        self.listdir = os.listdir(root_dir)
+        self.listdir = sorted(os.listdir(root_dir))
         self.targets = list(range(len(self.listdir)))
 
         n_samples = n_samples if n_samples > 0 else len(self.listdir)
