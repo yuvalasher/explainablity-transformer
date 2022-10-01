@@ -180,7 +180,6 @@ if __name__ == '__main__':
             # devices=[1,2,3],
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
-            # progress_bar_refresh_rate=30,
             enable_checkpointing=False,
             default_root_dir=vit_config["default_root_dir"],
         )
