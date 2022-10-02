@@ -58,13 +58,14 @@ vit:
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
   seg_cls:
-    train_n_samples: 6000
-    val_n_samples: 2000
+    train_n_samples: 12000
+    val_n_samples: 150
     test_n_samples: 2000
     loss:
       mask_loss: l1 # bce
       prediction_loss_mul: 1
-      mask_loss_mul: 10
+      mask_loss_mul: 80
+      normalize: False
     earlystopping:
       min_delta: 0.0001
       patience: 3
