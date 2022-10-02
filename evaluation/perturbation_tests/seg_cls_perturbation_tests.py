@@ -130,7 +130,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
 
             model_index += len(target)
             perturb_index += len(target)
-    print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')
+    # print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')
     auc = get_auc(num_correct_pertub=num_correct_pertub)
     # save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
     #              dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
@@ -150,7 +150,7 @@ def get_auc(num_correct_pertub):
     mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0,
                                       1)  # TODO - accuracy for class. Now its top-class (predicted)
     auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
-    print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
+    # print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
     return auc
 
 
@@ -165,7 +165,7 @@ def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, n
     # print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
     # print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
     # print(f'Perturbation Steps: {perturbation_steps}')
-    print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')  # , std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
+    # print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')  # , std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
     # print(
     #     f'Mean dissimilarity_pertub : {np.mean(dissimilarity_pertub, axis=1)}, std dissimilarity_pertub {np.std(dissimilarity_pertub, axis=1)}')
 
@@ -241,7 +241,7 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experi
     model.to(device)
     model.eval()
     for vis_type in VIS_TYPES:
-        print(vis_type)
+        # print(vis_type)
         vit_type_experiment_path = Path(experiment_path, vis_type)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
                                      outputs=outputs)

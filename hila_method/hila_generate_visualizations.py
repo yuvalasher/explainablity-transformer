@@ -1,3 +1,4 @@
+from icecream import ic
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test
@@ -7,15 +8,16 @@ from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
 from vit_loader.load_vit import load_vit_pretrained
 
+device = torch.device(type='cuda', index=0)
 cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
+torch.cuda.empty_cache()
 from torchvision.transforms import transforms
 from pytorch_lightning import seed_everything
 from config import config
 
 seed_everything(config["general"]["seed"])
 import numpy as np
-import torch
+# import torch
 from torch import Tensor
 import cv2
 import matplotlib.pyplot as plt
@@ -62,8 +64,8 @@ def visu(original_image, transformer_attribution, file_name: str):
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
-    mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
-    std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+    mean = torch.as_tensor(mean, dtype=dtype)  # , device=tensor.device)
+    std = torch.as_tensor(std, dtype=dtype)  # , device=tensor.device)
     tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
     return tensor
 
@@ -72,16 +74,23 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
     outputs: List[Dict[str, Tensor]] = []
     for batch_idx, (data, target) in enumerate(tqdm(dataloader)):
         # target = target.to(device)
+        original_image = data.clone()
         data = normalize(data)
         data = data.to(device)
         data.requires_grad_()
-        Res_patches = lrp.generate_LRP(data, start_layer=1, method="grad", index=None).reshape(data.shape[0], 1, 14, 14)
-        Res = torch.nn.functional.interpolate(Res_patches, scale_factor=16, mode='bilinear').cuda()
-        Res = (Res - Res.min()) / (Res.max() - Res.min())  # TODO - check if should do it on ours!
-        # Res_np = Res.data.cpu().numpy()
-        data = data.cpu()
-        Res = Res.data.cpu()
-        outputs.append({'image_resized': data, 'image_mask': Res, 'patches_mask': Res_patches})
+        Res_patches = lrp.generate_LRP(data, start_layer=1, method="grad", index=None).reshape(data.shape[0], 1, 14,
+                                                                                               14)
+        with torch.no_grad():
+            Res = torch.nn.functional.interpolate(Res_patches, scale_factor=16, mode='bilinear').cpu()  # .cuda()
+            Res = (Res - Res.min()) / (Res.max() - Res.min())
+            # Res_np = Res.data.cpu().numpy()
+            data = data.cpu()
+            # Res = Res.data.cpu()
+            Res_patches = Res_patches.cpu()
+            # ic(data.device, Res.device, Res_patches.device)
+            # target = target.cpu()
+            # ic(target.device)
+        outputs.append({'image_resized': original_image, 'image_mask': Res, 'patches_mask': Res_patches})
     return outputs
 
 
@@ -98,11 +107,10 @@ def visualize_outputs(outputs):
 
 
 if __name__ == '__main__':
-    # IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
-    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_sampled'
+    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
-    model_LRP = vit_LRP(pretrained=True).cuda()
+    model_LRP = vit_LRP(pretrained=True).to(device)  # .cuda()
     model_LRP.eval()
     lrp = LRP(model_LRP)
     transform = transforms.Compose([
