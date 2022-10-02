@@ -68,7 +68,7 @@ def statistics_run_time(path):
         f"N_samples: {n_samples_already_run}; Avg. seconds per image: {avg_seconds_per_image}; Expected run time (days): {expected_run_time_days}; Data: {expected_datetime}")
 
 if __name__ == '__main__':
-    n_samples = 16700
+    n_samples = 18100
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_3000/opt_objects"
     # BASE_MODEL_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_3000/base_model/opt_objects"
     # calculate_stats_base_and_opt(n_samples=n_samples, base_path=BASE_MODEL_PKL_PATH, opt_path=OPTIMIZATION_PKL_PATH)
