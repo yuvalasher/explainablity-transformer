@@ -288,7 +288,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["original_image"]
+            self.best_auc_image = outputs[0]["image_resized"]
 
             save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
                                           auc=auc,
