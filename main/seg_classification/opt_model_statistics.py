@@ -60,7 +60,7 @@ def statistics_run_time(path):
 
     n_samples_already_run = len(os.listdir(path))
     start_time = dt(2022, 10, 1, 21, 15)
-    avg_seconds_per_image = (dt.now() - start_time).seconds / n_samples_already_run
+    avg_seconds_per_image = (dt.now() - start_time).total_seconds() / n_samples_already_run
     expected_run_time_hours = (avg_seconds_per_image * 50000) / 3600
     expected_run_time_days = expected_run_time_hours / 24
     expected_datetime = start_time + datetime.timedelta(hours=expected_run_time_hours)
