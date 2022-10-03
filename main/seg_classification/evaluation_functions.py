@@ -12,9 +12,8 @@ from config import config
 from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
-
 from utils import get_gt_classes
-from utils.consts import GT_VALIDATION_PATH_LABELS
+from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
 from vit_loader.load_vit import load_vit_pretrained
 
 seed_everything(config['general']['seed'])
@@ -180,7 +179,6 @@ def show_mask(mask):  # [1, 1, 224, 224]
 
 if __name__ == '__main__':
     device = torch.device('cuda', index=1)
-    IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
     IS_CLAMP_BETWEEN_0_TO_1 = False
     IS_COMPARED_BY_TARGET = True
