@@ -4,7 +4,6 @@ from PIL import Image
 from pathlib import WindowsPath, Path
 import pickle
 from typing import Union, Dict, List
-
 from torchvision.transforms import transforms
 from tqdm import tqdm
 from transformers import ViTForImageClassification
@@ -12,12 +11,19 @@ from config import config
 from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
 from utils import get_gt_classes
 from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
 from vit_loader.load_vit import load_vit_pretrained
+import torch
+from enum import Enum
 
 seed_everything(config['general']['seed'])
-import torch
+
+
+class VisClass(Enum):
+    TOP = 'TOP'
+    TARGET = 'TARGET'
 
 
 def get_probability_by_logits(logits):
@@ -81,14 +87,14 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
                 percentage_increase_in_confidence_indicators=percentage_increase_in_confidence_indicators)
 
 
-def infer(vit_for_image_classification: ViTForImageClassification,
-          images_and_masks: List[Dict],
-          gt_classes_list: List[int],
-          is_compared_by_target: bool = False,
-          is_clamp_between_0_to_1: bool = False,
-          ):
-    adp_values = []
-    pic_values = []
+def infer_adp_and_pic(vit_for_image_classification: ViTForImageClassification,
+                      images_and_masks: List[Dict],
+                      gt_classes_list: List[int],
+                      ADP_PIC_config: Dict[str, bool],
+                      ):
+    adp_values, pic_values = [], []
+    is_compared_by_target: bool = ADP_PIC_config["IS_COMPARED_BY_TARGET"]
+    is_clamp_between_0_to_1: bool = ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]
     for image_idx, image_and_mask in enumerate(images_and_masks):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
@@ -177,26 +183,48 @@ def show_mask(mask):  # [1, 1, 224, 224]
     plt.show()
 
 
+def run_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classification,
+                           perturbation_config: Dict[str, bool], gt_classes_list: List[int]):
+    """
+    :param config: contains the configuration of the perturbation test:
+        * neg: True / False
+        * vis_class: TARGET / TOP (predicted top-1)
+    """
+    aucs = []
+    for image_and_mask in images_and_masks[1:3]:
+        image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
+        outputs = [{'image_resized': image, 'image_mask': mask}]
+        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs)
+
+
 if __name__ == '__main__':
     device = torch.device('cuda', index=1)
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
-    IS_CLAMP_BETWEEN_0_TO_1 = False
-    IS_COMPARED_BY_TARGET = True
-    print(
-        f'Evaluation Params: IS_COMPARED_BY_TARGET: {IS_COMPARED_BY_TARGET}, IS_CLAMP_BETWEEN_0_TO_1: {IS_CLAMP_BETWEEN_0_TO_1}')
 
-    # assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
-    # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
-    # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
-    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-    images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                                               mask_path=OPTIMIZATION_PKL_PATH, device=device)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
-    evaluation_metrics = infer(vit_for_image_classification=vit_for_image_classification,
-                               images_and_masks=images_and_masks,
-                               gt_classes_list=gt_classes_list, is_clamp_between_0_to_1=IS_CLAMP_BETWEEN_0_TO_1,
-                               is_compared_by_target=IS_COMPARED_BY_TARGET)
+    images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                                               mask_path=OPTIMIZATION_PKL_PATH, device=device)
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+    """
+    # Perturbation tests
+    perturbation_config = {'vis_class': VisClass.TARGET, 'is_neg': False}
+    run_perturbation_tests(images_and_masks=images_and_masks, vit_for_image_classification=vit_for_image_classification,
+                           perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
 
+    """
+    # ADP & PIC metrics
+    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': False, 'IS_COMPARED_BY_TARGET': True}
+    print(
+        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
+
+    evaluation_metrics = infer_adp_and_pic(vit_for_image_classification=vit_for_image_classification,
+                                           images_and_masks=images_and_masks,
+                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
     print(
         f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%')
+    """
+    assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
+    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
+    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
+    """
