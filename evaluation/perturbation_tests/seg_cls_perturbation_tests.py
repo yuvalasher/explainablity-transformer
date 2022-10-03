@@ -24,8 +24,10 @@ from config import config
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
+# cuda = torch.cuda.is_available()
+# device = torch.device("cuda" if cuda else "cpu")
+device = torch.device('cuda', index=1)
+
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
@@ -35,7 +37,8 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
+def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_type: str = "POS",
+                           vis_class: str = "TOP", target_class: int = None) -> float:
     num_samples = 0
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
@@ -71,8 +74,17 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
             # second_probs = probs.data.topk(2, dim=1)[0][:, 1]
             # temp = torch.log(target_probs / second_probs).data.cpu().numpy()
             # dissimilarity_model[model_index:model_index + len(temp)] = temp
-            target = torch.tensor([torch.argmax(probs).item()]).to(device)
-            pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
+            if vis_class == "TARGET":
+                if target_class is not None:
+                    target = torch.tensor([target_class])
+                else:
+                    raise (f"vis_class can't be {vis_class} and target_class be {target_class}")
+            elif vis_class == "TOP":
+                target = torch.tensor([torch.argmax(probs).item()])
+            else:
+                raise (f"vis_class can't be {vis_class}")
+            target = target.to(device)
+            pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics( #TODO - verify
                 model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
             if vit_config['verbose']:
                 print(
@@ -81,12 +93,12 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
             # Save original shape
             org_shape = data.shape
 
-            if evaluation_config['perturbation_type'] == 'neg':
+            if perturbation_type == 'NEG':
                 vis = -vis
-            elif evaluation_config['perturbation_type'] == 'pos':
+            elif perturbation_type == 'POS':
                 vis = vis
             else:
-                raise (NotImplementedError(f'perturbation_type config {vit_config["perturbation_type"]} not exists'))
+                raise (NotImplementedError(f'perturbation_type config {perturbation_type} not exists'))
 
             vis = vis.reshape(org_shape[0], -1)
 
@@ -131,7 +143,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
             model_index += len(target)
             perturb_index += len(target)
     # print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')
-    auc = get_auc(num_correct_pertub=num_correct_pertub)
+    auc = get_auc(num_correct_pertub=num_correct_pertub, num_correct_model=num_correct_model)
     # save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
     #              dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
     #              dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
@@ -140,15 +152,16 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
     return auc
 
 
-def get_auc(num_correct_pertub):
+def get_auc(num_correct_pertub, num_correct_model):
     """
     num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
     Each cell represents if the prediction at that step is the right prediction (0 / 1) and average of the images axis to
     get the number of average correct prediction at each perturbation step and then trapz integral (auc) to get final val
     """
     mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
-    mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0,
-                                      1)  # TODO - accuracy for class. Now its top-class (predicted)
+    # mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0,
+    #                                   1)  # TODO - accuracy for class. Now its top-class (predicted)
+    mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, np.mean(num_correct_model))
     auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
     # print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
     return auc
