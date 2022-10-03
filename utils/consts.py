@@ -25,3 +25,4 @@ IMAGES_LABELS_GT_PATH = Path(DATA_PATH, config['general']['images_gt_filename'])
 PICKLES_FOLDER_PATH: Path = Path(ROOT_DIR, 'pickles').resolve()
 EXPERIMENTS_FOLDER_PATH: Path = Path(ROOT_DIR, 'research', 'experiments').resolve()
 EVALUATION_FOLDER_PATH: Path = Path(ROOT_DIR, 'evaluation').resolve()
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
