@@ -193,14 +193,14 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["original_transformed_image"]
         image_resized = batch["image"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
             output = self.forward(inputs)
             images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
+            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "resized_and_normalized_image": resized_and_normalized_image,
                         "patches_mask": output.tokens_mask}]
             auc = run_perturbation_test_opt(
                 model=self.vit_for_classification_image,
@@ -236,7 +236,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -244,7 +244,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
         output = self.forward(inputs)
 
@@ -255,7 +255,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -307,7 +307,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.trainer.should_stop = True
 
     def visualize_images_by_outputs(self, outputs):
-        image = outputs[0]["original_image"].detach().cpu()
+        image = outputs[0]["resized_and_normalized_image"].detach().cpu()
         mask = outputs[0]["patches_mask"].detach().cpu()
         image = image if len(image.shape) == 3 else image.squeeze(0)
         mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
@@ -369,7 +369,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
+                    zip(output["resized_and_normalized_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
