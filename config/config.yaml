@@ -44,8 +44,8 @@ vit:
   batch_size: 32
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
-  start_epoch_to_evaluate: 2
-  n_batches_to_visualize: 5
+  start_epoch_to_evaluate: 1
+  n_batches_to_visualize: 2
   n_epochs: 30
   lr: 2.0e-3
   num_steps: 180
@@ -59,8 +59,8 @@ vit:
   is_wolf_transforms: False
   seg_cls:
     train_n_samples: 6000
-    val_n_samples: 2000
-    test_n_samples: 2000
+    val_n_samples: 128
+    test_n_samples: 1
     loss:
       normalize: False
       mask_loss: l1 # bce
