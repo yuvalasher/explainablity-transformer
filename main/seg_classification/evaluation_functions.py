@@ -12,6 +12,9 @@ from config import config
 from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
+
+from utils import get_gt_classes
+from utils.consts import GT_VALIDATION_PATH_LABELS
 from vit_loader.load_vit import load_vit_pretrained
 
 seed_everything(config['general']['seed'])
@@ -48,13 +51,25 @@ def get_probability_and_class_idx_by_index(logits, index: int) -> Dict[str, Unio
                 predicted_probability_by_idx=predicted_probability_by_idx)
 
 
-def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassification, inputs, inputs_scatter):
-    full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
-        vit_for_image_classification(inputs).logits, index=0)
+def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassification,
+                           inputs,
+                           inputs_scatter,
+                           gt_class: int,
+                           is_compared_by_target: bool):
+    if is_compared_by_target:
+        full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
+            vit_for_image_classification(inputs).logits, index=gt_class)
+        saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
+            vit_for_image_classification(inputs_scatter).logits,
+            index=gt_class)
 
-    saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
-        vit_for_image_classification(inputs_scatter).logits,
-        index=full_image_probability_and_class_idx_by_index["predicted_class_by_idx"])
+    else:
+        full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
+            vit_for_image_classification(inputs).logits, index=0)
+
+        saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
+            vit_for_image_classification(inputs_scatter).logits,
+            index=full_image_probability_and_class_idx_by_index["predicted_class_by_idx"])
 
     avg_drop_percentage = calculate_avg_drop_percentage(
         full_image_confidence=full_image_probability_and_class_idx_by_index["predicted_probability_by_idx"],
@@ -67,34 +82,36 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
                 percentage_increase_in_confidence_indicators=percentage_increase_in_confidence_indicators)
 
 
-def infer(vit_for_image_classification: ViTForImageClassification, images_and_masks: List[Dict],
-          is_clamp_between_0_to_1: bool = False):
+def infer(vit_for_image_classification: ViTForImageClassification,
+          images_and_masks: List[Dict],
+          gt_classes_list: List[int],
+          is_compared_by_target: bool = False,
+          is_clamp_between_0_to_1: bool = False,
+          ):
     adp_values = []
     pic_values = []
-    for image_and_mask in images_and_masks:
+    for image_idx, image_and_mask in enumerate(images_and_masks):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-        plot_image(image)
-        show_mask(mask)
+        # plot_image(image)
+        # show_mask(mask)
         norm_original_image = normalize(image.clone())
-        plot_image(norm_original_image)
+        # plot_image(norm_original_image)
         norm_mask = normalize_mask_values(mask=mask, clamp_between_0_to_1=is_clamp_between_0_to_1)
-        show_mask(norm_mask)
+        # show_mask(norm_mask)
         scattered_image = scatter_image_by_mask(image=image, mask=norm_mask)  # TODO
-        plot_image(scattered_image)
+        # plot_image(scattered_image)
         norm_scattered_image = normalize(scattered_image)
-        plot_image(norm_scattered_image)
+        # plot_image(norm_scattered_image)
         metrics = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
                                          inputs=norm_original_image,
-                                         inputs_scatter=norm_scattered_image)
+                                         inputs_scatter=norm_scattered_image,
+                                         gt_class=gt_classes_list[image_idx],
+                                         is_compared_by_target=is_compared_by_target)
         adp_values.append(metrics["avg_drop_percentage"])
         pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
 
     percentage_increase_in_confidence = 100 * np.mean(pic_values)
     averaged_drop_percentage = 100 * np.mean(adp_values)
-
-    print(
-        f'PIC (% Increase in Confidence): {round(percentage_increase_in_confidence, 4)}%; ADP (Average Drop %): {round(averaged_drop_percentage, 4)}%')
-
     return dict(percentage_increase_in_confidence=percentage_increase_in_confidence,
                 averaged_drop_percentage=averaged_drop_percentage)
 
@@ -166,13 +183,22 @@ if __name__ == '__main__':
     IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
     IS_CLAMP_BETWEEN_0_TO_1 = False
+    IS_COMPARED_BY_TARGET = True
+    print(
+        f'Evaluation Params: IS_COMPARED_BY_TARGET: {IS_COMPARED_BY_TARGET}, IS_CLAMP_BETWEEN_0_TO_1: {IS_CLAMP_BETWEEN_0_TO_1}')
+
     # assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
     # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
     # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
-
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
-    infer(vit_for_image_classification=vit_for_image_classification, images_and_masks=images_and_masks,
-          is_clamp_between_0_to_1=IS_CLAMP_BETWEEN_0_TO_1)
+    evaluation_metrics = infer(vit_for_image_classification=vit_for_image_classification,
+                               images_and_masks=images_and_masks,
+                               gt_classes_list=gt_classes_list, is_clamp_between_0_to_1=IS_CLAMP_BETWEEN_0_TO_1,
+                               is_compared_by_target=IS_COMPARED_BY_TARGET)
+
+    print(
+        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%')
