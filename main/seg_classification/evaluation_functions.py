@@ -1,7 +1,7 @@
 import os
 from matplotlib import pyplot as plt
 from PIL import Image
-from pathlib import WindowsPath, Path
+from pathlib import Path
 import pickle
 from typing import Union, Dict, List
 from torchvision.transforms import transforms
@@ -24,6 +24,34 @@ seed_everything(config['general']['seed'])
 class VisClass(Enum):
     TOP = 'TOP'
     TARGET = 'TARGET'
+
+
+def load_obj(path):
+    with open(Path(path), 'rb') as f:
+        return pickle.load(f)
+
+
+def get_image(path) -> Image:
+    image = Image.open(path)
+    return image
+
+
+resize = transforms.Compose([
+    transforms.Resize((config['vit']['img_size'], config['vit']['img_size'])),
+    transforms.ToTensor(),
+])
+
+
+def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
+    image = image if len(image.shape) == 3 else image.squeeze(0)
+    plt.imshow(image.cpu().detach().permute(1, 2, 0))
+    plt.show();
+
+
+def show_mask(mask):  # [1, 1, 224, 224]
+    mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
+    _ = plt.imshow(mask.squeeze(0).cpu().detach())
+    plt.show()
 
 
 def get_probability_by_logits(logits):
@@ -141,22 +169,6 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def load_obj(path):
-    with open(Path(path), 'rb') as f:
-        return pickle.load(f)
-
-
-def get_image(path) -> Image:
-    image = Image.open(path)
-    return image
-
-
-resize = transforms.Compose([
-    transforms.Resize((config['vit']['img_size'], config['vit']['img_size'])),
-    transforms.ToTensor(),
-])
-
-
 def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> List[Dict]:
     objects = []
 
@@ -169,18 +181,6 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> Li
         objects.append(
             dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device)))
     return objects
-
-
-def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
-    image = image if len(image.shape) == 3 else image.squeeze(0)
-    plt.imshow(image.cpu().detach().permute(1, 2, 0))
-    plt.show();
-
-
-def show_mask(mask):  # [1, 1, 224, 224]
-    mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
-    _ = plt.imshow(mask.squeeze(0).cpu().detach())
-    plt.show()
 
 
 def run_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classification,
