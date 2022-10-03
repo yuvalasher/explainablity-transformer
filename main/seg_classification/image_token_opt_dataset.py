@@ -28,7 +28,7 @@ class ImageSegOptDataset(Dataset):
     def __getitem__(self, index: int):
         image = get_image_from_path(path=self.image_path)
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        inputs, original_transformed_image = get_image_and_inputs_and_transformed_image(
+        inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
             image=image, feature_extractor=self.feature_extractor
         )
         image_resized = resize(image)
@@ -36,6 +36,6 @@ class ImageSegOptDataset(Dataset):
         return dict(
             image_name=self.image_path.split('/')[-1].split('.')[0],
             pixel_values=inputs["pixel_values"],
-            original_transformed_image=original_transformed_image,
+            resized_and_normalized_image=resized_and_normalized_image,
             image=image_resized,
         )

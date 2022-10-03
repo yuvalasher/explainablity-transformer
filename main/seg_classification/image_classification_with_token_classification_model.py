@@ -172,7 +172,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
         output = self.forward(inputs)
 
@@ -183,7 +183,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -191,7 +191,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
         output = self.forward(inputs)
 
@@ -202,7 +202,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -283,7 +283,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
+                    zip(output["resized_and_normalized_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
