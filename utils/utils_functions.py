@@ -69,3 +69,9 @@ def remove_old_results_dfs(experiment_path: str):
         output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')
         if os.path.exists(output_csv_path):
             os.remove(output_csv_path)
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split( )[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
