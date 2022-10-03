@@ -22,8 +22,13 @@ seed_everything(config['general']['seed'])
 
 
 class VisClass(Enum):
-    TOP = 'TOP'
-    TARGET = 'TARGET'
+    TOP = "TOP"
+    TARGET = "TARGET"
+
+
+class PerturbationType(Enum):
+    POS = "POS"
+    NEG = "NEG"
 
 
 def load_obj(path):
@@ -123,6 +128,7 @@ def infer_adp_and_pic(vit_for_image_classification: ViTForImageClassification,
     adp_values, pic_values = [], []
     is_compared_by_target: bool = ADP_PIC_config["IS_COMPARED_BY_TARGET"]
     is_clamp_between_0_to_1: bool = ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]
+
     for image_idx, image_and_mask in enumerate(images_and_masks):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
@@ -183,18 +189,22 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> Li
     return objects
 
 
-def run_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classification,
-                           perturbation_config: Dict[str, bool], gt_classes_list: List[int]):
+def infer_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classification,
+                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
     """
     :param config: contains the configuration of the perturbation test:
         * neg: True / False
         * vis_class: TARGET / TOP (predicted top-1)
     """
     aucs = []
-    for image_and_mask in images_and_masks[1:3]:
+    vis_class = perturbation_config["vis_class"].name
+    perturbation_type = perturbation_config["perturbation_type"].name
+    for image_idx, image_and_mask in enumerate(images_and_masks[:3]):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         outputs = [{'image_resized': image, 'image_mask': mask}]
-        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs)
+        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
+                                     perturbation_type=perturbation_type, vis_class=vis_class,
+                                     target_class=gt_classes_list[image_idx])
 
 
 if __name__ == '__main__':
@@ -206,12 +216,11 @@ if __name__ == '__main__':
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-    """
     # Perturbation tests
-    perturbation_config = {'vis_class': VisClass.TARGET, 'is_neg': False}
-    run_perturbation_tests(images_and_masks=images_and_masks, vit_for_image_classification=vit_for_image_classification,
-                           perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
-
+    perturbation_config = {'vis_class': VisClass.TARGET, 'perturbation_type': PerturbationType.POS}
+    infer_perturbation_tests(images_and_masks=images_and_masks,
+                             vit_for_image_classification=vit_for_image_classification,
+                             perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
     """
     # ADP & PIC metrics
     ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': False, 'IS_COMPARED_BY_TARGET': True}
@@ -227,4 +236,5 @@ if __name__ == '__main__':
     assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
+    """
     """
