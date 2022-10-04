@@ -66,7 +66,7 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-EXP_NAME = 'ft_50000'
+EXP_NAME = 'ft_pasten'
 # BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
 # BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
 
