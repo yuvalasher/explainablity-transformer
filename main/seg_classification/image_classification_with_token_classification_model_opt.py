@@ -142,6 +142,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
+            run_base_model_only: bool = False,
             criterion: LossLoss = LossLoss(),
             emb_size: int = 768,
             n_classes: int = 1000,
@@ -166,6 +167,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.checkpoint_epoch_idx = checkpoint_epoch_idx
         self.image_idx = None
         self.auc_by_epoch = None
+        self.run_base_model_only = run_base_model_only
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -200,7 +202,8 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.init_auc()
             output = self.forward(inputs)
             images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "resized_and_normalized_image": resized_and_normalized_image,
+            outputs = [{"image_resized": image_resized, "image_mask": images_mask,
+                        "resized_and_normalized_image": resized_and_normalized_image,
                         "patches_mask": output.tokens_mask}]
             auc = run_perturbation_test_opt(
                 model=self.vit_for_classification_image,
@@ -212,7 +215,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["image_resized"] # need original as will run perturbation tests on it
+            self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
             # self.auc_by_epoch.append(auc)
 
             save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
@@ -223,7 +226,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           )
 
             # self.visualize_images_by_outputs(outputs=outputs)
-            if auc < AUC_STOP_VALUE:
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 self.trainer.should_stop = True
 
         else:
@@ -296,12 +299,12 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           original_image=self.best_auc_image,
                                           epoch_idx=self.current_epoch,
                                           )
-            if auc < AUC_STOP_VALUE:
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
+
         if self.current_epoch == vit_config['n_epochs'] - 1:
-            # print(f"AUC by Epoch:")
-            # print(self.auc_by_epoch)
+            # print(f"AUC by Epoch: {self.auc_by_epoch}")
             # print(f"Best auc: {self.best_auc} by epoch {self.best_auc_epoch}")
             # self.visualize_images_by_outputs(outputs=outputs)
             self.trainer.should_stop = True

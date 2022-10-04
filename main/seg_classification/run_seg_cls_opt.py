@@ -67,13 +67,20 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 EXP_NAME = 'ft_pasten'
-# BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
+RUN_BASE_MODEL = True # Running only forward of the image to create visualization of the base model
 # BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
 
 BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
 BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
+if RUN_BASE_MODEL:
+    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
+    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -126,6 +133,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BEST_AUC_PLOT_PATH,
+    run_base_model_only=RUN_BASE_MODEL,
 )
 
 early_stop_callback = EarlyStopping(
