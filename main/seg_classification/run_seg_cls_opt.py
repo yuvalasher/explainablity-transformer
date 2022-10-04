@@ -75,11 +75,10 @@ BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
-if RUN_BASE_MODEL:
-    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
-    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
-    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
-    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
+BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
@@ -130,9 +129,9 @@ model = OptImageClassificationWithTokenClassificationModel(
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
     batch_size=vit_config["batch_size"],
-    best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
+    best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-    best_auc_plot_path=BEST_AUC_PLOT_PATH,
+    best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,
     run_base_model_only=RUN_BASE_MODEL,
 )
 
