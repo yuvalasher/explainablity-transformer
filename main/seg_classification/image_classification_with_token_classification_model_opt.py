@@ -193,7 +193,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        resized_and_normalized_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
