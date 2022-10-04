@@ -24,9 +24,7 @@ from config import config
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-# cuda = torch.cuda.is_available()
-# device = torch.device("cuda" if cuda else "cpu")
-device = torch.device('cuda', index=1)
+device = torch.device('cuda', index=0)
 
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
@@ -251,7 +249,7 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experi
     if not os.path.exists(experiment_path):
         os.makedirs(experiment_path, exist_ok=True)
 
-    model.to(device)
+    # model.to(device)
     model.eval()
     for vis_type in VIS_TYPES:
         # print(vis_type)
