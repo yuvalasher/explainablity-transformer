@@ -57,6 +57,8 @@ from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
+OBT_OBJECTS_PLOT_FOLDER_NAME = 'opt_objects_plot'
+OBT_OBJECTS_FOLDER_NAME = 'opt_objects'
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
@@ -70,13 +72,12 @@ EXP_NAME = 'ft_pasten'
 RUN_BASE_MODEL = True # Running only forward of the image to create visualization of the base model
 # BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
 
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
+BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
+BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
-BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
