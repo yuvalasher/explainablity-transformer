@@ -1,11 +1,12 @@
 from icecream import ic
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test, eval_perturbation_test
 from hila_method.utils.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from hila_method.utils.ViT_explanation_generator import LRP
 from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
+
 from vit_loader.load_vit import load_vit_pretrained
 
 from config import config
@@ -107,7 +108,9 @@ def visualize_outputs(outputs):
 
 
 if __name__ == '__main__':
-    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
+    # IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
+    DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
+    IMAGENET_VALIDATION_PATH = DGX_IMAGENET_ALL_VALIDATION_PATH
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
     model_LRP = vit_LRP(pretrained=True).to(device)  # .cuda()
@@ -118,6 +121,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
     ])
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
+    vit_for_classification_image = vit_for_classification_image.to(device)
     # n_samples = config["vit"]["seg_cls"]["val_n_samples"]
     n_samples = 208
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VALIDATION_PATH, n_samples=n_samples, transform=transform)
