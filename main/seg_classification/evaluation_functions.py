@@ -184,6 +184,7 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> Li
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
         loaded_obj = load_obj(pkl_path)
         image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+        image = image if image.mode == "RGB" else image.convert("RGB")
         image_resized = resize(image).unsqueeze(0)
         objects.append(
             dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device)))
