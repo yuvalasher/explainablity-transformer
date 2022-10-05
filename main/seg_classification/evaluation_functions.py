@@ -177,9 +177,7 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> List[Dict]:
-    objects = []
-
+def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
     masks_listdir = os.listdir(mask_path)
     for idx in range(len(masks_listdir)):
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
@@ -187,12 +185,10 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device) -> Li
         image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
         image = image if image.mode == "RGB" else image.convert("RGB")
         image_resized = resize(image).unsqueeze(0)
-        objects.append(
-            dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device)))
-    return objects
+        yield dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device))
 
 
-def infer_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classification,
+def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
                              perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
     """
     :param config: contains the configuration of the perturbation test:
@@ -218,18 +214,19 @@ if __name__ == '__main__':
     print(OPTIMIZATION_PKL_PATH)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
-    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+    start_time = dt.now()
 
     # Perturbation tests
-    perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.POS}
-    start_time = dt.now()
-    auc = infer_perturbation_tests(images_and_masks=images_and_masks[:100],
+    perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
+    auc = infer_perturbation_tests(images_and_masks=images_and_masks,
                                    vit_for_image_classification=vit_for_image_classification,
                                    perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    print(f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
+    print(
+        f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
 
     """
     # ADP & PIC metrics
