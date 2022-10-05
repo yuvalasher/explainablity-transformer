@@ -104,9 +104,9 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 _data = data.clone()
                 _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
                                              base_size=base_size)
-                _norm_data = normalize(_data)
                 if vit_config['verbose']:
-                    plot_image(_norm_data, step_idx=i)
+                    plot_image(_data)
+                _norm_data = normalize(_data)
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
 
