@@ -2,7 +2,8 @@ import argparse
 import torch
 import numpy as np
 from numpy import *
-device = torch.device(type='cuda', index=0)
+from config import config
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 
 # compute rollout between attention layers
 def compute_rollout_attention(all_layer_matrices, start_layer=0):

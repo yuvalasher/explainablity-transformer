@@ -1,5 +1,5 @@
 general:
-  gpu_index: 2
+  gpu_index: 1
   seed: 42
   images_folder_test_DGX: ILSVRC2012_test_sampled
   images_folder_test_ES_DGX: ILSVRC2012_test_earlystopping

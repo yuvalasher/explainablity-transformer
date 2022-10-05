@@ -8,12 +8,12 @@ from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
 from vit_loader.load_vit import load_vit_pretrained
 
-device = torch.device(type='cuda', index=0)
-cuda = torch.cuda.is_available()
+from config import config
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+# cuda = torch.cuda.is_available()
 torch.cuda.empty_cache()
 from torchvision.transforms import transforms
 from pytorch_lightning import seed_everything
-from config import config
 
 seed_everything(config["general"]["seed"])
 import numpy as np

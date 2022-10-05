@@ -19,6 +19,7 @@ import torch
 from enum import Enum
 
 seed_everything(config['general']['seed'])
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 
 
 class VisClass(Enum):
@@ -208,7 +209,6 @@ def infer_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classif
 
 
 if __name__ == '__main__':
-    device = torch.device('cuda', index=1)
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
 
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])

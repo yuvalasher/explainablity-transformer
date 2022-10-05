@@ -1,4 +1,7 @@
 import os
+from config import config
+import torch
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 from tqdm import tqdm
 from icecream import ic
 from pathlib import Path
@@ -37,8 +40,10 @@ def calculate_stats_base_and_opt(n_samples: int, base_path, opt_path):
     ic(100 * (s_smaller_opt_than_baseline / n_samples))
     ic(s_wrong)
 
+
 def get_precentage_counter(c):
     return sorted([(i, str(round(count / sum(c.values()) * 100.0, 3)) + '%') for i, count in c.most_common()])
+
 
 def calculate_mean_auc(n_samples: int, path):
     aucs = []
@@ -53,6 +58,7 @@ def calculate_mean_auc(n_samples: int, path):
     print(get_precentage_counter(counter))
     print(f"{len(aucs)} samples")
     print(f"Mean AUC: {np.mean(aucs)}")
+
 
 def statistics_run_time(path):
     import datetime

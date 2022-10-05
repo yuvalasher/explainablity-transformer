@@ -24,7 +24,7 @@ from config import config
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-device = torch.device('cuda', index=0)
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
