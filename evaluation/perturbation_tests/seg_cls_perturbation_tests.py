@@ -181,12 +181,6 @@ def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, n
     #     f'Mean dissimilarity_pertub : {np.mean(dissimilarity_pertub, axis=1)}, std dissimilarity_pertub {np.std(dissimilarity_pertub, axis=1)}')
 
 
-def plot_image(data, step_idx: int = None) -> None:
-    if (step_idx in [1, 2, 3, 4] or step_idx is None) and not torch.cuda.is_available():
-        im = transforms.ToPILImage()(data.squeeze(0))
-        plt.imshow(im)
-        plt.show()
-
 def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[float, int], base_size: int):
     """
     vis - Masking of the image (1, 224, 224)
@@ -257,6 +251,12 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experi
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
                                      outputs=outputs)
         return auc
+
+
+def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
+    image = image if len(image.shape) == 3 else image.squeeze(0)
+    plt.imshow(image.cpu().detach().permute(1, 2, 0))
+    plt.show();
 
 
 def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
