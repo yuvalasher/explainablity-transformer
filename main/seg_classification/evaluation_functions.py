@@ -179,6 +179,7 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 
 def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
     masks_listdir = os.listdir(mask_path)
+    print(f"Total images: {len(masks_listdir)}")
     for idx in range(len(masks_listdir)):
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
         loaded_obj = load_obj(pkl_path)
@@ -221,6 +222,8 @@ if __name__ == '__main__':
 
     # Perturbation tests
     perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
+    print(
+        f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
     auc = infer_perturbation_tests(images_and_masks=images_and_masks,
                                    vit_for_image_classification=vit_for_image_classification,
                                    perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
