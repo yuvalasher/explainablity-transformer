@@ -202,7 +202,7 @@ def infer_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classif
     aucs = []
     vis_class = perturbation_config["vis_class"].name
     perturbation_type = perturbation_config["perturbation_type"].name
-    for image_idx, image_and_mask in enumerate(images_and_masks):
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         outputs = [{'image_resized': image, 'image_mask': mask}]
         auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
@@ -215,7 +215,7 @@ def infer_perturbation_tests(images_and_masks: List[Dict], vit_for_image_classif
 
 if __name__ == '__main__':
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
-
+    print(OPTIMIZATION_PKL_PATH)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -229,7 +229,7 @@ if __name__ == '__main__':
                                    vit_for_image_classification=vit_for_image_classification,
                                    perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    print(f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: /home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects')
+    print(f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
 
     """
     # ADP & PIC metrics
