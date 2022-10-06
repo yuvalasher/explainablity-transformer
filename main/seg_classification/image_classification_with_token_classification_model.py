@@ -122,12 +122,6 @@ class ImageClassificationWithTokenClassificationModelOutput:
 
 
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
-    """
-    If fine-tuned with non frozen vit, the model should continue training with the original objective (classification)
-    TODO - talk to Oren after trying to fine-tune with freezed model
-    TODO - read about segmentation in ViT - https://arxiv.org/pdf/2105.05633.pdf
-    """
-
     def __init__(
             self,
             vit_for_classification_image: ViTForImageClassification,
