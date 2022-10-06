@@ -1,3 +1,4 @@
+from icecream import ic
 import glob
 from typing import Union, Any
 import pandas as pd
@@ -37,6 +38,9 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 
 def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_type: str = "POS",
                            vis_class: str = "TOP", target_class: int = None) -> float:
+    # ic(perturbation_type, vis_class, target_class)
+    # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
+
     num_samples = 0
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
