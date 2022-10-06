@@ -61,8 +61,35 @@ def show_mask(mask):  # [1, 1, 224, 224]
     plt.show()
 
 
+def normalize_mask_values(mask, clamp_between_0_to_1: bool = False):
+    if clamp_between_0_to_1:
+        norm_mask = torch.clamp(mask, min=0, max=1)
+    else:
+        norm_mask = (mask - mask.min()) / (mask.max() - mask.min())
+    return norm_mask
+
+
+def scatter_image_by_mask(image, mask):
+    return image * mask
+
+
+def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+    dtype = tensor.dtype
+    mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+    std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+    tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+    return tensor
+
+
 def get_probability_by_logits(logits):
     return F.softmax(logits, dim=1)[0]
+
+
+def calculate_average_change_percentage(full_image_confidence: float, saliency_map_confidence: float) -> float:
+    """
+    Higher is better
+    """
+    return (saliency_map_confidence - full_image_confidence) / full_image_confidence
 
 
 def calculate_avg_drop_percentage(full_image_confidence: float, saliency_map_confidence: float) -> float:
@@ -77,6 +104,39 @@ def calculate_percentage_increase_in_confidence(full_image_confidence: float, sa
     Higher is better
     """
     return 1 if full_image_confidence < saliency_map_confidence else 0
+
+
+def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
+    masks_listdir = os.listdir(mask_path)
+    print(f"Total images: {len(masks_listdir)}")
+    for idx in range(len(masks_listdir)):
+        pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
+        loaded_obj = load_obj(pkl_path)
+        image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+        image = image if image.mode == "RGB" else image.convert("RGB")
+        image_resized = resize(image).unsqueeze(0)
+        yield dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device))
+
+
+def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
+                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
+    """
+    :param config: contains the configuration of the perturbation test:
+        * neg: True / False
+        * vis_class: TARGET / TOP (predicted top-1)
+    """
+    aucs = []
+    vis_class = perturbation_config["vis_class"].name
+    perturbation_type = perturbation_config["perturbation_type"].name
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
+        image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
+        outputs = [{'image_resized': image, 'image_mask': mask}]
+        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
+                                     perturbation_type=perturbation_type, vis_class=vis_class,
+                                     target_class=gt_classes_list[image_idx])
+        aucs.append(auc)
+    # print(aucs)
+    return np.mean(aucs)
 
 
 def get_probability_and_class_idx_by_index(logits, index: int) -> Dict[str, Union[int, float]]:
@@ -118,16 +178,22 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
     percentage_increase_in_confidence_indicators = calculate_percentage_increase_in_confidence(
         full_image_confidence=full_image_probability_and_class_idx_by_index["predicted_probability_by_idx"],
         saliency_map_confidence=saliency_map_probability_and_class_idx_by_index["predicted_probability_by_idx"])
+
+    avg_change_percentage = calculate_average_change_percentage(
+        full_image_confidence=full_image_probability_and_class_idx_by_index["predicted_probability_by_idx"],
+        saliency_map_confidence=saliency_map_probability_and_class_idx_by_index["predicted_probability_by_idx"])
+
     return dict(avg_drop_percentage=avg_drop_percentage,
-                percentage_increase_in_confidence_indicators=percentage_increase_in_confidence_indicators)
+                percentage_increase_in_confidence_indicators=percentage_increase_in_confidence_indicators,
+                avg_change_percentage=avg_change_percentage)
 
 
-def infer_adp_and_pic(vit_for_image_classification: ViTForImageClassification,
-                      images_and_masks: List[Dict],
+def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
+                      images_and_masks,
                       gt_classes_list: List[int],
                       ADP_PIC_config: Dict[str, bool],
                       ):
-    adp_values, pic_values = [], []
+    adp_values, pic_values, acp_values = [], [], []
     is_compared_by_target: bool = ADP_PIC_config["IS_COMPARED_BY_TARGET"]
     is_clamp_between_0_to_1: bool = ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]
 
@@ -150,67 +216,18 @@ def infer_adp_and_pic(vit_for_image_classification: ViTForImageClassification,
                                          is_compared_by_target=is_compared_by_target)
         adp_values.append(metrics["avg_drop_percentage"])
         pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
+        acp_values.append(metrics["avg_change_percentage"])
 
-    percentage_increase_in_confidence = 100 * np.mean(pic_values)
     averaged_drop_percentage = 100 * np.mean(adp_values)
+    percentage_increase_in_confidence = 100 * np.mean(pic_values)
+    averaged_change_percentage = 100 * np.mean(acp_values)
     return dict(percentage_increase_in_confidence=percentage_increase_in_confidence,
-                averaged_drop_percentage=averaged_drop_percentage)
-
-
-def normalize_mask_values(mask, clamp_between_0_to_1: bool = False):
-    if clamp_between_0_to_1:
-        norm_mask = torch.clamp(mask, min=0, max=1)
-    else:
-        norm_mask = (mask - mask.min()) / (mask.max() - mask.min())
-    return norm_mask
-
-
-def scatter_image_by_mask(image, mask):
-    return image * mask
-
-
-def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
-    dtype = tensor.dtype
-    mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
-    std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
-    tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
-    return tensor
-
-
-def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
-    masks_listdir = os.listdir(mask_path)
-    print(f"Total images: {len(masks_listdir)}")
-    for idx in range(len(masks_listdir)):
-        pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
-        loaded_obj = load_obj(pkl_path)
-        image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
-        image = image if image.mode == "RGB" else image.convert("RGB")
-        image_resized = resize(image).unsqueeze(0)
-        yield dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device))
-
-
-def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
-                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
-    """
-    :param config: contains the configuration of the perturbation test:
-        * neg: True / False
-        * vis_class: TARGET / TOP (predicted top-1)
-    """
-    aucs = []
-    vis_class = perturbation_config["vis_class"].name
-    perturbation_type = perturbation_config["perturbation_type"].name
-    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
-        image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-        outputs = [{'image_resized': image, 'image_mask': mask}]
-        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
-                                     perturbation_type=perturbation_type, vis_class=vis_class,
-                                     target_class=gt_classes_list[image_idx])
-        aucs.append(auc)
-    # print(aucs)
-    return np.mean(aucs)
+                averaged_drop_percentage=averaged_drop_percentage,
+                averaged_change_percentage=averaged_change_percentage)
 
 
 if __name__ == '__main__':
+    # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
     print(OPTIMIZATION_PKL_PATH)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
@@ -219,7 +236,22 @@ if __name__ == '__main__':
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     start_time = dt.now()
+    # ADP & PIC metrics
+    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': True, 'IS_COMPARED_BY_TARGET': False}
+    print(
+        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
 
+
+    for image_idx, image_and_mask in enumerate(images_and_masks):
+        print(torch.where(image_and_mask["image_mask"] <0), image_idx)
+        # if torch.where(image_and_mask["image_mask"] <0):
+        #     print(image_and_mask["image_mask"])
+    evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
+                                           images_and_masks=images_and_masks,
+                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
+    print(
+        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
+    """
     # Perturbation tests
     perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
     print(
@@ -230,21 +262,19 @@ if __name__ == '__main__':
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
     print(
         f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
-
     """
-    # ADP & PIC metrics
-    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': False, 'IS_COMPARED_BY_TARGET': True}
-    print(
-        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
-    evaluation_metrics = infer_adp_and_pic(vit_for_image_classification=vit_for_image_classification,
-                                           images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
-    print(
-        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%')
-    """
-
     """
     assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
     """
+    """
+     images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
+    for i in range(len(images_and_masks)):
+        plot_image(images_and_masks[i]["image_resized"])
+        show_mask(images_and_masks[i]["image_mask"])
+    print(1)
+    auc = infer_perturbation_tests(images_and_masks=images_and_masks,
+                                   vit_for_image_classification=vit_for_image_classification,
+                                   perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
+   """
