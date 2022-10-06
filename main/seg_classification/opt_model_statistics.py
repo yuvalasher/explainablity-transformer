@@ -105,3 +105,26 @@ if __name__ == '__main__':
     n_samples = len(os.listdir(OPTIMIZATION_PKL_PATH)) - 5
     calculate_mean_auc(n_samples=n_samples, path=OPTIMIZATION_PKL_PATH)
     statistics_run_time(path=OPTIMIZATION_PKL_PATH)
+    """
+    vit_for_image_classification, _ = load_vit_pretrained(model_name="google/vit-base-patch16-224")
+    vit_for_image_classification = vit_for_image_classification.to(device)
+    # for idx in [15,16,17]:#,18,19,20,21:
+    print('Base model')
+    aucs = []
+    for idx in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]:
+        loaded_obj = load_obj(
+            Path("/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/base_model/opt_objects",
+                 f'{str(idx)}.pkl'))
+        image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                               f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+        image = image if image.mode == "RGB" else image.convert("RGB")
+        image_resized = resize(image).unsqueeze(0)
+        outputs = [
+            {"image_resized": image_resized.to(device), "image_mask": loaded_obj["vis"].to(device)}]
+        plot_image(image_resized)
+        show_mask(loaded_obj["vis"])
+        print(1)
+        # auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs)
+        # aucs.append(auc)
+    print(aucs)
+    """
