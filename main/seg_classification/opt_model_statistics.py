@@ -1,6 +1,11 @@
 import os
 from config import config
 import torch
+
+from main.seg_classification.evaluation_functions import get_image
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH
+from utils.transformation import resize
+
 device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 from tqdm import tqdm
 from icecream import ic
@@ -8,6 +13,10 @@ from pathlib import Path
 import pickle
 import numpy as np
 from collections import Counter
+
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test_opt, eval_perturbation_test
+from vit_loader.load_vit import load_vit_pretrained
+
 BEST_AUC_VALUE = 6
 
 
@@ -73,12 +82,25 @@ def statistics_run_time(path):
     print(
         f"N_samples: {n_samples_already_run}; Avg. seconds per image: {avg_seconds_per_image}; Expected run time (days): {expected_run_time_days}; Data: {expected_datetime}")
 
+
+def show_mask(mask):  # [1, 1, 224, 224]
+    mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
+    _ = plt.imshow(mask.squeeze(0).cpu().detach())
+    plt.show()
+
+
+def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
+    image = image if len(image.shape) == 3 else image.squeeze(0)
+    plt.imshow(image.cpu().detach().permute(1, 2, 0))
+    plt.show();
+
+
 if __name__ == '__main__':
-    n_samples = 30000
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_3000/opt_objects"
     # BASE_MODEL_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_3000/base_model/opt_objects"
     # calculate_stats_base_and_opt(n_samples=n_samples, base_path=BASE_MODEL_PKL_PATH, opt_path=OPTIMIZATION_PKL_PATH)
     OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
 
+    n_samples = len(os.listdir(OPTIMIZATION_PKL_PATH)) - 5
     calculate_mean_auc(n_samples=n_samples, path=OPTIMIZATION_PKL_PATH)
     statistics_run_time(path=OPTIMIZATION_PKL_PATH)
