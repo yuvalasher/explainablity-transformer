@@ -69,8 +69,7 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 EXP_NAME = 'ft_pasten'
-RUN_BASE_MODEL = True # Running only forward of the image to create visualization of the base model
-# BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+RUN_BASE_MODEL = True # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
 BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
 BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
