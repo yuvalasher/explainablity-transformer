@@ -166,6 +166,9 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.checkpoint_epoch_idx = checkpoint_epoch_idx
         self.image_idx = None
         self.auc_by_epoch = None
+        self.save_best_auc_to_disk = False,
+        self.target = None
+        self.image_resized = None
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -192,29 +195,33 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
-        inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
-        image_resized = batch["image"]
 
+        inputs, target, org_img, resize_img = batch
+
+        self.target = target
+        # inputs = batch["pixel_values"].squeeze(1)
+        original_image = inputs
+        image_resized = resize_img
+        self.image_resized = image_resized
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-            output = self.forward(inputs)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
-                        "patches_mask": output.tokens_mask}]
-            auc = run_perturbation_test_opt(
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="train_step",
-                epoch_idx=self.current_epoch,
-            )
-            # print(f'Basemodel - AUC: {round(auc, 3)} !')
-            self.best_auc = auc
-            self.best_auc_epoch = self.current_epoch
-            self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["image_resized"] # need original as will run perturbation tests on it
-            # self.auc_by_epoch.append(auc)
-
+        output = self.forward(inputs)
+        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
+                    "patches_mask": output.tokens_mask}]
+        auc = run_perturbation_test_opt(
+            model=self.vit_for_classification_image,
+            outputs=outputs,
+            stage="train_step",
+            epoch_idx=self.current_epoch,
+        )
+        # print(f'Basemodel - AUC: {round(auc, 3)} !')
+        self.best_auc = auc
+        self.best_auc_epoch = self.current_epoch
+        self.best_auc_vis = outputs[0]["image_mask"]
+        self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
+        # self.auc_by_epoch.append(auc)
+        if self.save_best_auc_to_disk:
             save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
                                           auc=auc,
                                           vis=self.best_auc_vis,
@@ -222,13 +229,13 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           epoch_idx=self.current_epoch,
                                           )
 
-            # self.visualize_images_by_outputs(outputs=outputs)
-            if auc < AUC_STOP_VALUE:
-                self.trainer.should_stop = True
+        # self.visualize_images_by_outputs(outputs=outputs)
+        if auc < AUC_STOP_VALUE:
+            self.trainer.should_stop = True
 
         else:
             output = self.forward(inputs)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
             "loss": output.lossloss_output.loss,
@@ -288,14 +295,15 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["original_image"]
+            self.best_auc_image = outputs[0]["image_resized"]
 
-            save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                          auc=auc,
-                                          vis=self.best_auc_vis,
-                                          original_image=self.best_auc_image,
-                                          epoch_idx=self.current_epoch,
-                                          )
+            if self.save_best_auc_to_disk:
+                save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
+                                              auc=auc,
+                                              vis=self.best_auc_vis,
+                                              original_image=self.best_auc_image,
+                                              epoch_idx=self.current_epoch,
+                                              )
             if auc < AUC_STOP_VALUE:
                 # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True

@@ -27,6 +27,7 @@ evaluation_config = vit_config['evaluation']
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
+
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
     mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
@@ -49,7 +50,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs) -> float:
     logit_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     prob_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
-    for batch in tqdm(outputs):
+    for batch in outputs:
         for data, vis in zip(batch["image_resized"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
@@ -175,6 +176,7 @@ def plot_image(data, step_idx: int = None) -> None:
         im = transforms.ToPILImage()(data.squeeze(0))
         plt.imshow(im)
         plt.show()
+
 
 def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[float, int], base_size: int):
     """

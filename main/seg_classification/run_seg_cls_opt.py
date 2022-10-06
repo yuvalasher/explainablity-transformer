@@ -66,7 +66,7 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-EXP_NAME = 'ft_50000'
+EXP_NAME = 'amit_pkl'
 # BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
 # BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
 
@@ -96,6 +96,22 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 )
 
 
+CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
+model = OptImageClassificationWithTokenClassificationModel(
+    vit_for_classification_image=vit_for_classification_image,
+    vit_for_patch_classification=vit_for_patch_classification,
+    feature_extractor=feature_extractor,
+    plot_path=plot_path,
+    warmup_steps=warmup_steps,
+    total_training_steps=total_training_steps,
+    batch_size=vit_config["batch_size"],
+    best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
+    checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
+    best_auc_plot_path=BEST_AUC_PLOT_PATH,
+)
+
+
+
 def load_obj(path) -> Any:
     with open(Path(path), 'rb') as f:
         return pickle.load(f)
@@ -114,19 +130,6 @@ def load_pickles_and_calculate_auc(path):
     return np.mean(aucs)
 
 
-CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-model = OptImageClassificationWithTokenClassificationModel(
-    vit_for_classification_image=vit_for_classification_image,
-    vit_for_patch_classification=vit_for_patch_classification,
-    feature_extractor=feature_extractor,
-    plot_path=plot_path,
-    warmup_steps=warmup_steps,
-    total_training_steps=total_training_steps,
-    batch_size=vit_config["batch_size"],
-    best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
-    checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-    best_auc_plot_path=BEST_AUC_PLOT_PATH,
-)
 
 early_stop_callback = EarlyStopping(
     monitor="val/loss",
@@ -182,6 +185,7 @@ if __name__ == '__main__':
             default_root_dir=vit_config["default_root_dir"],
         )
         trainer.fit(model=model, datamodule=data_module)
+        model.best_auc_vis
     print(f"Time diff: {dt.now() - start_time}")
     mean_auc = load_pickles_and_calculate_auc(path=BEST_AUC_OBJECTS_PATH)
     print(f"Mean AUC: {mean_auc}")
