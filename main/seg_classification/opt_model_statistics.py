@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import os
 from config import config
 import torch
