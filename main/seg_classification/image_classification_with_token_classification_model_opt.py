@@ -127,12 +127,6 @@ class ImageClassificationWithTokenClassificationModelOutput:
 
 
 class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
-    """
-    If fine-tuned with non frozen vit, the model should continue training with the original objective (classification)
-    TODO - talk to Oren after trying to fine-tune with freezed model
-    TODO - read about segmentation in ViT - https://arxiv.org/pdf/2105.05633.pdf
-    """
-
     def __init__(
             self,
             vit_for_classification_image: ViTForImageClassification,
@@ -144,6 +138,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
+            run_base_model_only: bool = False,
             criterion: LossLoss = LossLoss(),
             emb_size: int = 768,
             n_classes: int = 1000,
@@ -168,9 +163,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.checkpoint_epoch_idx = checkpoint_epoch_idx
         self.image_idx = None
         self.auc_by_epoch = None
-        self.save_best_auc_to_disk = False,
-        self.target = None
-        self.image_resized = None
+        self.run_base_model_only = run_base_model_only
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -197,33 +190,30 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
+        inputs = batch["pixel_values"].squeeze(1)
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
+        image_resized = batch["image"]
 
-        inputs, target, org_img, resize_img = batch
-
-        self.target = target
-        # inputs = batch["pixel_values"].squeeze(1)
-        original_image = inputs
-        image_resized = resize_img
-        self.image_resized = image_resized
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-        output = self.forward(inputs)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
-                    "patches_mask": output.tokens_mask}]
-        auc = run_perturbation_test_opt(
-            model=self.vit_for_classification_image,
-            outputs=outputs,
-            stage="train_step",
-            epoch_idx=self.current_epoch,
-        )
-        # print(f'Basemodel - AUC: {round(auc, 3)} !')
-        self.best_auc = auc
-        self.best_auc_epoch = self.current_epoch
-        self.best_auc_vis = outputs[0]["image_mask"]
-        self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
-        # self.auc_by_epoch.append(auc)
-        if self.save_best_auc_to_disk:
+            output = self.forward(inputs)
+            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+            outputs = [{"image_resized": image_resized, "image_mask": images_mask,
+                        "resized_and_normalized_image": resized_and_normalized_image,
+                        "patches_mask": output.tokens_mask}]
+            auc = run_perturbation_test_opt(
+                model=self.vit_for_classification_image,
+                outputs=outputs,
+                stage="train_step",
+                epoch_idx=self.current_epoch,
+            )
+            # print(f'Basemodel - AUC: {round(auc, 3)} !')
+            self.best_auc = auc
+            self.best_auc_epoch = self.current_epoch
+            self.best_auc_vis = outputs[0]["image_mask"]
+            self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
+            # self.auc_by_epoch.append(auc)
+
             save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
                                           auc=auc,
                                           vis=self.best_auc_vis,
@@ -231,13 +221,13 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           epoch_idx=self.current_epoch,
                                           )
 
-        # self.visualize_images_by_outputs(outputs=outputs)
-        if auc < AUC_STOP_VALUE:
-            self.trainer.should_stop = True
+            # self.visualize_images_by_outputs(outputs=outputs)
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
+                self.trainer.should_stop = True
 
         else:
             output = self.forward(inputs)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
             "loss": output.lossloss_output.loss,
@@ -245,7 +235,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -253,7 +243,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["pixel_values"].squeeze(1)
-        original_image = batch["original_transformed_image"]
+        resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
         output = self.forward(inputs)
 
@@ -264,7 +254,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
+            "resized_and_normalized_image": resized_and_normalized_image,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -299,25 +289,24 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             self.best_auc_vis = outputs[0]["image_mask"]
             self.best_auc_image = outputs[0]["image_resized"]
 
-            if self.save_best_auc_to_disk:
-                save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                              auc=auc,
-                                              vis=self.best_auc_vis,
-                                              original_image=self.best_auc_image,
-                                              epoch_idx=self.current_epoch,
-                                              )
-            if auc < AUC_STOP_VALUE:
+            save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
+                                          auc=auc,
+                                          vis=self.best_auc_vis,
+                                          original_image=self.best_auc_image,
+                                          epoch_idx=self.current_epoch,
+                                          )
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
+
         if self.current_epoch == vit_config['n_epochs'] - 1:
-            # print(f"AUC by Epoch:")
-            # print(self.auc_by_epoch)
+            # print(f"AUC by Epoch: {self.auc_by_epoch}")
             # print(f"Best auc: {self.best_auc} by epoch {self.best_auc_epoch}")
             # self.visualize_images_by_outputs(outputs=outputs)
             self.trainer.should_stop = True
 
     def visualize_images_by_outputs(self, outputs):
-        image = outputs[0]["original_image"].detach().cpu()
+        image = outputs[0]["resized_and_normalized_image"].detach().cpu()
         mask = outputs[0]["patches_mask"].detach().cpu()
         image = image if len(image.shape) == 3 else image.squeeze(0)
         mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
@@ -379,12 +368,13 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
+                    zip(output["resized_and_normalized_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
                     file_name=Path(epoch_path, f"{str(batch_idx)}_{str(idx)}").resolve(),
                 )
+
 
 
 class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.LightningModule):
