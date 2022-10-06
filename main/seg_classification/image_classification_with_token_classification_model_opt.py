@@ -124,8 +124,6 @@ class ImageClassificationWithTokenClassificationModelOutput:
     tokens_mask: Tensor
 
 
-
-
 class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
@@ -376,7 +374,6 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 )
 
 
-
 class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.LightningModule):
     """
     If fine-tuned with non frozen vit, the model should continue training with the original objective (classification)
@@ -400,6 +397,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             n_classes: int = 1000,
             n_patches: int = 196,
             batch_size: int = 8,
+            run_base_model_only: bool = False
     ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
@@ -422,6 +420,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         self.save_best_auc_to_disk = False,
         self.target = None
         self.image_resized = None
+        self.run_base_model_only = run_base_model_only
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -483,7 +482,9 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
                                           )
 
         # self.visualize_images_by_outputs(outputs=outputs)
-        if auc < AUC_STOP_VALUE:
+
+        # self.visualize_images_by_outputs(outputs=outputs)
+        if self.run_base_model_only or auc < AUC_STOP_VALUE:
             self.trainer.should_stop = True
 
         else:
@@ -557,7 +558,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
                                               original_image=self.best_auc_image,
                                               epoch_idx=self.current_epoch,
                                               )
-            if auc < AUC_STOP_VALUE:
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
