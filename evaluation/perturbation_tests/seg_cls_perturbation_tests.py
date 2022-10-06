@@ -50,7 +50,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
     logit_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     prob_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
-    for batch in tqdm(outputs):
+    for batch in outputs:
         for data, vis in zip(batch["image_resized"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
