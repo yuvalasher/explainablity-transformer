@@ -135,9 +135,12 @@ if __name__ == '__main__':
     visualize_outputs(outputs=outputs)
     # remove_old_results_dfs(experiment_path=experiment_path)
 
-    auc = run_perturbation_test(
-        model=vit_for_classification_image,
-        outputs=outputs,
-        stage="hila",
-        epoch_idx=0,
-    )
+    auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image,
+                                 outputs=outputs)
+
+    # auc = run_perturbation_test(
+    #     model=vit_for_classification_image,
+    #     outputs=outputs,
+    #     stage="hila",
+    #     epoch_idx=0,
+    # )
