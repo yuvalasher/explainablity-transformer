@@ -1,19 +1,20 @@
 from icecream import ic
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test, eval_perturbation_test
 from hila_method.utils.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from hila_method.utils.ViT_explanation_generator import LRP
 from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
+
 from vit_loader.load_vit import load_vit_pretrained
 
-device = torch.device(type='cuda', index=0)
-cuda = torch.cuda.is_available()
+from config import config
+device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+# cuda = torch.cuda.is_available()
 torch.cuda.empty_cache()
 from torchvision.transforms import transforms
 from pytorch_lightning import seed_everything
-from config import config
 
 seed_everything(config["general"]["seed"])
 import numpy as np
@@ -74,7 +75,7 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
     outputs: List[Dict[str, Tensor]] = []
     for batch_idx, (data, target) in enumerate(tqdm(dataloader)):
         # target = target.to(device)
-        original_image = data.clone()
+        resized_image = data.clone()
         data = normalize(data)
         data = data.to(device)
         data.requires_grad_()
@@ -90,7 +91,7 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
             # ic(data.device, Res.device, Res_patches.device)
             # target = target.cpu()
             # ic(target.device)
-        outputs.append({'image_resized': original_image, 'image_mask': Res, 'patches_mask': Res_patches})
+        outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches})
     return outputs
 
 
@@ -107,7 +108,9 @@ def visualize_outputs(outputs):
 
 
 if __name__ == '__main__':
-    IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
+    # IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
+    DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
+    IMAGENET_VALIDATION_PATH = DGX_IMAGENET_ALL_VALIDATION_PATH
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
     model_LRP = vit_LRP(pretrained=True).to(device)  # .cuda()
@@ -118,6 +121,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
     ])
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
+    vit_for_classification_image = vit_for_classification_image.to(device)
     # n_samples = config["vit"]["seg_cls"]["val_n_samples"]
     n_samples = 208
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VALIDATION_PATH, n_samples=n_samples, transform=transform)
@@ -131,9 +135,12 @@ if __name__ == '__main__':
     visualize_outputs(outputs=outputs)
     # remove_old_results_dfs(experiment_path=experiment_path)
 
-    auc = run_perturbation_test(
-        model=vit_for_classification_image,
-        outputs=outputs,
-        stage="hila",
-        epoch_idx=0,
-    )
+    auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image,
+                                 outputs=outputs)
+
+    # auc = run_perturbation_test(
+    #     model=vit_for_classification_image,
+    #     outputs=outputs,
+    #     stage="hila",
+    #     epoch_idx=0,
+    # )

@@ -1,5 +1,5 @@
 general:
-  gpu_index: 2
+  gpu_index: 1
   seed: 42
   images_folder_test_DGX: ILSVRC2012_test_sampled
   images_folder_test_ES_DGX: ILSVRC2012_test_earlystopping
@@ -44,8 +44,8 @@ vit:
   batch_size: 32
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification
-  start_epoch_to_evaluate: 2
-  n_batches_to_visualize: 5
+  start_epoch_to_evaluate: 1
+  n_batches_to_visualize: 2
   n_epochs: 30
   lr: 2.0e-3
   num_steps: 180
@@ -79,4 +79,4 @@ vit:
     original_image_name: 224x224.JPEG
     batch_size: 1
     experiment_folder_name: seg_cls
-    perturbation_type: pos
+#    perturbation_type: pos

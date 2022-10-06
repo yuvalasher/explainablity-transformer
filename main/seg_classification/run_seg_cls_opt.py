@@ -57,6 +57,8 @@ from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
+OBT_OBJECTS_PLOT_FOLDER_NAME = 'opt_objects_plot'
+OBT_OBJECTS_FOLDER_NAME = 'opt_objects'
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
@@ -67,13 +69,17 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 EXP_NAME = 'amit_pkl'
-# BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
-# BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+RUN_BASE_MODEL = True # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
+BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
+BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
+os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -130,6 +136,20 @@ def load_pickles_and_calculate_auc(path):
     return np.mean(aucs)
 
 
+CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
+model = OptImageClassificationWithTokenClassificationModel(
+    vit_for_classification_image=vit_for_classification_image,
+    vit_for_patch_classification=vit_for_patch_classification,
+    feature_extractor=feature_extractor,
+    plot_path=plot_path,
+    warmup_steps=warmup_steps,
+    total_training_steps=total_training_steps,
+    batch_size=vit_config["batch_size"],
+    best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
+    checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
+    best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,
+    run_base_model_only=RUN_BASE_MODEL,
+)
 
 early_stop_callback = EarlyStopping(
     monitor="val/loss",
@@ -187,5 +207,5 @@ if __name__ == '__main__':
         trainer.fit(model=model, datamodule=data_module)
         model.best_auc_vis
     print(f"Time diff: {dt.now() - start_time}")
-    mean_auc = load_pickles_and_calculate_auc(path=BEST_AUC_OBJECTS_PATH)
+    mean_auc = load_pickles_and_calculate_auc(path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
     print(f"Mean AUC: {mean_auc}")

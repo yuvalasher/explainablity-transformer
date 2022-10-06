@@ -560,15 +560,15 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             if auc < AUC_STOP_VALUE:
                 # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
+
         if self.current_epoch == vit_config['n_epochs'] - 1:
-            # print(f"AUC by Epoch:")
-            # print(self.auc_by_epoch)
+            # print(f"AUC by Epoch: {self.auc_by_epoch}")
             # print(f"Best auc: {self.best_auc} by epoch {self.best_auc_epoch}")
             # self.visualize_images_by_outputs(outputs=outputs)
             self.trainer.should_stop = True
 
     def visualize_images_by_outputs(self, outputs):
-        image = outputs[0]["original_image"].detach().cpu()
+        image = outputs[0]["resized_and_normalized_image"].detach().cpu()
         mask = outputs[0]["patches_mask"].detach().cpu()
         image = image if len(image.shape) == 3 else image.squeeze(0)
         mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
@@ -630,7 +630,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["original_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
+                    zip(output["resized_and_normalized_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
                 visu(
                     original_image=image,
                     transformer_attribution=mask,
