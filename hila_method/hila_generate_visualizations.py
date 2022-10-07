@@ -177,9 +177,8 @@ if __name__ == '__main__':
         shuffle=False,
         num_workers=4
     )
-    outputs = compute_saliency_and_save(dataloader=sample_loader)
-    visualize_outputs(outputs=outputs)
-    # remove_old_results_dfs(experiment_path=experiment_path)
-    images_and_masks = compute_saliency_generator(dataloader=sample_loader)
-
-    run_adp_pic_tests_hila(vit_for_image_classification=vit_for_classification_image, images_and_masks=images_and_masks)
+    # outputs = compute_saliency_and_save(dataloader=sample_loader)
+    # visualize_outputs(outputs=outputs)
+    # auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image, outputs=outputs)
+    images_and_masks_generator = compute_saliency_generator(dataloader=sample_loader)
+    run_adp_pic_tests_hila(vit_for_image_classification=vit_for_classification_image, images_and_masks=images_and_masks_generator)
