@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 import torch
 from config import config
 
@@ -38,6 +38,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
