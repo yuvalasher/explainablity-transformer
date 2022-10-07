@@ -137,26 +137,25 @@ def visualize_outputs(outputs):
             )
 
 
-def run_adp_pic_tests_hila(vit_for_image_classification: ViTForImageClassification, images_and_masks, ADP_PIC_config):
+def run_adp_pic_tests_hila(vit_for_image_classification: ViTForImageClassification, images_and_masks):
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
     start_time = dt.now()
-    print(
-        f'ADP_PIC tests for {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}; data: Hila')
-    print(
-        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
-
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
                                            images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
-    print(
-        f'ADP_PIC tests for IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}; data: Hila')
-    print(
-        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
-    print(f"timing: {(dt.now() - start_time).total_seconds()}")
+                                           gt_classes_list=gt_classes_list)
 
+    ic(evaluation_metrics)
+    print(
+        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+
+    print(
+        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
+
+    print(f"timing: {(dt.now() - start_time).total_seconds()}")
 
 IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
+
 if __name__ == '__main__':
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
@@ -181,7 +180,6 @@ if __name__ == '__main__':
     outputs = compute_saliency_and_save(dataloader=sample_loader)
     visualize_outputs(outputs=outputs)
     # remove_old_results_dfs(experiment_path=experiment_path)
-    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': True, 'IS_COMPARED_BY_TARGET': False}
     images_and_masks = compute_saliency_generator(dataloader=sample_loader)
-    run_adp_pic_tests_hila(vit_for_image_classification=vit_for_classification_image, images_and_masks=images_and_masks,
-                           ADP_PIC_config=ADP_PIC_config)
+
+    run_adp_pic_tests_hila(vit_for_image_classification=vit_for_classification_image, images_and_masks=images_and_masks)

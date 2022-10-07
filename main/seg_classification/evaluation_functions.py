@@ -24,11 +24,14 @@ IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-trans
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 seed_everything(config['general']['seed'])
 device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+
+
 def get_gt_classes(path):
     with open(path, 'r') as f:
         gt_classes_list = f.readlines()
-    gt_classes_list = [int(record.split( )[-1].replace('\n', '')) for record in gt_classes_list]
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
     return gt_classes_list
+
 
 class VisClass(Enum):
     TOP = "TOP"
@@ -197,11 +200,9 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
 def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
                       images_and_masks,
                       gt_classes_list: List[int],
-                      ADP_PIC_config: Dict[str, bool],
                       ):
-    adp_values, pic_values, acp_values = [], [], []
-    is_compared_by_target: bool = ADP_PIC_config["IS_COMPARED_BY_TARGET"]
-    is_clamp_between_0_to_1: bool = ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]
+    adp_values_predicted, pic_values_predicted, acp_values_predicted = [], [], []
+    adp_values_target, pic_values_target, acp_values_target = [], [], []
 
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
@@ -215,21 +216,41 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
         # plot_image(scattered_image)
         norm_scattered_image = normalize(scattered_image)
         # plot_image(norm_scattered_image)
-        metrics = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
-                                         inputs=norm_original_image,
-                                         inputs_scatter=norm_scattered_image,
-                                         gt_class=gt_classes_list[image_idx],
-                                         is_compared_by_target=is_compared_by_target)
-        adp_values.append(metrics["avg_drop_percentage"])
-        pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
-        acp_values.append(metrics["avg_change_percentage"])
-    ic(len(adp_values), len(pic_values), len(acp_values))
-    averaged_drop_percentage = 100 * np.mean(adp_values)
-    percentage_increase_in_confidence = 100 * np.mean(pic_values)
-    averaged_change_percentage = 100 * np.mean(acp_values)
-    return dict(percentage_increase_in_confidence=percentage_increase_in_confidence,
-                averaged_drop_percentage=averaged_drop_percentage,
-                averaged_change_percentage=averaged_change_percentage)
+        metrics_predicted = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
+                                                   inputs=norm_original_image,
+                                                   inputs_scatter=norm_scattered_image,
+                                                   gt_class=gt_classes_list[image_idx],
+                                                   is_compared_by_target=False)
+        adp_values_predicted.append(metrics_predicted["avg_drop_percentage"])
+        pic_values_predicted.append(metrics_predicted["percentage_increase_in_confidence_indicators"])
+        acp_values_predicted.append(metrics_predicted["avg_change_percentage"])
+
+        metrics_target = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
+                                                inputs=norm_original_image,
+                                                inputs_scatter=norm_scattered_image,
+                                                gt_class=gt_classes_list[image_idx],
+                                                is_compared_by_target=True)
+        adp_values_target.append(metrics_target["avg_drop_percentage"])
+        pic_values_target.append(metrics_target["percentage_increase_in_confidence_indicators"])
+        acp_values_target.append(metrics_target["avg_change_percentage"])
+
+    ic(len(adp_values_predicted), len(pic_values_predicted), len(acp_values_predicted))
+    ic(len(adp_values_target), len(pic_values_target), len(acp_values_target))
+    averaged_drop_percentage_predicted = 100 * np.mean(adp_values_predicted)
+    percentage_increase_in_confidence_predicted = 100 * np.mean(pic_values_predicted)
+    averaged_change_percentage_predicted = 100 * np.mean(acp_values_predicted)
+
+    averaged_drop_percentage_target = 100 * np.mean(adp_values_target)
+    percentage_increase_in_confidence_target = 100 * np.mean(pic_values_target)
+    averaged_change_percentage_target = 100 * np.mean(acp_values_target)
+
+    return dict(percentage_increase_in_confidence_predicted=percentage_increase_in_confidence_predicted,
+                averaged_drop_percentage_predicted=averaged_drop_percentage_predicted,
+                averaged_change_percentage_predicted=averaged_change_percentage_predicted,
+                percentage_increase_in_confidence_target=percentage_increase_in_confidence_target,
+                averaged_drop_percentage_target=averaged_drop_percentage_target,
+                averaged_change_percentage_target=averaged_change_percentage_target
+                )
 
 
 if __name__ == '__main__':
@@ -242,19 +263,18 @@ if __name__ == '__main__':
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     start_time = dt.now()
-    # ADP & PIC metrics
-    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': True, 'IS_COMPARED_BY_TARGET': False}
-    print(
-        f'ADP_PIC tests for {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}; data: {OPTIMIZATION_PKL_PATH}')
-    print(
-        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
 
+    # ADP & PIC metrics
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
                                            images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
-    print(f'ADP_PIC tests for IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}; data: {OPTIMIZATION_PKL_PATH}')
+                                           gt_classes_list=gt_classes_list)
+    ic(evaluation_metrics)
     print(
-        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
+        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+
+    print(
+        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
+
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
     """
     # Perturbation tests
