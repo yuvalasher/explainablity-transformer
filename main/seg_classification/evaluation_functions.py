@@ -210,9 +210,9 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
         # show_mask(mask)
         norm_original_image = normalize(image.clone())
         # plot_image(norm_original_image)
-        norm_mask = normalize_mask_values(mask=mask, clamp_between_0_to_1=is_clamp_between_0_to_1)
+        # norm_mask = normalize_mask_values(mask=mask, clamp_between_0_to_1=is_clamp_between_0_to_1) # masks are already normalized
         # show_mask(norm_mask)
-        scattered_image = scatter_image_by_mask(image=image, mask=norm_mask)  # TODO
+        scattered_image = scatter_image_by_mask(image=image, mask=mask)  # TODO
         # plot_image(scattered_image)
         norm_scattered_image = normalize(scattered_image)
         # plot_image(norm_scattered_image)
