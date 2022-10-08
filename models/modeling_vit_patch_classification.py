@@ -66,12 +66,15 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         logits = self.patch_classifier(tokens_output_reshaped)
         mask = logits.view(batch_size, -1, 1) # logits - [batch_size, tokens_count]
 
+        if vit_config["is_relu_segmentation"] and vit_config["is_sigmoid_segmentation"]:
+            raise (
+                f"Can't is_relu_segmentation: {vit_config['is_relu_segmentation']} and is_sigmoid_segmentation: {vit_config['is_sigmoid_segmentation']}")
 
         if vit_config["is_relu_segmentation"]:
             mask = torch.relu(mask)
-        else:
-            if vit_config["is_sigmoid_segmentation"]:
-                mask = torch.sigmoid(mask)
+
+        if vit_config["is_sigmoid_segmentation"]:
+            mask = torch.sigmoid(mask)
 
         mask = mask.view(batch_size, 1, 14, 14)
 
