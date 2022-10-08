@@ -2,7 +2,7 @@ import os
 import torch
 from collections import OrderedDict
 import glob
-
+import re
 
 class Saver(object):
 
@@ -10,6 +10,8 @@ class Saver(object):
         self.args = args
         self.directory = os.path.join('run', args.train_dataset, args.checkname)
         self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))
+        self.runs = glob.glob(os.path.join(self.directory, 'experiment_*'))
+        self.runs.sort(key=lambda f: int(re.sub('\D', '', f)))
         run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
 
         self.experiment_dir = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)))

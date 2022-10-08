@@ -24,7 +24,7 @@ from utils.metrices import *
 
 from config import config
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
-    OptImageClassificationWithTokenClassificationModel
+    OptImageClassificationWithTokenClassificationModel, OptImageClassificationWithTokenClassificationModel_Segmentation
 from utils import render
 from utils.saver import Saver
 from utils.iou import IoU
@@ -385,7 +385,7 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 )
 
 CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-model = OptImageClassificationWithTokenClassificationModel(
+model = OptImageClassificationWithTokenClassificationModel_Segmentation(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
     feature_extractor=feature_extractor,
@@ -396,6 +396,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BEST_AUC_PLOT_PATH,
+    run_base_model_only=True
 )
 
 metric = IoU(2, ignore_index=-1)
@@ -484,4 +485,3 @@ np.save(os.path.join(saver.experiment_dir, 'recall.npy'), rc)
 plt.figure()
 plt.plot(rc, pr)
 plt.savefig(os.path.join(saver.experiment_dir, 'PR_curve_{}.png'.format(args.method)))
-
