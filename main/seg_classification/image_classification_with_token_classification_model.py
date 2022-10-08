@@ -166,8 +166,11 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
-                                                             is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
+            interpolated_mask_normalized = interpolated_mask
+        else:
+            interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
+                                                                 is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
         masked_image = image_resized * interpolated_mask_normalized
         masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
