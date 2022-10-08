@@ -1,3 +1,4 @@
+from icecream import ic
 from datetime import datetime as dt
 import os
 from matplotlib import pyplot as plt
@@ -13,14 +14,23 @@ from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
-from utils import get_gt_classes
-from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
+# from utils.utils_functions import get_gt_classes
+# from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
 from vit_loader.load_vit import load_vit_pretrained
 import torch
 from enum import Enum
 
+IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 seed_everything(config['general']['seed'])
 device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
 
 
 class VisClass(Enum):
@@ -160,10 +170,9 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
         full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs).logits, index=gt_class)
         saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
-            vit_for_image_classification(inputs_scatter).logits,
-            index=gt_class)
+            vit_for_image_classification(inputs_scatter).logits, index=gt_class)
 
-    else:
+    else: # Predicted Top 1
         full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs).logits, index=0)
 
@@ -191,39 +200,57 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
 def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
                       images_and_masks,
                       gt_classes_list: List[int],
-                      ADP_PIC_config: Dict[str, bool],
                       ):
-    adp_values, pic_values, acp_values = [], [], []
-    is_compared_by_target: bool = ADP_PIC_config["IS_COMPARED_BY_TARGET"]
-    is_clamp_between_0_to_1: bool = ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]
+    adp_values_predicted, pic_values_predicted, acp_values_predicted = [], [], []
+    adp_values_target, pic_values_target, acp_values_target = [], [], []
 
-    for image_idx, image_and_mask in enumerate(images_and_masks):
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
         # show_mask(mask)
         norm_original_image = normalize(image.clone())
         # plot_image(norm_original_image)
-        norm_mask = normalize_mask_values(mask=mask, clamp_between_0_to_1=is_clamp_between_0_to_1)
+        # norm_mask = normalize_mask_values(mask=mask, clamp_between_0_to_1=is_clamp_between_0_to_1) # masks are already normalized
         # show_mask(norm_mask)
-        scattered_image = scatter_image_by_mask(image=image, mask=norm_mask)  # TODO
+        scattered_image = scatter_image_by_mask(image=image, mask=mask)  # TODO
         # plot_image(scattered_image)
         norm_scattered_image = normalize(scattered_image)
         # plot_image(norm_scattered_image)
-        metrics = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
-                                         inputs=norm_original_image,
-                                         inputs_scatter=norm_scattered_image,
-                                         gt_class=gt_classes_list[image_idx],
-                                         is_compared_by_target=is_compared_by_target)
-        adp_values.append(metrics["avg_drop_percentage"])
-        pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
-        acp_values.append(metrics["avg_change_percentage"])
+        metrics_predicted = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
+                                                   inputs=norm_original_image,
+                                                   inputs_scatter=norm_scattered_image,
+                                                   gt_class=gt_classes_list[image_idx],
+                                                   is_compared_by_target=False)
+        adp_values_predicted.append(metrics_predicted["avg_drop_percentage"])
+        pic_values_predicted.append(metrics_predicted["percentage_increase_in_confidence_indicators"])
+        acp_values_predicted.append(metrics_predicted["avg_change_percentage"])
 
-    averaged_drop_percentage = 100 * np.mean(adp_values)
-    percentage_increase_in_confidence = 100 * np.mean(pic_values)
-    averaged_change_percentage = 100 * np.mean(acp_values)
-    return dict(percentage_increase_in_confidence=percentage_increase_in_confidence,
-                averaged_drop_percentage=averaged_drop_percentage,
-                averaged_change_percentage=averaged_change_percentage)
+        metrics_target = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
+                                                inputs=norm_original_image,
+                                                inputs_scatter=norm_scattered_image,
+                                                gt_class=gt_classes_list[image_idx],
+                                                is_compared_by_target=True)
+        adp_values_target.append(metrics_target["avg_drop_percentage"])
+        pic_values_target.append(metrics_target["percentage_increase_in_confidence_indicators"])
+        acp_values_target.append(metrics_target["avg_change_percentage"])
+
+    ic(len(adp_values_predicted), len(pic_values_predicted), len(acp_values_predicted))
+    ic(len(adp_values_target), len(pic_values_target), len(acp_values_target))
+    averaged_drop_percentage_predicted = 100 * np.mean(adp_values_predicted)
+    percentage_increase_in_confidence_predicted = 100 * np.mean(pic_values_predicted)
+    averaged_change_percentage_predicted = 100 * np.mean(acp_values_predicted)
+
+    averaged_drop_percentage_target = 100 * np.mean(adp_values_target)
+    percentage_increase_in_confidence_target = 100 * np.mean(pic_values_target)
+    averaged_change_percentage_target = 100 * np.mean(acp_values_target)
+
+    return dict(percentage_increase_in_confidence_predicted=percentage_increase_in_confidence_predicted,
+                averaged_drop_percentage_predicted=averaged_drop_percentage_predicted,
+                averaged_change_percentage_predicted=averaged_change_percentage_predicted,
+                percentage_increase_in_confidence_target=percentage_increase_in_confidence_target,
+                averaged_drop_percentage_target=averaged_drop_percentage_target,
+                averaged_change_percentage_target=averaged_change_percentage_target
+                )
 
 
 if __name__ == '__main__':
@@ -236,21 +263,19 @@ if __name__ == '__main__':
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     start_time = dt.now()
+
     # ADP & PIC metrics
-    ADP_PIC_config = {'IS_CLAMP_BETWEEN_0_TO_1': True, 'IS_COMPARED_BY_TARGET': False}
-    print(
-        f'Evaluation Params: IS_COMPARED_BY_TARGET: {ADP_PIC_config["IS_COMPARED_BY_TARGET"]}, IS_CLAMP_BETWEEN_0_TO_1: {ADP_PIC_config["IS_CLAMP_BETWEEN_0_TO_1"]}')
-
-
-    for image_idx, image_and_mask in enumerate(images_and_masks):
-        print(torch.where(image_and_mask["image_mask"] <0), image_idx)
-        # if torch.where(image_and_mask["image_mask"] <0):
-        #     print(image_and_mask["image_mask"])
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
                                            images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list, ADP_PIC_config=ADP_PIC_config)
+                                           gt_classes_list=gt_classes_list)
+    ic(evaluation_metrics)
     print(
-        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
+        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+
+    print(
+        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
+
+    print(f"timing: {(dt.now() - start_time).total_seconds()}")
     """
     # Perturbation tests
     perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}

@@ -6,9 +6,10 @@ from main.seg_classification.image_classification_with_token_classification_mode
     OptImageClassificationWithTokenClassificationModel
 from main.seg_classification.image_token_data_module_opt import ImageSegOptDataModule
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import torch
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
 from config import config
 import numpy as np
 

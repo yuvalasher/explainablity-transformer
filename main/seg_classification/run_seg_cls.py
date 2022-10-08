@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 import torch
 from config import config
 
@@ -38,6 +38,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
@@ -92,6 +93,7 @@ model = ImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
     feature_extractor=feature_extractor,
+    is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,

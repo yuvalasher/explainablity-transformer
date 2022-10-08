@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader
 
 from main.seg_classification.image_token_dataset import ImageSegDataset
@@ -30,7 +31,9 @@ class ImageSegOptDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True,
+                          generator=torch.Generator(device='cuda'))
 
     def val_dataloader(self):
-        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False,
+                          generator=torch.Generator(device='cuda'))

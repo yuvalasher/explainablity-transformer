@@ -1,31 +1,38 @@
+from datetime import datetime as dt
 from icecream import ic
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from transformers import ViTForImageClassification
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test, eval_perturbation_test
 from hila_method.utils.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from hila_method.utils.ViT_explanation_generator import LRP
 from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
-
+from main.seg_classification.evaluation_functions import read_image_and_mask_from_pickls_by_path, infer_adp_pic_acp
 from vit_loader.load_vit import load_vit_pretrained
-
 from config import config
+
 device = torch.device(type='cuda', index=config["general"]["gpu_index"])
-# cuda = torch.cuda.is_available()
 torch.cuda.empty_cache()
 from torchvision.transforms import transforms
 from pytorch_lightning import seed_everything
-
-seed_everything(config["general"]["seed"])
 import numpy as np
-# import torch
 from torch import Tensor
 import cv2
 import matplotlib.pyplot as plt
 from typing import Dict, List
 from pathlib import Path
 
+seed_everything(config["general"]["seed"])
+
 HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
+
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
 
 
 def show_cam_on_image(img, mask):
@@ -95,6 +102,29 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
     return outputs
 
 
+def compute_saliency_generator(dataloader: DataLoader):
+    for batch_idx, (data, target) in enumerate(dataloader):
+        # target = target.to(device)
+        resized_image = data.clone()
+        data = normalize(data)
+        data = data.to(device)
+        data.requires_grad_()
+        Res_patches = lrp.generate_LRP(data, start_layer=1, method="grad", index=None).reshape(data.shape[0], 1, 14,
+                                                                                               14)
+        # with torch.no_grad():
+        Res = torch.nn.functional.interpolate(Res_patches, scale_factor=16, mode='bilinear').cpu()  # .cuda()
+        Res = (Res - Res.min()) / (Res.max() - Res.min())
+        # Res_np = Res.data.cpu().numpy()
+        data = data.cpu()
+        # Res = Res.data.cpu()
+        Res_patches = Res_patches.cpu()
+        # ic(data.device, Res.device, Res_patches.device)
+        # target = target.cpu()
+        # ic(target.device)
+        yield dict(image_resized=resized_image.to(device), image_mask=Res.to(device))
+        # outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches})
+
+
 def visualize_outputs(outputs):
     print(len(outputs))
     for batch_idx, output in enumerate(outputs):
@@ -107,23 +137,39 @@ def visualize_outputs(outputs):
             )
 
 
+def run_adp_pic_tests_hila(vit_for_image_classification: ViTForImageClassification, images_and_masks):
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+    start_time = dt.now()
+    evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
+                                           images_and_masks=images_and_masks,
+                                           gt_classes_list=gt_classes_list)
+
+    ic(evaluation_metrics)
+    print(
+        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+
+    print(
+        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
+
+    print(f"timing: {(dt.now() - start_time).total_seconds()}")
+
+IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
+
 if __name__ == '__main__':
-    # IMAGENET_VALIDATION_PATH = '/home/yuvalas/explainability/data/ILSVRC2012_test_earlystopping'
-    DGX_IMAGENET_ALL_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
-    IMAGENET_VALIDATION_PATH = DGX_IMAGENET_ALL_VALIDATION_PATH
     BATCH_SIZE = 1
     MODEL_NAME = 'google/vit-base-patch16-224'
-    model_LRP = vit_LRP(pretrained=True).to(device)  # .cuda()
+    model_LRP = vit_LRP(pretrained=True).to(device)
     model_LRP.eval()
     lrp = LRP(model_LRP)
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
     ])
+
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
     vit_for_classification_image = vit_for_classification_image.to(device)
-    # n_samples = config["vit"]["seg_cls"]["val_n_samples"]
-    n_samples = 208
+    n_samples = 5000
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VALIDATION_PATH, n_samples=n_samples, transform=transform)
     sample_loader = torch.utils.data.DataLoader(
         imagenet_ds,
@@ -131,16 +177,8 @@ if __name__ == '__main__':
         shuffle=False,
         num_workers=4
     )
-    outputs = compute_saliency_and_save(dataloader=sample_loader)
-    visualize_outputs(outputs=outputs)
-    # remove_old_results_dfs(experiment_path=experiment_path)
-
-    auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image,
-                                 outputs=outputs)
-
-    # auc = run_perturbation_test(
-    #     model=vit_for_classification_image,
-    #     outputs=outputs,
-    #     stage="hila",
-    #     epoch_idx=0,
-    # )
+    # outputs = compute_saliency_and_save(dataloader=sample_loader)
+    # visualize_outputs(outputs=outputs)
+    # auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image, outputs=outputs)
+    images_and_masks_generator = compute_saliency_generator(dataloader=sample_loader)
+    run_adp_pic_tests_hila(vit_for_image_classification=vit_for_classification_image, images_and_masks=images_and_masks_generator)

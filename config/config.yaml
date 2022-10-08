@@ -16,6 +16,7 @@ vit:
   is_sigmoid_segmentation: False
   is_relu_segmentation: False
   is_mlp_on_segmentation: True
+  is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
   model_name: google/vit-base-patch16-224
   img_size: 224
   patch_size: 16

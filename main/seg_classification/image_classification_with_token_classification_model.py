@@ -130,6 +130,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             total_training_steps: int,
             feature_extractor: ViTFeatureExtractor,
             plot_path,
+            is_clamp_between_0_to_1: bool = True,
             criterion: LossLoss = LossLoss(),
             emb_size: int = 768,
             n_classes: int = 1000,
@@ -145,14 +146,34 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.n_training_steps = total_training_steps
         self.batch_size = batch_size
         self.feature_extractor = feature_extractor
+        self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
         self.plot_path = plot_path
 
-    def forward(self, inputs) -> ImageClassificationWithTokenClassificationModelOutput:
+    def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
+        if is_clamp_between_0_to_1:
+            norm_mask = torch.clamp(mask, min=0, max=1)
+        else:
+            norm_mask = (mask - mask.min()) / (mask.max() - mask.min())
+        return norm_mask
+
+    def normalize_image(self, tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+        dtype = tensor.dtype
+        mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+        std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+        tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+        return tensor
+
+    def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        masked_image = inputs * interpolated_mask
-
-        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
+        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
+            interpolated_mask_normalized = interpolated_mask
+        else:
+            interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
+                                                                 is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+        masked_image = image_resized * interpolated_mask_normalized
+        masked_image_inputs = self.normalize_image(masked_image)
+        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
         lossloss_output = self.criterion(
             output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
         )
@@ -168,7 +189,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs)
+        output = self.forward(inputs=inputs, image_resized=image_resized)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -187,7 +208,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs)
+        output = self.forward(inputs=inputs, image_resized=image_resized)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -289,12 +310,13 @@ from matplotlib import pyplot as plt
 from torch import Tensor
 
 
-def show_image_inputs(inputs: Tensor):  # [1, 3, 224, 224]
-    inputs = inputs[0] if len(inputs.shape) == 4 else inputs
-    _ = plt.imshow(inputs.permute(1, 2, 0))
+def show_mask(mask):  # [1, 1, 224, 224]
+    mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
+    _ = plt.imshow(mask.squeeze(0).cpu().detach())
     plt.show()
 
 
-def show_mask(mask: Tensor):  # [1, 1, 224, 224]
-    _ = plt.imshow(mask[0][0])
-    plt.show()
+def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
+    image = image if len(image.shape) == 3 else image.squeeze(0)
+    plt.imshow(image.cpu().detach().permute(1, 2, 0))
+    plt.show();
