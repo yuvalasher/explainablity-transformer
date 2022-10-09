@@ -72,6 +72,9 @@ BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
 EXP_NAME = 'ft_pasten'
 RUN_BASE_MODEL = True # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
+EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
+os.makedirs(EXP_PATH, exist_ok=True)
+ic(EXP_PATH)
 BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
 BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
