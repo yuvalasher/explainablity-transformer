@@ -81,7 +81,6 @@ BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_m
 os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
-
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
     model_type="vit-basic",
@@ -126,6 +125,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
     feature_extractor=feature_extractor,
+    is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
