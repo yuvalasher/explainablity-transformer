@@ -9,6 +9,7 @@ from main.seg_classification.image_token_data_module_opt import ImageSegOptDataM
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 import torch
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 from config import config
 import numpy as np
@@ -58,8 +59,8 @@ from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-OBT_OBJECTS_PLOT_FOLDER_NAME = 'opt_objects_plot'
-OBT_OBJECTS_FOLDER_NAME = 'opt_objects'
+OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
+OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
@@ -70,15 +71,18 @@ CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classificat
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 EXP_NAME = 'amit_pkl'
-RUN_BASE_MODEL = True # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+RUN_BASE_MODEL = True  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
 os.makedirs(EXP_PATH, exist_ok=True)
 ic(EXP_PATH)
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
+
+BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
+
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
 BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
 BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
@@ -104,7 +108,6 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     batch_size=vit_config["batch_size"],
 )
 
-
 CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
 model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
@@ -118,7 +121,6 @@ model = OptImageClassificationWithTokenClassificationModel(
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BEST_AUC_PLOT_PATH,
 )
-
 
 
 def load_obj(path) -> Any:
@@ -211,5 +213,6 @@ if __name__ == '__main__':
         trainer.fit(model=model, datamodule=data_module)
         model.best_auc_vis
     print(f"Time diff: {dt.now() - start_time}")
-    mean_auc = load_pickles_and_calculate_auc(path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
+    mean_auc = load_pickles_and_calculate_auc(
+        path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
     print(f"Mean AUC: {mean_auc}")
