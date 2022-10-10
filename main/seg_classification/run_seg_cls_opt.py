@@ -72,6 +72,9 @@ BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
 EXP_NAME = 'amit_pkl'
 RUN_BASE_MODEL = True # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
+EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
+os.makedirs(EXP_PATH, exist_ok=True)
+ic(EXP_PATH)
 BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME)
 BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
@@ -80,7 +83,6 @@ BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_mode
 BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
 os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
 os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -142,6 +144,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
     feature_extractor=feature_extractor,
+    is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,

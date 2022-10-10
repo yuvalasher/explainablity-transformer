@@ -165,6 +165,7 @@ def get_auc(num_correct_pertub, num_correct_model):
     #                                   1)  # TODO - accuracy for class. Now its top-class (predicted)
     mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, np.mean(num_correct_model))
     auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
+    # print(num_correct_pertub)
     # print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
     return auc
 
