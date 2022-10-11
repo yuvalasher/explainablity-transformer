@@ -170,7 +170,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
-                                                                 is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+                                                                      is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
         masked_image = image_resized * interpolated_mask_normalized
         masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
@@ -262,13 +262,16 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self._visualize_outputs(
             outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
         )
+        epoch_auc = -1
         if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
-            run_perturbation_test(
+            epoch_auc = run_perturbation_test(
                 model=self.vit_for_classification_image,
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,
             )
+
+        self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)
         return {"loss": loss}
 
     def mask_patches_to_image_scores(self, patches_mask):

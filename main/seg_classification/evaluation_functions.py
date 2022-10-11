@@ -172,7 +172,7 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
         saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs_scatter).logits, index=gt_class)
 
-    else: # Predicted Top 1
+    else:  # Predicted Top 1
         full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs).logits, index=0)
 
@@ -276,8 +276,9 @@ if __name__ == '__main__':
         f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
 
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    """
+
     # Perturbation tests
+    # TODO - Do it with loop of vis_class and perturbation_type
     perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
     print(
         f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
@@ -287,7 +288,7 @@ if __name__ == '__main__':
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
     print(
         f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
-    """
+
     """
     assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0

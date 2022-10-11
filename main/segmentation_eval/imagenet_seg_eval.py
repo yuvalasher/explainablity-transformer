@@ -2,6 +2,8 @@ import os
 import sys
 from pathlib import Path
 
+from icecream import ic
+
 os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 print('START !')
@@ -38,7 +40,7 @@ import torch.nn.functional as F
 
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers
+    get_loss_multipliers, freeze_multitask_model
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -53,9 +55,12 @@ from PIL import ImageFile
 import warnings
 import logging
 
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 logging.getLogger('checkpoint').setLevel(0)
+logging.getLogger('lightning').setLevel(0)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+
 
 
 # warnings.filterwarnings("ignore", category=)
@@ -258,230 +263,248 @@ cls = ['airplane',
        'tv'
        ]
 
-# Args
-parser = argparse.ArgumentParser(description='Training multi-class classifier')
-parser.add_argument('--arc', type=str, default='vgg', metavar='N',
-                    help='Model architecture')
-parser.add_argument('--train_dataset', type=str, default='imagenet', metavar='N',
-                    help='Testing Dataset')
-parser.add_argument('--method', type=str,
-                    default='grad_rollout',
-                    choices=['token_to_learn', 'rollout', 'lrp', 'transformer_attribution', 'full_lrp',
-                             'lrp_last_layer',
-                             'attn_last_layer', 'attn_gradcam'],
-                    help='')
-parser.add_argument('--thr', type=float, default=0.,
-                    help='threshold')
-parser.add_argument('--K', type=int, default=1,
-                    help='new - top K results')
-parser.add_argument('--save-img', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--no-ia', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--no-fx', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--no-fgx', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--no-m', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--no-reg', action='store_true',
-                    default=False,
-                    help='')
-parser.add_argument('--is-ablation', type=bool,
-                    default=False,
-                    help='')
-parser.add_argument('--imagenet-seg-path', type=str, required=True)
-args = parser.parse_args()
+if __name__ == '__main__':
+    # Args
+    parser = argparse.ArgumentParser(description='Training multi-class classifier')
+    parser.add_argument('--arc', type=str, default='vgg', metavar='N',
+                        help='Model architecture')
+    parser.add_argument('--train_dataset', type=str, default='imagenet', metavar='N',
+                        help='Testing Dataset')
+    parser.add_argument('--method', type=str,
+                        default='grad_rollout',
+                        choices=['token_to_learn', 'rollout', 'lrp', 'transformer_attribution', 'full_lrp',
+                                 'lrp_last_layer',
+                                 'attn_last_layer', 'attn_gradcam'],
+                        help='')
+    parser.add_argument('--thr', type=float, default=0.,
+                        help='threshold')
+    parser.add_argument('--K', type=int, default=1,
+                        help='new - top K results')
+    parser.add_argument('--save-img', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--no-ia', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--no-fx', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--no-fgx', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--no-m', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--no-reg', action='store_true',
+                        default=False,
+                        help='')
+    parser.add_argument('--is-ablation', type=bool,
+                        default=False,
+                        help='')
+    parser.add_argument('--imagenet-seg-path', type=str, required=True)
+    args = parser.parse_args()
 
-args.checkname = args.method + '_' + args.arc
+    args.checkname = args.method + '_' + args.arc
 
-alpha = 2
+    alpha = 2
 
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda else "cpu")
+    cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if cuda else "cpu")
 
-# Define Saver
-saver = Saver(args)
-saver.results_dir = os.path.join(saver.experiment_dir, 'results')
-if not os.path.exists(saver.results_dir):
-    os.makedirs(saver.results_dir)
-if not os.path.exists(os.path.join(saver.results_dir, 'input')):
-    os.makedirs(os.path.join(saver.results_dir, 'input'))
-if not os.path.exists(os.path.join(saver.results_dir, 'explain')):
-    os.makedirs(os.path.join(saver.results_dir, 'explain'))
+    # Define Saver
+    saver = Saver(args)
+    saver.results_dir = os.path.join(saver.experiment_dir, 'results')
+    if not os.path.exists(saver.results_dir):
+        os.makedirs(saver.results_dir)
+    if not os.path.exists(os.path.join(saver.results_dir, 'input')):
+        os.makedirs(os.path.join(saver.results_dir, 'input'))
+    if not os.path.exists(os.path.join(saver.results_dir, 'explain')):
+        os.makedirs(os.path.join(saver.results_dir, 'explain'))
 
-args.exp_img_path = os.path.join(saver.results_dir, 'explain/img')
-if not os.path.exists(args.exp_img_path):
-    os.makedirs(args.exp_img_path)
-args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
-if not os.path.exists(args.exp_np_path):
-    os.makedirs(args.exp_np_path)
+    args.exp_img_path = os.path.join(saver.results_dir, 'explain/img')
+    if not os.path.exists(args.exp_img_path):
+        os.makedirs(args.exp_img_path)
+    args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
+    if not os.path.exists(args.exp_np_path):
+        os.makedirs(args.exp_np_path)
 
-# Data
-normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-test_img_trans = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    normalize,
-])
+    # Data
+    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    test_img_trans = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        normalize,
+    ])
 
-test_img_trans_only_resize = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor()
-])
-test_lbl_trans = transforms.Compose([
-    transforms.Resize((224, 224), Image.NEAREST),
-])
+    test_img_trans_only_resize = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor()
+    ])
+    test_lbl_trans = transforms.Compose([
+        transforms.Resize((224, 224), Image.NEAREST),
+    ])
 
-ds = Imagenet_Segmentation(args.imagenet_seg_path,
-                           transform=test_img_trans,
-                           transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+    ds = Imagenet_Segmentation(args.imagenet_seg_path,
+                               transform=test_img_trans,
+                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-################################################
-# Model
+    ################################################
+    # Model
 
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
+    vit_config = config["vit"]
+    loss_config = vit_config["seg_cls"]["loss"]
+    seed_everything(config["general"]["seed"])
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    gc.collect()
+    OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
+    OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
-seed_everything(config["general"]["seed"])
+    loss_multipliers = get_loss_multipliers(loss_config=loss_config)
+    exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-gc.collect()
+    plot_path = Path(vit_config["plot_path"], exp_name)
+    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
+    CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
+    CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
+    RUN_BASE_MODEL = False  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
-loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
+    BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
+        'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
-plot_path = Path(vit_config["plot_path"], exp_name)
-CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
+    EXP_NAME = 'ft_50000_new_model_seg_only_opt' # TODO - pay attention !!!
 
-BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-    'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-EXP_NAME = 'amit_pkl'
-# BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects_plot')
-# BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', 'opt_objects')
+    EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
+    os.makedirs(EXP_PATH, exist_ok=True)
+    ic(EXP_PATH)
 
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects_plot')
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_objects')
-os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
-os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+    BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
 
-feature_extractor, _ = load_feature_extractor_and_vit_model(
-    vit_config=vit_config,
-    model_type="vit-basic",
-    is_wolf_transforms=vit_config["is_wolf_transforms"],
-)  # TODO if vit-for-dino is relevant
+    os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
+    os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
-vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
+    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
+    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 
-warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-    n_epochs=vit_config["n_epochs"],
-    train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
-    batch_size=vit_config["batch_size"],
-)
+    feature_extractor, _ = load_feature_extractor_and_vit_model(
+        vit_config=vit_config,
+        model_type="vit-basic",
+        is_wolf_transforms=vit_config["is_wolf_transforms"],
+    )  # TODO if vit-for-dino is relevant
 
-CHECKPOINT_EPOCH_IDX = 4  # TODO - pay attention !!!
-model = OptImageClassificationWithTokenClassificationModel_Segmentation(
-    vit_for_classification_image=vit_for_classification_image,
-    vit_for_patch_classification=vit_for_patch_classification,
-    feature_extractor=feature_extractor,
-    plot_path=plot_path,
-    warmup_steps=warmup_steps,
-    total_training_steps=total_training_steps,
-    batch_size=vit_config["batch_size"],
-    best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
-    checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-    best_auc_plot_path=BEST_AUC_PLOT_PATH,
-    run_base_model_only=True
-)
+    vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
+        model_name=vit_config["model_name"])
 
-metric = IoU(2, ignore_index=-1)
+    warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
+        n_epochs=vit_config["n_epochs"],
+        train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
+        batch_size=vit_config["batch_size"],
+    )
 
-total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
-total_ap, total_f1 = [], []
 
-predictions, targets = [], []
-
-print('START TRAINING !')
-
-epochs = range(len(ds))
-for batch_idx in tqdm(epochs, leave=True, position=0):
-    ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
-    dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
-
-    data_module = ImageSegOptDataModuleSegmentation(
+    model = OptImageClassificationWithTokenClassificationModel_Segmentation(
+        vit_for_classification_image=vit_for_classification_image,
+        vit_for_patch_classification=vit_for_patch_classification,
         feature_extractor=feature_extractor,
-        batch_idx=1,
-        train_data_loader=dl
+        plot_path=plot_path,
+        warmup_steps=warmup_steps,
+        total_training_steps=total_training_steps,
+        batch_size=vit_config["batch_size"],
+        best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
+        checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
+        best_auc_plot_path=BEST_AUC_PLOT_PATH,
+        run_base_model_only=RUN_BASE_MODEL
     )
-    trainer = pl.Trainer(
-        logger=[],
-        accelerator='gpu',
-        gpus=1,
-        devices=[1, 2],
-        num_sanity_val_steps=0,
-        check_val_every_n_epoch=100,
-        max_epochs=vit_config["n_epochs"],
-        resume_from_checkpoint=CKPT_PATH,
-        enable_progress_bar=False,
-        enable_checkpointing=False,
-        default_root_dir=vit_config["default_root_dir"],
-        weights_summary=None
+    model = freeze_multitask_model(
+        model=model,
+        freezing_transformer=vit_config["freezing_transformer"],
     )
+    metric = IoU(2, ignore_index=-1)
 
-    trainer.fit(model=model, datamodule=data_module)
-    image_resized = model.image_resized
-    Res = model.best_auc_vis
-    labels = model.target
-    correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
-                                                                                image=image_resized)
+    total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
+    total_ap, total_f1 = [], []
 
-    predictions.append(pred)
-    targets.append(target)
+    predictions, targets = [], []
 
-    total_correct += correct.astype('int64')
-    total_label += labeled.astype('int64')
-    total_inter += inter.astype('int64')
-    total_union += union.astype('int64')
-    total_ap += [ap]
-    total_f1 += [f1]
-    pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
-    IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
-    mIoU = IoU.mean()
-    mAp = np.mean(total_ap)
-    mF1 = np.mean(total_f1)
-    if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
-        print('Curr epoch: ', batch_idx)
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    print('START TRAINING !')
 
-print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-print("FINISH !!!!!")
-txtfile = os.path.join(saver.experiment_dir, 'result_mIoU_%.4f.txt' % mIoU)
-# txtfile = 'result_mIoU_%.4f.txt' % mIoU
-fh = open(txtfile, 'w')
+    epochs = range(len(ds))
+    for batch_idx in tqdm(epochs, leave=True, position=0):
+        ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
+        dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
 
-fh.write("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-fh.write("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-fh.write("Mean AP over %d classes: %.4f\n" % (2, mAp))
-fh.write("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-fh.close()
+        data_module = ImageSegOptDataModuleSegmentation(
+            feature_extractor=feature_extractor,
+            batch_idx=1,
+            train_data_loader=dl
+        )
+        trainer = pl.Trainer(
+            logger=[],
+            accelerator='gpu',
+            gpus=1,
+            devices=[1, 2],
+            num_sanity_val_steps=0,
+            check_val_every_n_epoch=100,
+            max_epochs=vit_config["n_epochs"],
+            resume_from_checkpoint=CKPT_PATH,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            default_root_dir=vit_config["default_root_dir"],
+            weights_summary=None
+        )
 
-predictions = np.concatenate(predictions)
-targets = np.concatenate(targets)
-pr, rc, thr = precision_recall_curve(targets, predictions)
-np.save(os.path.join(saver.experiment_dir, 'precision.npy'), pr)
-np.save(os.path.join(saver.experiment_dir, 'recall.npy'), rc)
+        trainer.fit(model=model, datamodule=data_module)
+        image_resized = model.image_resized
+        Res = model.best_auc_vis
+        labels = model.target
+        correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
+                                                                                    image=image_resized)
 
-plt.figure()
-plt.plot(rc, pr)
-plt.savefig(os.path.join(saver.experiment_dir, 'PR_curve_{}.png'.format(args.method)))
+        predictions.append(pred)
+        targets.append(target)
+
+        total_correct += correct.astype('int64')
+        total_label += labeled.astype('int64')
+        total_inter += inter.astype('int64')
+        total_union += union.astype('int64')
+        total_ap += [ap]
+        total_f1 += [f1]
+        pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
+        IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
+        mIoU = IoU.mean()
+        mAp = np.mean(total_ap)
+        mF1 = np.mean(total_f1)
+        if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
+            print('Curr epoch: ', batch_idx)
+            print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+            print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+            print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+            print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+
+
+    print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+    print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+    print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+    print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    print("FINISH !!!!!")
+    txtfile = os.path.join(saver.experiment_dir, 'result_mIoU_%.4f.txt' % mIoU)
+    # txtfile = 'result_mIoU_%.4f.txt' % mIoU
+    fh = open(txtfile, 'w')
+
+    fh.write("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+    fh.write("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+    fh.write("Mean AP over %d classes: %.4f\n" % (2, mAp))
+    fh.write("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    fh.close()
+
+    predictions = np.concatenate(predictions)
+    targets = np.concatenate(targets)
+    pr, rc, thr = precision_recall_curve(targets, predictions)
+    np.save(os.path.join(saver.experiment_dir, 'precision.npy'), pr)
+    np.save(os.path.join(saver.experiment_dir, 'recall.npy'), rc)
+
+    plt.figure()
+    plt.plot(rc, pr)
+    plt.savefig(os.path.join(saver.experiment_dir, 'PR_curve_{}.png'.format(args.method)))

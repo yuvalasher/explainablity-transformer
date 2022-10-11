@@ -12,8 +12,8 @@ from vit_utils import get_image_and_inputs_and_transformed_image
 from config import config
 
 vit_config = config["vit"]
-print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_samples']}")
-print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_samples']}")
+print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
+print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
 # FILE_PATH = "/home/yuvalas/explainability/data/samples_6000_reconstruct.txt"
 FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/img_name_and_label_no_idx.csv"
@@ -24,7 +24,6 @@ class ImageSegDataset(Dataset):
             self,
             images_path: Union[str, WindowsPath],
             feature_extractor: ViTFeatureExtractor,
-            n_samples: int,
             is_val: bool,
     ):
         self.is_val = is_val
@@ -52,8 +51,8 @@ class ImageSegDataset(Dataset):
         df_val_sample = pd.DataFrame(columns=['img_name', 'label'])
 
         for idx_label, val in enumerate(df.label.unique()):
-            arr_img_name = df.loc[df.label == val].sample(1).img_name.values
-            arr_label = df.loc[df.label == val].sample(1).label.values
+            arr_img_name = df.loc[df.label == val].sample(vit_config['seg_cls']['val_n_label_sample']).img_name.values
+            arr_label = df.loc[df.label == val].sample(vit_config['seg_cls']['val_n_label_sample']).label.values
             n_rows = df_val_sample.shape[0]
             for idx, img_name in enumerate(arr_img_name):
                 df_val_sample.loc[n_rows + idx, 'img_name'] = arr_img_name[idx]
@@ -61,8 +60,8 @@ class ImageSegDataset(Dataset):
 
         df = df.drop(index=df_val_sample.index)
         for idx_label, val in enumerate(df.label.unique()):
-            arr_img_name = df.loc[df.label == val].sample(6).img_name.values
-            arr_label = df.loc[df.label == val].sample(6).label.values
+            arr_img_name = df.loc[df.label == val].sample(vit_config['seg_cls']['train_n_label_sample']).img_name.values
+            arr_label = df.loc[df.label == val].sample(vit_config['seg_cls']['train_n_label_sample']).label.values
             n_rows = df_train_sample.shape[0]
             for idx, img_name in enumerate(arr_img_name):
                 df_train_sample.loc[n_rows + idx, 'img_name'] = arr_img_name[idx]

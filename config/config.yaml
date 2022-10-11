@@ -13,7 +13,7 @@ vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp
   gpus: 1
-  is_sigmoid_segmentation: False
+  is_sigmoid_segmentation: True
   is_relu_segmentation: False
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
@@ -42,9 +42,9 @@ vit:
   #    - image_name: 0000000005.JPEG # catdog
   #      correct_class: 282 # cat
   #      contrastive_class: 243 # dog
-  batch_size: 32
-  default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
-  plot_path: /home/yuvalas/explainability/research/plots/token_classification
+  batch_size: 4
+  default_root_dir: /home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification #/home/yuvalas/explainability/research/checkpoints/token_classification
+  plot_path: /home/amiteshel1/Projects/explainablity-transformer-cv/research/plots
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 2
   n_epochs: 30
@@ -59,16 +59,13 @@ vit:
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   is_wolf_transforms: False
   seg_cls:
-    train_n_samples: 12000
-    val_n_samples: 150
-    test_n_samples: 2000
-    train_n_label_sample: 6
-    val_n_label_sample: 6
+    train_n_label_sample: 20
+    val_n_label_sample: 5
     loss:
       normalize: False
-      mask_loss: l1 # bce
+      mask_loss: bce #l1 # bce
       prediction_loss_mul: 1
-      mask_loss_mul: 80
+      mask_loss_mul: 50
     earlystopping:
       min_delta: 0.0001
       patience: 3

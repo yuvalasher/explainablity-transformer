@@ -1,7 +1,9 @@
 import os
 from typing import Tuple
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
 
@@ -38,9 +40,12 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 vit_config = config["vit"]
+
+os.makedirs(vit_config['default_root_dir'], exist_ok=True)
 loss_config = vit_config["seg_cls"]["loss"]
 
 if torch.cuda.is_available():
@@ -56,7 +61,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'amit__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_samples"]}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
+exp_name = f'amit__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -76,11 +81,7 @@ data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
     batch_size=vit_config["batch_size"],
     train_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
-    train_n_samples=vit_config["seg_cls"]["train_n_samples"],
-    val_images_path=str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
-    val_n_samples=vit_config["seg_cls"]["val_n_samples"],
-    test_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    test_n_samples=vit_config["seg_cls"]["test_n_samples"],
+    val_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -100,13 +101,13 @@ model = ImageClassificationWithTokenClassificationModel(
     batch_size=vit_config["batch_size"],
 )
 
-early_stop_callback = EarlyStopping(
-    monitor="val/loss",
-    min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
-    patience=vit_config["seg_cls"]["earlystopping"]["patience"],
-    verbose=False,
-    mode="min",
-)
+# early_stop_callback = EarlyStopping(
+#     monitor="val/loss",
+#     min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
+#     patience=vit_config["seg_cls"]["earlystopping"]["patience"],
+#     verbose=False,
+#     mode="min",
+# )
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
@@ -121,7 +122,8 @@ WANDB_PROJECT = "run_seg_cls_4"
 run = wandb.init(project=WANDB_PROJECT, entity="amit_eshel", config=wandb.config)
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
-    # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
+    callbacks=[
+        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}--{val/epoch_auc:.3f}", save_top_k=10)],
     # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
@@ -131,5 +133,6 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
+    enable_checkpointing=True
 )
 trainer.fit(model=model, datamodule=data_module)

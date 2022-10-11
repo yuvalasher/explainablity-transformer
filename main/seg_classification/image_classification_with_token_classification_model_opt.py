@@ -175,12 +175,14 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
+        # TODO -
         if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                  is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
         masked_image = image_resized * interpolated_mask_normalized
+        # masked_image = inputs * interpolated_mask
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
         lossloss_output = self.criterion(
             output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
@@ -199,6 +201,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         image_resized = batch["image"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
+
             self.init_auc()
             output = self.forward(inputs=inputs, image_resized=image_resized)
             images_mask = self.mask_patches_to_image_scores(output.tokens_mask)

@@ -74,11 +74,8 @@ data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
     batch_size=vit_config["batch_size"],
     train_images_path=str("/home/yuvalas/explainability/data/random/soldier"),
-    train_n_samples=vit_config["seg_cls"]["train_n_samples"],
     val_images_path=str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
-    val_n_samples=vit_config["seg_cls"]["val_n_samples"],
-    test_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    test_n_samples=vit_config["seg_cls"]["test_n_samples"],
+
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
