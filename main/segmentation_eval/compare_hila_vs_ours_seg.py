@@ -50,7 +50,7 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
-
+from ViT_LRP import vit_base_patch16_224 as vit_LRP
 
 import pytorch_lightning as pl
 import gc
@@ -84,12 +84,7 @@ def eval_batch(image, labels, evaluator, index):
     evaluator.zero_grad()
     # Save input image
     if args.save_img:
-        img = image[0].permute(1, 2, 0).data.cpu().numpy()
-        img = 255 * (img - img.min()) / (img.max() - img.min())
-        img = img.astype('uint8')
-        Image.fromarray(img, 'RGB').save(os.path.join(saver.results_dir, 'input/{}_input.png'.format(index)))
-        Image.fromarray((labels.repeat(3, 1, 1).permute(1, 2, 0).data.cpu().numpy() * 255).astype('uint8'), 'RGB').save(
-            os.path.join(saver.results_dir, 'input/{}_mask.png'.format(index)))
+        save_original_image_and_gt_mask(image, index, labels)
 
     image.requires_grad = True
 
@@ -170,12 +165,7 @@ def eval_batch(image, labels, evaluator, index):
 
 def eval_results_per_res(Res, labels, index, image):
     if args.save_img:
-        img = image[0].permute(1, 2, 0).data.cpu().numpy()
-        img = 255 * (img - img.min()) / (img.max() - img.min())
-        img = img.astype('uint8')
-        Image.fromarray(img, 'RGB').save(os.path.join(saver.results_dir, 'input/{}_input.png'.format(index)))
-        Image.fromarray((labels.repeat(3, 1, 1).permute(1, 2, 0).data.cpu().numpy() * 255).astype('uint8'), 'RGB').save(
-            os.path.join(saver.results_dir, 'input/{}_mask.png'.format(index)))
+        save_original_image_and_gt_mask(image, index, labels)
 
     Res = (Res - Res.min()) / (Res.max() - Res.min())
 
@@ -264,6 +254,40 @@ cls = ['airplane',
        'train',
        'tv'
        ]
+
+
+def save_original_image_and_gt_mask(image, index, labels):
+    img = image[0].permute(1, 2, 0).data.cpu().numpy()
+    img = 255 * (img - img.min()) / (img.max() - img.min())
+    img = img.astype('uint8')
+    os.makedirs(os.path.join(saver.results_dir, f'input/{index}'), exist_ok=True)
+    Image.fromarray(img, 'RGB').save(os.path.join(saver.results_dir, f'input/{index}/{index}_input.png'))
+    Image.fromarray((labels.repeat(3, 1, 1).permute(1, 2, 0).data.cpu().numpy() * 255).astype('uint8'),
+                    'RGB').save(
+        os.path.join(saver.results_dir, f'input/{index}/{index}_mask.png'))
+
+
+def save_heatmap_and_seg_mask(Res, index, exp_name):
+    Res = (Res - Res.min()) / (Res.max() - Res.min())
+    ret = Res.mean()
+    Res_1 = Res.gt(ret).type(Res.type())
+    Res_1_AP = Res
+    Res_1[Res_1 != Res_1] = 0
+    # Save predicted mask
+    mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
+    mask = mask[0].squeeze().data.cpu().numpy()
+    # mask = Res_1[0].squeeze().data.cpu().numpy()
+    mask = 255 * mask
+    mask = mask.astype('uint8')
+    imageio.imsave(os.path.join(saver.results_dir, f'input/{index}', f'{str(index)}_mask_{exp_name}.jpg'), mask)
+    relevance = F.interpolate(Res, [64, 64], mode='bilinear')
+    relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
+    # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
+    hm = np.sum(relevance, axis=-1)
+    maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
+    imageio.imsave(os.path.join(saver.results_dir, f'input/{index}', f'{str(index)}_heatmap_{exp_name}.jpg'), maps)
+    return
+
 
 if __name__ == '__main__':
     # Args
@@ -429,9 +453,15 @@ if __name__ == '__main__':
 
     predictions, targets = [], []
 
+    #### HILA --- LRP
+    model_LRP = vit_LRP(pretrained=True).cuda()
+    model_LRP.eval()
+    lrp = LRP(model_LRP)
+
     print('START TRAINING !')
 
     epochs = range(len(ds))
+
     for batch_idx in tqdm(epochs, leave=True, position=0):
         ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
         dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
@@ -461,9 +491,31 @@ if __name__ == '__main__':
         image_resized = model.image_resized
         Res = model.best_auc_vis
         labels = model.target
+
+        args.save_img = False
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
                                                                                     image=image_resized)
+        ### HILA !!
 
+        Res_b = lrp.generate_LRP(image_resized.cuda(), start_layer=1, method="transformer_attribution").reshape(
+            batch_size, 1, 14, 14)
+        Res_b = torch.nn.functional.interpolate(Res_b, scale_factor=16, mode='bilinear').cuda()
+        correct_b, labeled_b, inter_b, union_b, ap_b, f1_b, pred_b, target_b = eval_results_per_res(Res_b,
+                                                                                                    labels=labels,
+                                                                                                    index=batch_idx,
+                                                                                                    image=image_resized)
+
+        pixAcc_a = np.float64(1.0) * correct.astype('int64') / (
+                np.spacing(1, dtype=np.float64) + labeled.astype('int64'))
+        pixAcc_b = np.float64(1.0) * correct_b.astype('int64') / (
+                np.spacing(1, dtype=np.float64) + labeled_b.astype('int64'))
+
+        image = image_resized
+        index = batch_idx
+        if pixAcc_a < pixAcc_b:
+            save_original_image_and_gt_mask(image, index, labels)
+            save_heatmap_and_seg_mask(Res, index, exp_name='ours')
+            save_heatmap_and_seg_mask(Res_b, index, exp_name='hila')
 
         predictions.append(pred)
         targets.append(target)

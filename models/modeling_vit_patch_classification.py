@@ -8,6 +8,8 @@ from torch.nn import CrossEntropyLoss, MSELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
 from transformers.models.vit import ViTPreTrainedModel, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
+from transformers.models.vit.modeling_vit import ViTEncoder
+
 from config import config
 
 vit_config = config["vit"]
@@ -64,7 +66,7 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
             tokens_output_reshaped = self.activation(tokens_output_reshaped)
             # tokens_output_reshaped = self.dropout(tokens_output_reshaped)
         logits = self.patch_classifier(tokens_output_reshaped)
-        mask = logits.view(batch_size, -1, 1) # logits - [batch_size, tokens_count]
+        mask = logits.view(batch_size, -1, 1)  # logits - [batch_size, tokens_count]
 
         if vit_config["is_relu_segmentation"] and vit_config["is_sigmoid_segmentation"]:
             raise (
@@ -75,6 +77,8 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
 
         if vit_config["is_sigmoid_segmentation"]:
             mask = torch.sigmoid(mask)
+        if vit_config["is_softmax_segmentation"]:
+            mask = torch.softmax(mask,dim=1)
 
         mask = mask.view(batch_size, 1, 14, 14)
 

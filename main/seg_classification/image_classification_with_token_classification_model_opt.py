@@ -180,7 +180,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
-                                                                 is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+                                                                      is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
         masked_image = image_resized * interpolated_mask_normalized
         # masked_image = inputs * interpolated_mask
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
@@ -438,12 +438,19 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         self.auc_by_epoch = []
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
 
-    def forward(self, inputs) -> ImageClassificationWithTokenClassificationModelOutput:
+    def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        masked_image = inputs * interpolated_mask
-
-        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
+        # TODO -
+        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
+            interpolated_mask_normalized = interpolated_mask
+        else:
+            interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
+                                                                      is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+        masked_image = image_resized * interpolated_mask_normalized
+        # masked_image = inputs * interpolated_mask
+        masked_image_inputs = self.normalize_image(masked_image)
+        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
         lossloss_output = self.criterion(
             output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
         )
@@ -466,39 +473,40 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         self.image_resized = image_resized
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-        output = self.forward(inputs)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
-                    "patches_mask": output.tokens_mask}]
-        auc = run_perturbation_test_opt(
-            model=self.vit_for_classification_image,
-            outputs=outputs,
-            stage="train_step",
-            epoch_idx=self.current_epoch,
-        )
-        # print(f'Basemodel - AUC: {round(auc, 3)} !')
-        self.best_auc = auc
-        self.best_auc_epoch = self.current_epoch
-        self.best_auc_vis = outputs[0]["image_mask"]
-        self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
-        # self.auc_by_epoch.append(auc)
-        if self.save_best_auc_to_disk:
-            save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                          auc=auc,
-                                          vis=self.best_auc_vis,
-                                          original_image=self.best_auc_image,
-                                          epoch_idx=self.current_epoch,
-                                          )
+            output = self.forward(inputs, image_resized=image_resized)
+            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
+                        "patches_mask": output.tokens_mask}]
+            auc = run_perturbation_test_opt(
+                model=self.vit_for_classification_image,
+                outputs=outputs,
+                stage="train_step",
+                epoch_idx=self.current_epoch,
+            )
+            # print(f'Basemodel - AUC: {round(auc, 3)} !')
+            self.best_auc = auc
+            self.best_auc_epoch = self.current_epoch
+            self.best_auc_vis = outputs[0]["image_mask"]
+            self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
+            # self.auc_by_epoch.append(auc)
+            if self.save_best_auc_to_disk:
+                save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
+                                              auc=auc,
+                                              vis=self.best_auc_vis,
+                                              original_image=self.best_auc_image,
+                                              epoch_idx=self.current_epoch,
+                                              )
 
-        # self.visualize_images_by_outputs(outputs=outputs)
+            # self.visualize_images_by_outputs(outputs=outputs)
 
-        # self.visualize_images_by_outputs(outputs=outputs)
-        if self.run_base_model_only or auc < AUC_STOP_VALUE:
-            self.trainer.should_stop = True
+            # self.visualize_images_by_outputs(outputs=outputs)
+            if self.run_base_model_only or auc < AUC_STOP_VALUE:
+                self.trainer.should_stop = True
 
         else:
-            output = self.forward(inputs)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+            # output = self.forward(inputs)
+            output = self.forward(inputs=inputs, image_resized=image_resized)
+            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
             "loss": output.lossloss_output.loss,

@@ -36,6 +36,7 @@ def get_precentage_counter(c):
 
 def calculate_mean_auc(n_samples: int, path):
     aucs = []
+    print(f"{n_samples} samples")
     for image_idx in tqdm(range(n_samples)):
         image_path = Path(path, f"{str(image_idx)}.pkl")
         loaded_obj = load_obj(image_path)
@@ -85,6 +86,7 @@ def show_mask(mask, idx, auc):  # [1, 1, 224, 224]
     mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
     _ = plt.imshow(mask.squeeze(0).cpu().detach())
     plt.title(f'idx = {idx} auc = {auc}')
+    # plt.savefig(f"/home/amiteshel1/Projects/explainablity-transformer-cv/amit_png_del/mask_{idx}.png")
     plt.show()
 
 
@@ -92,7 +94,9 @@ def plot_image(image, idx, auc) -> None:  # [1,3,224,224] or [3,224,224]
     image = image if len(image.shape) == 3 else image.squeeze(0)
     plt.imshow(image.cpu().detach().permute(1, 2, 0))
     plt.title(f'idx = {idx} auc = {auc}')
-    plt.show();
+    # plt.savefig(f"/home/amiteshel1/Projects/explainablity-transformer-cv/amit_png_del/image_{idx}.png")
+    plt.show()
+
 
 
 def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_classification, ):
@@ -100,7 +104,7 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
     Can calculate mean aucs from pickels
     """
     aucs = []
-    for idx in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]:
+    for idx in tqdm(range(4400,4450)):
         # for idx in range(10):
 
         loaded_obj = load_obj(
@@ -112,11 +116,13 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
         outputs = [
             {"image_resized": image_resized.to(device), "image_mask": loaded_obj["vis"].to(device)}]
 
-        print(1)
         auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs)
         aucs.append(auc)
-        plot_image(image_resized, idx, auc)
-        show_mask(loaded_obj["vis"], idx, auc)
+        # plot_image(image_resized, idx, auc)
+        # show_mask(loaded_obj["vis"], idx, auc)
+    df, df_stats = calculate_count__and_prec_auc(aucs)
+    print(tabulate(df_stats, headers='keys'))
+    plot_perturbations_vs_num_of_images(df)
     print(f'AUC: {round(np.mean(auc), 4)}% for {len(aucs)} records')
     print(aucs)
 
@@ -124,12 +130,15 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
 if __name__ == '__main__':
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_pasten/opt_objects"
     # opt
-    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
+    OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
     # base
     # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_base/base_model/objects_pkl/"
 
-    # seg
-    OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_seg_only_opt/opt_model/objects_pkl/"
+    # seg - opt
+    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_seg_only_opt/opt_model/objects_pkl/"
+
+    # seg - base
+    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_seg_only_base/opt_model/objects_pkl/"
 
     print(OPTIMIZATION_PKL_PATH)
 
