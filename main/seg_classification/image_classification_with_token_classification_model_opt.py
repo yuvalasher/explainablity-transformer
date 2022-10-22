@@ -225,7 +225,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             masked_neg_image_inputs = self.normalize_image(masked_neg_image)
             vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
 
-        vit_masked_neg_output_logits = vit_masked_neg_output.logits if vit_config['is_ce_neg'] else None
+        vit_masked_neg_output_logits = vit_masked_neg_output.logits if loss_config['is_ce_neg'] else None
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
@@ -479,29 +479,56 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         self.target = None
         self.image_resized = None
         self.run_base_model_only = run_base_model_only
+        self.seg_results = None
+        self.model_runtype = model_runtype
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
         self.best_auc_epoch = 0
         self.best_auc_vis = None
         self.auc_by_epoch = []
-        self.image_idx = len(os.listdir(self.best_auc_objects_path))
+        # self.image_idx = len(os.listdir(self.best_auc_objects_path))
+
+    def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
+        if is_clamp_between_0_to_1:
+            norm_mask = torch.clamp(mask, min=0, max=1)
+        else:
+            norm_mask = (mask - mask.min()) / (mask.max() - mask.min())
+        return norm_mask
+
+    def normalize_image(self, tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+        dtype = tensor.dtype
+        mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+        std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+        tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+        return tensor
 
     def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         # TODO -
-        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
+        if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                       is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+
         masked_image = image_resized * interpolated_mask_normalized
-        # masked_image = inputs * interpolated_mask
         masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
+        vit_masked_output_logits = vit_masked_output.logits
+
+        ### NEGATIVE MASK
+        if loss_config['is_ce_neg']:
+            masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
+            masked_neg_image_inputs = self.normalize_image(masked_neg_image)
+            vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
+
+        vit_masked_neg_output_logits = vit_masked_neg_output.logits if loss_config['is_ce_neg'] else None
+
         lossloss_output = self.criterion(
-            output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
+            output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
+            tokens_mask=tokens_mask
         )
         return ImageClassificationWithTokenClassificationModelOutput(
             lossloss_output=lossloss_output,
