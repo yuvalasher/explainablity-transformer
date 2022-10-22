@@ -8,8 +8,8 @@ from torchvision import transforms
 from datasets.imagenet_results_dataset import ImagenetResults
 from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
 
-# from utils.consts import EXPERIMENTS_FOLDER_PATH
-EXPERIMENTS_FOLDER_PATH = "/home/yuvalas/explainability/research/experiments"
+from utils.consts import EXPERIMENTS_FOLDER_PATH
+
 # from vit_utils import *
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -86,7 +86,8 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
             else:
                 raise (f"vis_class can't be {vis_class}")
             target = target.to(device)
-            pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics( #TODO - verify
+            pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
+                # TODO - verify
                 model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
             if vit_config['verbose']:
                 print(
@@ -287,6 +288,7 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
         print(results_df)
         results_df.to_csv(output_csv_path, index=False)
         print(f"Saved results at: {output_csv_path}")
+    return auc
 
 # if __name__ == "__main__":
 #     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")

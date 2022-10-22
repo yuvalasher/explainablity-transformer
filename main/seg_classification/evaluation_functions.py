@@ -172,7 +172,7 @@ def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassificati
         saliency_map_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs_scatter).logits, index=gt_class)
 
-    else: # Predicted Top 1
+    else:  # Predicted Top 1
         full_image_probability_and_class_idx_by_index = get_probability_and_class_idx_by_index(
             vit_for_image_classification(inputs).logits, index=0)
 
@@ -204,7 +204,7 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
     adp_values_predicted, pic_values_predicted, acp_values_predicted = [], [], []
     adp_values_target, pic_values_target, acp_values_target = [], [], []
 
-    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks),total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
         # show_mask(mask)
@@ -255,7 +255,7 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
 
 if __name__ == '__main__':
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
-    OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
+    OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
     print(OPTIMIZATION_PKL_PATH)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
@@ -276,18 +276,19 @@ if __name__ == '__main__':
         f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
 
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    """
+
     # Perturbation tests
-    perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
-    print(
-        f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
-    auc = infer_perturbation_tests(images_and_masks=images_and_masks,
-                                   vit_for_image_classification=vit_for_image_classification,
-                                   perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
-    print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    print(
-        f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
-    """
+    # # TODO - Do it with loop of vis_class and perturbation_type
+    # perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
+    # print(
+    #     f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
+    # auc = infer_perturbation_tests(images_and_masks=images_and_masks,
+    #                                vit_for_image_classification=vit_for_image_classification,
+    #                                perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
+    # print(f"timing: {(dt.now() - start_time).total_seconds()}")
+    # print(
+    #     f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
+
     """
     assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
     assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0

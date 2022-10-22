@@ -1,7 +1,11 @@
 import os
 from typing import Tuple
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+import yaml
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
 
@@ -38,9 +42,12 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 import torch
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 vit_config = config["vit"]
+
+os.makedirs(vit_config['default_root_dir'], exist_ok=True)
 loss_config = vit_config["seg_cls"]["loss"]
 
 if torch.cuda.is_available():
@@ -51,6 +58,14 @@ seed_everything(config["general"]["seed"])
 import gc
 import torch
 from PIL import ImageFile
+
+
+def save_config_to_root_dir():
+    path_dir = os.path.join(vit_config["default_root_dir"], f"seg_cls; {exp_name}")
+    os.makedirs(path_dir, exist_ok=True)
+    with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
+        yaml.dump(config, f)
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
@@ -76,11 +91,7 @@ data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
     batch_size=vit_config["batch_size"],
     train_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
-    train_n_samples=vit_config["seg_cls"]["train_n_samples"],
-    val_images_path=str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
-    val_n_samples=vit_config["seg_cls"]["val_n_samples"],
-    test_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    test_n_samples=vit_config["seg_cls"]["test_n_samples"],
+    val_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -100,13 +111,13 @@ model = ImageClassificationWithTokenClassificationModel(
     batch_size=vit_config["batch_size"],
 )
 
-early_stop_callback = EarlyStopping(
-    monitor="val/loss",
-    min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
-    patience=vit_config["seg_cls"]["earlystopping"]["patience"],
-    verbose=False,
-    mode="min",
-)
+# early_stop_callback = EarlyStopping(
+#     monitor="val/loss",
+#     min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
+#     patience=vit_config["seg_cls"]["earlystopping"]["patience"],
+#     verbose=False,
+#     mode="min",
+# )
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
@@ -117,11 +128,13 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
-WANDB_PROJECT = "run_seg_cls_4"
-run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
+WANDB_PROJECT = "run_seg_cls_l1_vs_bce"
+run = wandb.init(project=WANDB_PROJECT, entity="amit_eshel", config=wandb.config)
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
+
 trainer = pl.Trainer(
-    # callbacks=[ModelCheckpoint(monitor="val_loss", mode="min", filename="{epoch}--{val_loss:.1f}", save_top_k=1)],
+    callbacks=[
+        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=20)],
     # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
@@ -131,5 +144,9 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
+    enable_checkpointing=vit_config["enable_checkpointing"]
+    # enable_checkpointing=True
 )
+if vit_config["enable_checkpointing"]:
+    save_config_to_root_dir()
 trainer.fit(model=model, datamodule=data_module)
