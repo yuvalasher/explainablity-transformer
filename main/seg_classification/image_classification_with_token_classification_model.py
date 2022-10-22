@@ -95,15 +95,17 @@ class LossLoss:
         """
         if self.mask_loss == "bce":
             mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
-        if self.mask_loss == "l1":
+        elif self.mask_loss == "l1":
             mask_loss = l1_loss(tokens_mask)
-        if self.mask_loss == "entropy_softmax":
+        elif self.mask_loss == "entropy_softmax":
             assert vit_config['activation_function'] == 'softmax', \
                 "The activation_function must be softmax!!"
-            mask_loss = self.entropy_loss(mask_loss, tokens_mask)
+            mask_loss = self.entropy_loss(tokens_mask)
+        else:
+            raise (f"Value of self.mask_loss is not recognized")
 
         pred_pos_loss = prediction_loss(output=output, target=target)
-
+        pred_loss = pred_pos_loss
         if loss_config['is_ce_neg']:
             pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target)
             pred_loss = (pred_pos_loss + pred_neg_loss) / 2
@@ -121,7 +123,7 @@ class LossLoss:
             mask_loss=mask_loss,
         )
 
-    def entropy_loss(self, mask_loss, tokens_mask):
+    def entropy_loss(self, tokens_mask: Tensor):
         tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0],
                                                   -1)  # From (32,1,14,14) --> (32,196) - easy for compute entropy.
         d = torch.distributions.Categorical(tokens_mask_reshape + 10e-8)
@@ -205,7 +207,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             masked_neg_image_inputs = self.normalize_image(masked_neg_image)
             vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
 
-        vit_masked_neg_output_logits = vit_masked_neg_output.logits if vit_config['is_ce_neg'] else None
+        vit_masked_neg_output_logits = None if not loss_config['is_ce_neg'] else vit_masked_neg_output.logits
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
