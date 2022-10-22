@@ -1,5 +1,6 @@
 import os
-from typing import Union
+import random
+from typing import Union, List
 
 import pandas as pd
 from torch.utils.data import Dataset
@@ -39,13 +40,24 @@ class ImageSegDataset(Dataset):
             else:
                 self.images_name = [f"{self.images_path}/{image_name}" for image_name in img_name_train]
         else:
-            n_samples = vit_config['seg_cls']['val_n_label_sample'] if is_val else vit_config['seg_cls']['train_n_label_sample']
-            n_samples = n_samples * 1000
-            self.images_name = list(Path(images_path).iterdir())
-            n_samples = n_samples if n_samples > 0 else len(self.images_name)
-            self.images_name = self.images_name[:n_samples]
+            train_n_samples = vit_config['seg_cls']['val_n_label_sample'] * 1000
+            val_n_samples = vit_config['seg_cls']['val_n_label_sample'] * 1000
+            self.images_name = sorted(os.listdir(images_path))
+            randomly_sampled_train_val_dict = self.sample_random_train_val(images_name=self.images_name,
+                                                                           train_n_samples=train_n_samples,
+                                                                           val_n_samples=val_n_samples)
+            self.images_name = randomly_sampled_train_val_dict["val_set"] if is_val else randomly_sampled_train_val_dict["train_set"]
+            print(is_val)
+            print(self.images_name)
         print(f"After filter images: {len(self.images_name)}")
-        # print(self.images_name)
+
+    def sample_random_train_val(self, images_name: List[str], train_n_samples: int, val_n_samples: int):
+        random.seed(config["general"]["seed"])
+        val_random_sampled = random.sample(images_name, k=val_n_samples)
+        l_without_val = sorted(list(set(images_name) - set(val_random_sampled)))
+        random.seed(config["general"]["seed"])
+        train_random_sampled = random.sample(l_without_val, k=train_n_samples)
+        return dict(train_set=train_random_sampled, val_set=val_random_sampled)
 
     def sample_balance_labels_train_val(self):
         df = pd.read_csv(FILE_PATH)
