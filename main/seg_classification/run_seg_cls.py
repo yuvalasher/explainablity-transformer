@@ -1,9 +1,11 @@
 import os
 from typing import Tuple
 
+import yaml
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
 
@@ -57,11 +59,19 @@ import gc
 import torch
 from PIL import ImageFile
 
+
+def save_config_to_root_dir():
+    path_dir = os.path.join(vit_config["default_root_dir"], f"seg_cls; {exp_name}")
+    os.makedirs(path_dir, exist_ok=True)
+    with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
+        yaml.dump(config, f)
+
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'new_amit__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_softmax_{vit_config["is_softmax_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
+exp_name = f'new_amit__activation_function_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -121,9 +131,10 @@ print_number_of_trainable_and_not_trainable_params(model)
 WANDB_PROJECT = "run_seg_cls_l1_vs_bce"
 run = wandb.init(project=WANDB_PROJECT, entity="amit_eshel", config=wandb.config)
 wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
+
 trainer = pl.Trainer(
-    # callbacks=[
-    #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}--{val/epoch_auc:.3f}", save_top_k=10)],
+    callbacks=[
+        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=20)],
     # callbacks=[early_stop_callback],
     logger=[wandb_logger],
     # logger=[],
@@ -133,7 +144,9 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
-    enable_checkpointing=False
+    enable_checkpointing=vit_config["enable_checkpointing"]
     # enable_checkpointing=True
 )
+if vit_config["enable_checkpointing"]:
+    save_config_to_root_dir()
 trainer.fit(model=model, datamodule=data_module)

@@ -84,7 +84,8 @@ class LossLoss:
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
-    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor, output_neg=None) -> LossLossOutput:
+    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor,
+                 neg_output: Tensor = None) -> LossLossOutput:
         """
         Objective 1 - Keep the classification as original with as much as dark tokens
         This will be applied on the token classification by encourage the sigmoid to go to zero & CE with the original
@@ -97,14 +98,16 @@ class LossLoss:
         if self.mask_loss == "l1":
             mask_loss = l1_loss(tokens_mask)
         if self.mask_loss == "entropy_softmax":
-            tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0],-1) # From (32,1,14,14) --> (32,196) - easy for compute entropy.
-            d = torch.distributions.Categorical(tokens_mask_reshape+10e-8)
-            normalized_entropy = d.entropy() / np.log(d.param_shape[-1])
-            mask_loss = normalized_entropy.mean()
+            assert vit_config['activation_function'] == 'softmax', \
+                "The activation_function must be softmax!!"
+            mask_loss = self.entropy_loss(mask_loss, tokens_mask)
 
-        pred_loss = prediction_loss(output=output, target=target)
-        # if output_neg:
-        #     continue
+        pred_pos_loss = prediction_loss(output=output, target=target)
+
+        if loss_config['is_ce_neg']:
+            pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target)
+            pred_loss = (pred_pos_loss + pred_neg_loss) / 2
+
         prediction_loss_multiplied = self.prediction_loss_mul * pred_loss
         mask_loss_multiplied = self.mask_loss_mul * mask_loss
         loss = prediction_loss_multiplied + mask_loss_multiplied
@@ -117,6 +120,14 @@ class LossLoss:
             pred_loss=pred_loss,
             mask_loss=mask_loss,
         )
+
+    def entropy_loss(self, mask_loss, tokens_mask):
+        tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0],
+                                                  -1)  # From (32,1,14,14) --> (32,196) - easy for compute entropy.
+        d = torch.distributions.Categorical(tokens_mask_reshape + 10e-8)
+        normalized_entropy = d.entropy() / np.log(d.param_shape[-1])
+        mask_loss = normalized_entropy.mean()
+        return mask_loss
 
 
 @dataclass
@@ -143,6 +154,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             n_classes: int = 1000,
             n_patches: int = 196,
             batch_size: int = 8,
+            p: int = 1
     ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
@@ -155,6 +167,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.feature_extractor = feature_extractor
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
         self.plot_path = plot_path
+        self.p = p
 
     def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
         if is_clamp_between_0_to_1:
@@ -173,24 +186,32 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"] or vit_config[
-            "is_softmax_segmentation"]:
+        if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                       is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+
+        # interpolated_mask_normalized = interpolated_mask_normalized ** self.p
+
         masked_image = image_resized * interpolated_mask_normalized
         masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
+        vit_masked_output_logits = vit_masked_output.logits
 
         ### NEGATIVE MASK
-        masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
-        masked_neg_image_inputs = self.normalize_image(masked_neg_image)
-        vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
-        #
+        if loss_config['is_ce_neg']:
+            masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
+            masked_neg_image_inputs = self.normalize_image(masked_neg_image)
+            vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
+
+        vit_masked_neg_output_logits = vit_masked_neg_output.logits if vit_config['is_ce_neg'] else None
+
         lossloss_output = self.criterion(
-            output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
+            output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
+            tokens_mask=tokens_mask
         )
+
         return ImageClassificationWithTokenClassificationModelOutput(
             lossloss_output=lossloss_output,
             vit_masked_output=vit_masked_output,

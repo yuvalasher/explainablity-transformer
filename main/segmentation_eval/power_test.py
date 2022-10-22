@@ -83,94 +83,14 @@ def compute_pred(output):
     return Tt
 
 
-def eval_batch(image, labels, evaluator, index):
-    evaluator.zero_grad()
-    # Save input image
+def eval_results_per_res(Res, index, image=None, labels=None, q=0.5):
     if args.save_img:
         save_original_image_and_gt_mask(image, index, labels)
 
-    image.requires_grad = True
-
-    image = image.requires_grad_()
-    predictions = evaluator(image)
-
-    # if args.method != 'full_lrp':
-    #     # interpolate to full image size (224,224)
-    #     Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
-
-    # threshold between FG and BG is the mean
     Res = (Res - Res.min()) / (Res.max() - Res.min())
 
     ret = Res.mean()
-
-    Res_1 = Res.gt(ret).type(Res.type())
-    Res_0 = Res.le(ret).type(Res.type())
-
-    Res_1_AP = Res
-    Res_0_AP = 1 - Res
-
-    Res_1[Res_1 != Res_1] = 0
-    Res_0[Res_0 != Res_0] = 0
-    Res_1_AP[Res_1_AP != Res_1_AP] = 0
-    Res_0_AP[Res_0_AP != Res_0_AP] = 0
-
-    # TEST
-    pred = Res.clamp(min=args.thr) / Res.max()
-    pred = pred.view(-1).data.cpu().numpy()
-    target = labels.view(-1).data.cpu().numpy()
-    # print("target", target.shape)
-
-    output = torch.cat((Res_0, Res_1), 1)
-    output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
-
-    if args.save_img:
-        # Save predicted mask
-        mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
-        mask = mask[0].squeeze().data.cpu().numpy()
-        # mask = Res_1[0].squeeze().data.cpu().numpy()
-        mask = 255 * mask
-        mask = mask.astype('uint8')
-        imageio.imsave(os.path.join(args.exp_img_path, 'mask_' + str(index) + '.jpg'), mask)
-
-        relevance = F.interpolate(Res, [64, 64], mode='bilinear')
-        relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
-        # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
-        hm = np.sum(relevance, axis=-1)
-        maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
-        imageio.imsave(os.path.join(args.exp_img_path, 'heatmap_' + str(index) + '.jpg'), maps)
-
-    # Evaluate Segmentation
-    batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
-    batch_ap, batch_f1 = 0, 0
-
-    # Segmentation resutls
-    correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels[0])
-    inter, union = batch_intersection_union(output[0].data.cpu(), labels[0], 2)
-    batch_correct += correct
-    batch_label += labeled
-    batch_inter += inter
-    batch_union += union
-    # print("output", output.shape)
-    # print("ap labels", labels.shape)
-    # ap = np.nan_to_num(get_ap_scores(output, labels))
-    ap = np.nan_to_num(get_ap_scores(output_AP, labels))
-    f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
-    batch_ap += ap
-    batch_f1 += f1
-
-    return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
-
-
-def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
-    if args.save_img:
-        save_original_image_and_gt_mask(image, index, labels)
-
-    Res = (Res - Res.min()) / (Res.max() - Res.min())
-
-    if q == -1:
-        ret = Res.mean()
-    else:
-        ret = torch.quantile(Res, q=q)
+    # ret = torch.quantile(Res, q=q)
 
     Res_1 = Res.gt(ret).type(Res.type())
     Res_0 = Res.le(ret).type(Res.type())
@@ -290,21 +210,65 @@ def save_heatmap_and_seg_mask(Res, index, exp_name):
     return
 
 
-def calculate_metrics_segmentations(epochs, ds, q: int):
+def show_progress_of_power(Res_org):
+    for q in np.arange(1, 4, 0.5):
+        Res = Res_org ** q
+        Res = (Res - Res.min()) / (Res.max() - Res.min())
+        ret = Res.mean()
+        Res_1 = Res.gt(ret).type(Res.type())
+        Res_1[Res_1 != Res_1] = 0
+        mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
+        mask = mask[0].squeeze().data.cpu().numpy()
+        # mask = Res_1[0].squeeze().data.cpu().numpy()
+        mask = 255 * mask
+        mask = mask.astype('uint8')
+        plt.imshow(mask)
+        plt.title(f'q = {q} th_value = {ret}')
+        plt.show()
+
+
+def calculate_metrics_segmentations(epochs, ds, method: str, q: int):
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []
 
     predictions, targets = [], []
 
     for batch_idx in epochs:
-        img, labels, image_resized = ds[batch_idx]
+        img, labels, _, image_resized = ds[batch_idx]
+        ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
 
-        Res = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
-                               method="transformer_attribution").reshape(
-            batch_size, 1, 14, 14)
+        if method == 'ours':
+            dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
+            data_module = ImageSegOptDataModuleSegmentation(
+                feature_extractor=feature_extractor,
+                batch_idx=1,
+                train_data_loader=dl
+            )
+            trainer = pl.Trainer(
+                logger=[],
+                accelerator='gpu',
+                gpus=1,
+                devices=[1, 2],
+                num_sanity_val_steps=0,
+                check_val_every_n_epoch=100,
+                max_epochs=vit_config["n_epochs"],
+                resume_from_checkpoint=CKPT_PATH,
+                enable_progress_bar=False,
+                enable_checkpointing=False,
+                default_root_dir=vit_config["default_root_dir"],
+                weights_summary=None
+            )
+            trainer.fit(model=model, datamodule=data_module)
+            Res_org = model.best_auc_vis
 
-        Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
+        else:
+            Res_org = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
+                                       method="transformer_attribution").reshape(
+                batch_size, 1, 14, 14)
+            Res_org = torch.nn.functional.interpolate(Res_org, scale_factor=16, mode='bilinear').cuda()
 
+        Res = Res_org ** q
+        # show_progress_of_power(Res_org)
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res,
                                                                                     index=batch_idx,
                                                                                     q=q,
@@ -332,6 +296,28 @@ def calculate_metrics_segmentations(epochs, ds, q: int):
         #     print("Mean AP over %d classes: %.4f\n" % (2, mAp))
         #     print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
     return mIoU, pixAcc, mAp, mF1
+    # ### HILA !!
+    # Res_b = lrp.generate_LRP(image_resized.cuda(), start_layer=1, method="transformer_attribution").reshape(
+    #     batch_size, 1, 14, 14)
+    # Res_b = torch.nn.functional.interpolate(Res_b, scale_factor=16, mode='bilinear').cuda()
+    #
+    # correct_b, labeled_b, inter_b, union_b, ap_b, f1_b, pred_b, target_b = eval_results_per_res(Res_b,
+    #                                                                                             labels=labels,
+    #                                                                                             index=batch_idx,
+    #                                                                                             image=image_resized,
+    #                                                                                             q=q)
+
+    # pixAcc_a = np.float64(1.0) * correct.astype('int64') / (
+    #         np.spacing(1, dtype=np.float64) + labeled.astype('int64'))
+    # pixAcc_b = np.float64(1.0) * correct_b.astype('int64') / (
+    #         np.spacing(1, dtype=np.float64) + labeled_b.astype('int64'))
+    #
+    # image = image_resized
+    # index = batch_idx
+    # if pixAcc_a < pixAcc_b:
+    #     save_original_image_and_gt_mask(image, index, labels)
+    #     save_heatmap_and_seg_mask(Res, index, exp_name='ours')
+    #     save_heatmap_and_seg_mask(Res_b, index, exp_name='hila')
 
 
 def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
@@ -341,8 +327,8 @@ def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
     plt.grid()
     plt.title(f'{metrics_title} - num_samples = {n_samples}')
     plt.savefig(
-        f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/{metrics_title}__{n_samples}.png')
-    plt.close()
+        f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_power_plots/{metrics_title}__{n_samples}.png')
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -391,8 +377,8 @@ if __name__ == '__main__':
     args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
     if not os.path.exists(args.exp_np_path):
         os.makedirs(args.exp_np_path)
-
-    with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots', 'config.yaml'),
+    print('saver.experiment_dir = ', saver.experiment_dir)
+    with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_power_plots', 'config.yaml'),
               'w') as f:
         yaml.dump(config, f)
 
@@ -498,28 +484,18 @@ if __name__ == '__main__':
 
     print('START TRAINING !')
     args.save_img = False
-    epochs = range(len(ds))[:1]
+    epochs = range(len(ds))[:500]
     print(f'Run over {len(epochs)} samples')
     mIoU_a, pixAcc_a, mAp_a, mF1_a = [], [], [], []
     mIoU_b, pixAcc_b, mAp_b, mF1_b = [], [], [], []
-    q_arr = [-1]  # np.arange(0, 1, 0.1)
+    q_arr = np.arange(1, 4.5, 0.3)
     for q in tqdm(q_arr):
         mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='ours', q=q)
         mIoU_a.append(mIoU)
         pixAcc_a.append(pixAcc)
         mAp_a.append(mAp)
         mF1_a.append(mF1)
-        print('Ours!')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
         mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='hila', q=q)
-        print('HILA')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
         mIoU_b.append(mIoU)
         pixAcc_b.append(pixAcc)
         mAp_b.append(mAp)

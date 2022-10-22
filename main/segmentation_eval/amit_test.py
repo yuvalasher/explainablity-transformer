@@ -1,16 +1,18 @@
 import os
 import sys
 from pathlib import Path
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import yaml
 from icecream import ic
+
+from main.segmentation_eval.ViT_explanation_generator import LRP
 
 os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 print('START !')
 sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
-from main.segmentation_eval.ViT_explanation_generator import LRP
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -30,12 +32,10 @@ from config import config
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
     OptImageClassificationWithTokenClassificationModel, OptImageClassificationWithTokenClassificationModel_Segmentation
 from utils import render
-from utils.saver import Saver
 from utils.iou import IoU
 
-from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
+from data.imagenet import Imagenet_Segmentation
 
-from sklearn.metrics import precision_recall_curve
 import matplotlib.pyplot as plt
 
 import torch.nn.functional as F
@@ -232,7 +232,7 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
 
 # hyperparameters
 num_workers = 0
-batch_size = 1
+
 
 cls = ['airplane',
        'bicycle',
@@ -293,15 +293,14 @@ def save_heatmap_and_seg_mask(Res, index, exp_name):
 def calculate_metrics_segmentations(epochs, ds, q: int):
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []
-
     predictions, targets = [], []
 
-    for batch_idx in epochs:
+    for batch_idx in tqdm(epochs, position=0, leave=True, total=len(epochs)):
         img, labels, image_resized = ds[batch_idx]
 
         Res = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
                                method="transformer_attribution").reshape(
-            batch_size, 1, 14, 14)
+            1, 1, 14, 14)
 
         Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
 
@@ -325,12 +324,7 @@ def calculate_metrics_segmentations(epochs, ds, q: int):
         mIoU = IoU.mean()
         mAp = np.mean(total_ap)
         mF1 = np.mean(total_f1)
-        # if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
-        #     print('Curr epoch: ', batch_idx, ' Method = ', method)
-        #     print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        #     print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        #     print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        #     print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+
     return mIoU, pixAcc, mAp, mF1
 
 
@@ -343,6 +337,24 @@ def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
     plt.savefig(
         f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/{metrics_title}__{n_samples}.png')
     plt.close()
+
+
+def init_get_normalize_and_trns():
+    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    test_img_trans = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        normalize,
+    ])
+    test_img_trans_only_resize = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor()
+    ])
+    test_lbl_trans = transforms.Compose([
+        transforms.Resize((224, 224), Image.NEAREST),
+    ])
+
+    return test_img_trans, test_img_trans_only_resize, test_lbl_trans
 
 
 if __name__ == '__main__':
@@ -367,101 +379,49 @@ if __name__ == '__main__':
 
     parser.add_argument('--imagenet-seg-path', type=str, required=True)
     args = parser.parse_args()
-
-    args.checkname = args.method + '_' + args.arc
-
-    alpha = 2
+    args.save_img = False
 
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
-    # Define Saver
-    saver = Saver(args)
-    saver.results_dir = os.path.join(saver.experiment_dir, 'results')
-    if not os.path.exists(saver.results_dir):
-        os.makedirs(saver.results_dir)
-    if not os.path.exists(os.path.join(saver.results_dir, 'input')):
-        os.makedirs(os.path.join(saver.results_dir, 'input'))
-    if not os.path.exists(os.path.join(saver.results_dir, 'explain')):
-        os.makedirs(os.path.join(saver.results_dir, 'explain'))
-
-    args.exp_img_path = os.path.join(saver.results_dir, 'explain/img')
-    if not os.path.exists(args.exp_img_path):
-        os.makedirs(args.exp_img_path)
-    args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
-    if not os.path.exists(args.exp_np_path):
-        os.makedirs(args.exp_np_path)
-
-    with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots', 'config.yaml'),
-              'w') as f:
-        yaml.dump(config, f)
-
     # Data
-    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    test_img_trans = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        normalize,
-    ])
+    batch_size = 32
 
-    test_img_trans_only_resize = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
-    test_lbl_trans = transforms.Compose([
-        transforms.Resize((224, 224), Image.NEAREST),
-    ])
-
+    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
     ds = Imagenet_Segmentation(args.imagenet_seg_path,
+                               batch_size=batch_size,
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
-
-    ################################################
-    # Model
+    # #### HILA --- LRP
+    # model_LRP = vit_LRP(pretrained=True).cuda()
+    # model_LRP.eval()
+    # lrp = LRP(model_LRP)
+    # epochs = range(len(ds))[:20]
+    # mIoU_b, pixAcc_b, mAp_b, mF1_b = [], [], [], []
+    # mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, q=-1)
+    # print('HILA')
+    # print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+    # print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+    # print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+    # print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    # print('FINISH !!')
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
-    OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
-    OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
-
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
-
-    plot_path = Path(vit_config["plot_path"], exp_name)
-    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
     CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
     CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
     RUN_BASE_MODEL = vit_config[
-        'run_base_model']  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
-
-    BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-        'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-
-    EXP_NAME = 'del_fixed_ft_50000_new_model_seg_only_base_new'  # TODO - pay attention !!!
-
-    EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
-    os.makedirs(EXP_PATH, exist_ok=True)
-    ic(EXP_PATH)
-
-    BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-    BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
-
-    os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
-    os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
-    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
-    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+        'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
         model_type="vit-basic",
         is_wolf_transforms=vit_config["is_wolf_transforms"],
-    )  # TODO if vit-for-dino is relevant
+    )
 
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
@@ -472,86 +432,50 @@ if __name__ == '__main__':
         batch_size=vit_config["batch_size"],
     )
 
+    metric = IoU(2, ignore_index=-1)
+
+
     model = OptImageClassificationWithTokenClassificationModel_Segmentation(
         vit_for_classification_image=vit_for_classification_image,
         vit_for_patch_classification=vit_for_patch_classification,
         feature_extractor=feature_extractor,
-        plot_path=plot_path,
+        plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
-        batch_size=vit_config["batch_size"],
-        best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
+        batch_size=batch_size,
+        best_auc_objects_path='',
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-        best_auc_plot_path=BEST_AUC_PLOT_PATH,
-        run_base_model_only=RUN_BASE_MODEL
+        best_auc_plot_path='',
+        run_base_model_only=RUN_BASE_MODEL,
+        model_runtype='test'
     )
     model = freeze_multitask_model(
         model=model,
         freezing_transformer=vit_config["freezing_transformer"],
     )
-    metric = IoU(2, ignore_index=-1)
 
-    #### HILA --- LRP
-    model_LRP = vit_LRP(pretrained=True).cuda()
-    model_LRP.eval()
-    lrp = LRP(model_LRP)
-
-    print('START TRAINING !')
-    args.save_img = False
-    epochs = range(len(ds))[:1]
-    print(f'Run over {len(epochs)} samples')
-    mIoU_a, pixAcc_a, mAp_a, mF1_a = [], [], [], []
-    mIoU_b, pixAcc_b, mAp_b, mF1_b = [], [], [], []
-    q_arr = [-1]  # np.arange(0, 1, 0.1)
-    for q in tqdm(q_arr):
-        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='ours', q=q)
-        mIoU_a.append(mIoU)
-        pixAcc_a.append(pixAcc)
-        mAp_a.append(mAp)
-        mF1_a.append(mF1)
-        print('Ours!')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='hila', q=q)
-        print('HILA')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-        mIoU_b.append(mIoU)
-        pixAcc_b.append(pixAcc)
-        mAp_b.append(mAp)
-        mF1_b.append(mF1)
-    print('end')
-    plot_metric(q_arr, metric_a=mIoU_a, metric_b=mIoU_b, metrics_title='mIoU', n_samples=len(epochs))
-    plot_metric(q_arr, metric_a=np.array(pixAcc_a) * 100, metric_b=np.array(pixAcc_b) * 100, metrics_title='pixAcc',
-                n_samples=len(epochs))
-    plot_metric(q_arr, metric_a=mAp_a, metric_b=mAp_b, metrics_title='mAp', n_samples=len(epochs))
-    plot_metric(q_arr, metric_a=mF1_a, metric_b=mF1_b, metrics_title='mF1', n_samples=len(epochs))
-    print('FINISH!!')
-    # print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    # print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    # print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    # print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-    # print("FINISH !!!!!")
-    # txtfile = os.path.join(saver.experiment_dir, 'result_mIoU_%.4f.txt' % mIoU)
-    # # txtfile = 'result_mIoU_%.4f.txt' % mIoU
-    # fh = open(txtfile, 'w')
-    #
-    # fh.write("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    # fh.write("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    # fh.write("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    # fh.write("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-    # fh.close()
-    #
-    # predictions = np.concatenate(predictions)
-    # targets = np.concatenate(targets)
-    # pr, rc, thr = precision_recall_curve(targets, predictions)
-    # np.save(os.path.join(saver.experiment_dir, 'precision.npy'), pr)
-    # np.save(os.path.join(saver.experiment_dir, 'recall.npy'), rc)
-    #
-    # plt.figure()
-    # plt.plot(rc, pr)
-    # plt.savefig(os.path.join(saver.experiment_dir, 'PR_curve_{}.png'.format(args.method)))
+    dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
+    data_module = ImageSegOptDataModuleSegmentation(train_data_loader=dl)
+    trainer = pl.Trainer(
+        logger=[],
+        accelerator='gpu',
+        gpus=1,
+        devices=1,
+        num_sanity_val_steps=0,
+        check_val_every_n_epoch=100,
+        max_epochs=vit_config["n_epochs"],
+        resume_from_checkpoint=CKPT_PATH,
+        enable_progress_bar=True,
+        enable_checkpointing=False,
+        default_root_dir=vit_config["default_root_dir"],
+        weights_summary=None
+    )
+    trainer.fit(model=model, datamodule=data_module)
+    trainer.test(model=model, datamodule=data_module)
+    # trainer.fit(model=model, datamodule=data_module)
+    mIoU, pixAcc, mAp, mF1 = model.seg_results['mIoU'], model.seg_results['pixAcc'], model.seg_results['mAp'], \
+                             model.seg_results['mF1']
+    print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+    print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+    print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+    print("Mean F1 over %d classes: %.4f\n" % (2, mF1))

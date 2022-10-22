@@ -15,6 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import wandb
 from torch.optim import AdamW
+from tqdm import tqdm
 from transformers import get_linear_schedule_with_warmup
 
 from config import config
@@ -24,6 +25,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
 )
 from feature_extractor import ViTFeatureExtractor
 from utils import save_obj_to_disk
+from utils.metrices import batch_pix_accuracy, batch_intersection_union, get_ap_scores, get_f1_scores
 from vit_utils import visu, get_loss_multipliers
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
@@ -86,7 +88,8 @@ class LossLoss:
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
-    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor) -> LossLossOutput:
+    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor,
+                 neg_output: Tensor = None) -> LossLossOutput:
         """
         Objective 1 - Keep the classification as original with as much as dark tokens
         This will be applied on the token classification by encourage the sigmoid to go to zero & CE with the original
@@ -96,10 +99,18 @@ class LossLoss:
         """
         if self.mask_loss == "bce":
             mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
-        else:
+        if self.mask_loss == "l1":
             mask_loss = l1_loss(tokens_mask)
+        if self.mask_loss == "entropy_softmax":
+            assert vit_config['activation_function'] == 'softmax', \
+                "The activation_function must be softmax!!"
+            mask_loss = self.entropy_loss(mask_loss, tokens_mask)
 
-        pred_loss = prediction_loss(output=output, target=target)
+        pred_pos_loss = prediction_loss(output=output, target=target)
+
+        if loss_config['is_ce_neg']:
+            pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target)
+            pred_loss = (pred_pos_loss + pred_neg_loss) / 2
 
         prediction_loss_multiplied = self.prediction_loss_mul * pred_loss
         mask_loss_multiplied = self.mask_loss_mul * mask_loss
@@ -114,6 +125,13 @@ class LossLoss:
             mask_loss=mask_loss,
         )
 
+    def entropy_loss(self, mask_loss, tokens_mask):
+        tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0],
+                                                  -1)  # From (32,1,14,14) --> (32,196) - easy for compute entropy.
+        d = torch.distributions.Categorical(tokens_mask_reshape + 10e-8)
+        normalized_entropy = d.entropy() / np.log(d.param_shape[-1])
+        mask_loss = normalized_entropy.mean()
+        return mask_loss
 
 @dataclass
 class ImageClassificationWithTokenClassificationModelOutput:
@@ -172,21 +190,48 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.auc_by_epoch = []
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
 
+    def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
+        if is_clamp_between_0_to_1:
+            norm_mask = torch.clamp(mask, min=0, max=1)
+        else:
+            norm_mask = (mask - mask.min()) / (mask.max() - mask.min())
+        return norm_mask
+
+    def normalize_image(self, tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+        dtype = tensor.dtype
+        mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
+        std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
+        tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
+        return tensor
+
     def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         # TODO -
-        if vit_config["is_relu_segmentation"] or vit_config["is_sigmoid_segmentation"]:
+        if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                       is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+
         masked_image = image_resized * interpolated_mask_normalized
-        # masked_image = inputs * interpolated_mask
-        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
+        masked_image_inputs = self.normalize_image(masked_image)
+        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
+        vit_masked_output_logits = vit_masked_output.logits
+
+        ### NEGATIVE MASK
+        if loss_config['is_ce_neg']:
+            masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
+            masked_neg_image_inputs = self.normalize_image(masked_neg_image)
+            vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
+
+        vit_masked_neg_output_logits = vit_masked_neg_output.logits if vit_config['is_ce_neg'] else None
+
         lossloss_output = self.criterion(
-            output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
+            output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
+            tokens_mask=tokens_mask
         )
+
         return ImageClassificationWithTokenClassificationModelOutput(
             lossloss_output=lossloss_output,
             vit_masked_output=vit_masked_output,
@@ -228,8 +273,8 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                           epoch_idx=self.current_epoch,
                                           )
 
-            # self.visualize_images_by_outputs(outputs=outputs)
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
+                # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
         else:
@@ -246,6 +291,7 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
+            "auc": self.best_auc
         }
 
     def validation_step(self, batch, batch_idx):
@@ -315,12 +361,13 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def visualize_images_by_outputs(self, outputs):
         image = outputs[0]["resized_and_normalized_image"].detach().cpu()
         mask = outputs[0]["patches_mask"].detach().cpu()
+        auc = outputs[0]['auc']
         image = image if len(image.shape) == 3 else image.squeeze(0)
         mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
         visu(
             original_image=image,
             transformer_attribution=mask,
-            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}").resolve(),
+            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{auc}").resolve(),
         )
 
     def validation_epoch_end(self, outputs):
@@ -401,12 +448,14 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
+            model_runtype: str,
             criterion: LossLoss = LossLoss(),
             emb_size: int = 768,
             n_classes: int = 1000,
             n_patches: int = 196,
             batch_size: int = 8,
-            run_base_model_only: bool = False
+            run_base_model_only: bool = False,
+
     ):
         super().__init__()
         self.vit_for_classification_image = vit_for_classification_image
