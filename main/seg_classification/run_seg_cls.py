@@ -90,6 +90,7 @@ data_module = ImageSegDataModule(
     batch_size=vit_config["batch_size"],
     train_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     val_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
+    is_sampled_data_uniformly=vit_config["is_sampled_data_uniformly"],
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
