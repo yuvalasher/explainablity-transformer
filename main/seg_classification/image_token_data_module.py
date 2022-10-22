@@ -35,19 +35,16 @@ class ImageSegDataModule(pl.LightningDataModule):
             images_path=self.train_images_path,
             feature_extractor=self.feature_extractor,
             n_samples=self.train_n_samples,
-            is_val=False,
         )
         self.val_dataset = ImageSegDataset(
             images_path=self.val_images_path,
             feature_extractor=self.feature_extractor,
             n_samples=self.val_n_samples,
-            is_val=True,
         )
         self.test_dataset = ImageSegDataset(
             images_path=self.test_images_path,
             feature_extractor=self.feature_extractor,
             n_samples=self.test_n_samples,
-            is_val=True,
         )
 
     def train_dataloader(self):
