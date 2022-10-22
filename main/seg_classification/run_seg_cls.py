@@ -5,7 +5,6 @@ import yaml
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
 
@@ -66,7 +65,6 @@ def save_config_to_root_dir():
     with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
         yaml.dump(config, f)
 
-
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
@@ -111,14 +109,6 @@ model = ImageClassificationWithTokenClassificationModel(
     batch_size=vit_config["batch_size"],
 )
 
-# early_stop_callback = EarlyStopping(
-#     monitor="val/loss",
-#     min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
-#     patience=vit_config["seg_cls"]["earlystopping"]["patience"],
-#     verbose=False,
-#     mode="min",
-# )
-
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
@@ -135,9 +125,7 @@ wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
 trainer = pl.Trainer(
     callbacks=[
         ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=20)],
-    # callbacks=[early_stop_callback],
     logger=[wandb_logger],
-    # logger=[],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
@@ -145,7 +133,6 @@ trainer = pl.Trainer(
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
     enable_checkpointing=vit_config["enable_checkpointing"]
-    # enable_checkpointing=True
 )
 if vit_config["enable_checkpointing"]:
     save_config_to_root_dir()

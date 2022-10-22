@@ -4,7 +4,6 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
-
 from transformers.modeling_outputs import SequenceClassifierOutput
 from transformers.models.vit import ViTPreTrainedModel, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
@@ -24,13 +23,11 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
 
         # self.num_labels = config.num_labels
         self.vit = ViTModel(config, add_pooling_layer=False)
-
         # Classifier head
         self.patch_pooler = nn.Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.patch_classifier = nn.Linear(config.hidden_size, 1)  # regression to one number
-
         # Initialize weights and apply final processing
         self.post_init()
 
