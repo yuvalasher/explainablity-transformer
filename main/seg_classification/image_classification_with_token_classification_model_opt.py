@@ -181,7 +181,8 @@ class OptImageClassificationWithTokenClassificationModel(pl.LightningModule):
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                  is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
         masked_image = image_resized * interpolated_mask_normalized
-        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image)
+        masked_image_inputs = self.normalize_image(masked_image)
+        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
         lossloss_output = self.criterion(
             output=vit_masked_output.logits, target=vit_cls_output.logits, tokens_mask=tokens_mask
         )
