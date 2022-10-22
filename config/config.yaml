@@ -15,6 +15,7 @@ vit:
   gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
+  is_sampled_data_uniformly: True
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
@@ -67,8 +68,8 @@ vit:
       normalize: False
       mask_loss: bce #choose l1, bce, entropy_softmax
       prediction_loss_mul: 1
-      is_ce_neg: True
       mask_loss_mul: 50
+      is_ce_neg: False
     earlystopping:
       min_delta: 0.0001
       patience: 3

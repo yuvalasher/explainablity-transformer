@@ -25,23 +25,25 @@ class ImageSegDataset(Dataset):
             images_path: Union[str, WindowsPath],
             feature_extractor: ViTFeatureExtractor,
             is_val: bool,
+            is_sampled_data_uniformly: bool = True,
     ):
         self.is_val = is_val
         self.feature_extractor = feature_extractor
         self.images_path = images_path
         print(f"Total images: {len(list(Path(images_path).iterdir()))}")
-        # with open(FILE_PATH, 'r') as f:
-        #     lines = f.readlines()
-        img_name_train, img_name_val = self.sample_balance_labels_train_val()
 
-        if (is_val):
-            self.images_name = [f"{self.images_path}/{image_name}" for image_name in img_name_val]
+        if is_sampled_data_uniformly:
+            img_name_train, img_name_val = self.sample_balance_labels_train_val()
+            if (is_val):
+                self.images_name = [f"{self.images_path}/{image_name}" for image_name in img_name_val]
+            else:
+                self.images_name = [f"{self.images_path}/{image_name}" for image_name in img_name_train]
         else:
-            self.images_name = [f"{self.images_path}/{image_name}" for image_name in img_name_train]
-        # if is_val:
-        #     self.images_name = list(Path(images_path).iterdir())
-        #     n_samples = n_samples if n_samples > 0 else len(self.images_name)
-        #     self.images_name = self.images_name[:n_samples]
+            n_samples = vit_config['seg_cls']['val_n_label_sample'] if is_val else vit_config['seg_cls']['train_n_label_sample']
+            n_samples = n_samples * 1000
+            self.images_name = list(Path(images_path).iterdir())
+            n_samples = n_samples if n_samples > 0 else len(self.images_name)
+            self.images_name = self.images_name[:n_samples]
         print(f"After filter images: {len(self.images_name)}")
         # print(self.images_name)
 
