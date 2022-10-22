@@ -64,9 +64,9 @@ vit:
     test_n_samples: 1
     loss:
       normalize: False
-      mask_loss: l1 # bce
+      mask_loss: bce # bce
       prediction_loss_mul: 1
-      mask_loss_mul: 80
+      mask_loss_mul: 50
     earlystopping:
       min_delta: 0.0001
       patience: 3
