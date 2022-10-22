@@ -14,7 +14,7 @@ vit:
   val_images_path: val_data #val_data_exp
   gpus: 1
   run_base_model: True
-  activation_function: 'sigmoid'   # choose from here: ['sigmoid','relu','softmax',None]
+  activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
