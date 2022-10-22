@@ -46,6 +46,9 @@ def l1_loss(tokens_mask) -> Tensor:
 
 def prediction_loss(output, target):
     argmax_target = torch.argmax(target, dim=1)
+    if loss_config["use_logits_only"]:
+        # return -torch.gather(output, 1, argmax_target.unsqueeze(1)).squeeze(1).sum()
+        return -torch.gather(output, 1, argmax_target.unsqueeze(1)).squeeze(1).mean()
     return ce_loss(output, argmax_target)  # maximize the pred to original model
 
 

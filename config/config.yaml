@@ -70,6 +70,7 @@ vit:
       prediction_loss_mul: 1
       mask_loss_mul: 50
       is_ce_neg: False
+      use_logits_only: True
     earlystopping:
       min_delta: 0.0001
       patience: 3
