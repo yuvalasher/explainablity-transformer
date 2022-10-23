@@ -70,3 +70,9 @@ def create_folder_hierarchy(base_auc_objects_path: str, exp_name: str):
     os.makedirs(base_model_best_auc_plot_path, exist_ok=True)
     os.makedirs(base_model_best_auc_objects_path, exist_ok=True)
     return best_auc_plot_path, best_auc_objects_path, base_model_best_auc_plot_path, base_model_best_auc_objects_path
+
+def save_config_to_root_dir():
+    path_dir = os.path.join(vit_config["default_root_dir"], f"seg_cls; {exp_name}")
+    os.makedirs(path_dir, exist_ok=True)
+    with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
+        yaml.dump(config, f)

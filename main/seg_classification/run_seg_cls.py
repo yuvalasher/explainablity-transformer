@@ -1,6 +1,8 @@
 import os
 import yaml
 
+from main.seg_classification.seg_cls_utils import save_config_to_root_dir
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import torch
@@ -48,14 +50,6 @@ seed_everything(config["general"]["seed"])
 import gc
 import torch
 from PIL import ImageFile
-
-
-def save_config_to_root_dir():
-    path_dir = os.path.join(vit_config["default_root_dir"], f"seg_cls; {exp_name}")
-    os.makedirs(path_dir, exist_ok=True)
-    with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
-        yaml.dump(config, f)
-
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
