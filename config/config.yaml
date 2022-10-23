@@ -6,9 +6,8 @@ general:
   images_folder_name_DGX: ILSVRC2012_val_Updated_DGX
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
-  wandb_project: vit-temp-softmax3
-  wandb_entity: yuvalasher
-
+  wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
+  wandb_entity: yuvalasher #amit_eshel
 vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp

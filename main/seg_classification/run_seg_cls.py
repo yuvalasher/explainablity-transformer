@@ -119,9 +119,9 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
-WANDB_PROJECT = "run_seg_cls_l1_vs_bce"
-run = wandb.init(project=WANDB_PROJECT, entity="amit_eshel", config=wandb.config)
-wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
+WANDB_PROJECT = config["general"]["wandb_project"]
+run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
     callbacks=[
