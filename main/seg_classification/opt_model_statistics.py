@@ -123,7 +123,7 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
     df, df_stats = calculate_count__and_prec_auc(aucs)
     print(tabulate(df_stats, headers='keys'))
     plot_perturbations_vs_num_of_images(df)
-    print(f'AUC: {round(np.mean(auc), 4)}% for {len(aucs)} records')
+    print(f'AUC: {round(np.mean(aucs), 4)}% for {len(aucs)} records')
     print(aucs)
 
 
