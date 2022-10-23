@@ -65,7 +65,7 @@ RUN_BASE_MODEL = vit_config["run_base_model"]  # TODO - Need to pay attention! I
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
-EXP_NAME = 'opposite_ce_ft_50000_new_model_only_opt'
+EXP_NAME = 'EXP_NAME'
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
 os.makedirs(EXP_PATH, exist_ok=True)
