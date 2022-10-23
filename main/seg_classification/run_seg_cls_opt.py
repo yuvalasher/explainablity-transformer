@@ -16,8 +16,7 @@ from config import config
 from icecream import ic
 from datetime import datetime as dt
 
-from main.seg_classification.seg_cls_consts import OBT_OBJECTS_FOLDER_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME
-from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc
+from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
 from pathlib import Path
@@ -72,16 +71,8 @@ EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
 os.makedirs(EXP_PATH, exist_ok=True)
 ic(EXP_PATH)
 
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
-
-os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
-os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
-os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
-os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
+    base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=EXP_NAME)
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,

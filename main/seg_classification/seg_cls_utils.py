@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 from typing import Any
@@ -5,6 +6,7 @@ import numpy as np
 import torch
 from torch import Tensor, nn
 from config import config
+from main.seg_classification.seg_cls_consts import OBT_OBJECTS_PLOT_FOLDER_NAME, OBT_OBJECTS_FOLDER_NAME
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
@@ -55,3 +57,16 @@ def load_pickles_and_calculate_auc(path):
     # print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     return np.mean(aucs)
+
+
+def create_folder_hierarchy(base_auc_objects_path: str, exp_name: str):
+    best_auc_plot_path = Path(base_auc_objects_path, exp_name, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    best_auc_objects_path  = Path(base_auc_objects_path, exp_name, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
+    os.makedirs(best_auc_plot_path, exist_ok=True)
+    os.makedirs(best_auc_objects_path, exist_ok=True)
+
+    base_model_best_auc_plot_path = Path(base_auc_objects_path, exp_name, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    base_model_best_auc_objects_path = Path(base_auc_objects_path, exp_name, 'base_model', OBT_OBJECTS_FOLDER_NAME)
+    os.makedirs(base_model_best_auc_plot_path, exist_ok=True)
+    os.makedirs(base_model_best_auc_objects_path, exist_ok=True)
+    return best_auc_plot_path, best_auc_objects_path, base_model_best_auc_plot_path, base_model_best_auc_objects_path
