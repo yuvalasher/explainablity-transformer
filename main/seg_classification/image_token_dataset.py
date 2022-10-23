@@ -1,10 +1,8 @@
 import os
 import random
 from typing import Union, List
-
 import pandas as pd
 from torch.utils.data import Dataset
-import torch
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath, Path
 from utils import get_image_from_path
@@ -16,7 +14,6 @@ vit_config = config["vit"]
 print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
 print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
-# FILE_PATH = "/home/yuvalas/explainability/data/samples_6000_reconstruct.txt"
 FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/img_name_and_label_no_idx.csv"
 
 
@@ -47,6 +44,15 @@ class ImageSegDataset(Dataset):
                                                                            train_n_samples=train_n_samples,
                                                                            val_n_samples=val_n_samples)
             self.images_name = randomly_sampled_train_val_dict["val_set"] if is_val else randomly_sampled_train_val_dict["train_set"]
+
+        ## sample first n images
+        # train_n_samples = vit_config['seg_cls']['train_n_label_sample'] * 1000
+        # val_n_samples = vit_config['seg_cls']['val_n_label_sample'] * 1000
+        # n_samples = train_n_samples if not is_val else val_n_samples
+        # self.images_name = list(Path(images_path).iterdir())
+        # n_samples = n_samples if n_samples > 0 else len(self.images_name)
+        # self.images_name = self.images_name[:n_samples]
+        # print(is_val, len(self.images_name), n_samples)
         print(f"After filter images: {len(self.images_name)}")
 
     def sample_random_train_val(self, images_name: List[str], train_n_samples: int, val_n_samples: int):
