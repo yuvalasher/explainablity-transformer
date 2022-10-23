@@ -47,8 +47,6 @@ class ImageSegDataset(Dataset):
                                                                            train_n_samples=train_n_samples,
                                                                            val_n_samples=val_n_samples)
             self.images_name = randomly_sampled_train_val_dict["val_set"] if is_val else randomly_sampled_train_val_dict["train_set"]
-            print(is_val)
-            print(self.images_name)
         print(f"After filter images: {len(self.images_name)}")
 
     def sample_random_train_val(self, images_name: List[str], train_n_samples: int, val_n_samples: int):

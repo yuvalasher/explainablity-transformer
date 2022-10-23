@@ -31,18 +31,9 @@ vit:
   num_labels: 1000
   save_every: 5
   images:
-    #    - image_name: 1111111111 (1).JPEG
-    #      correct_class: 3
-    #      contrastive_class:
-    #    - image_name: 00000069.JPEG # tricycle, trike, velocipede
-    #      correct_class: 870
-    #      contrastive_class:
     - image_name: 00000118.JPEG # Black & White
       correct_class: 3
       contrastive_class:
-  #    - image_name: 0000000005.JPEG # catdog
-  #      correct_class: 282 # cat
-  #      contrastive_class: 243 # dog
   batch_size: 32
   default_root_dir: /home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification #/home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/amiteshel1/Projects/explainablity-transformer-cv/research/plots

@@ -1,6 +1,4 @@
 import os
-from typing import Tuple
-
 import yaml
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -10,18 +8,13 @@ from config import config
 
 device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 from icecream import ic
-
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
-
 from pathlib import Path
-
 import wandb
-
 from main.seg_classification.image_classification_with_token_classification_model import (
     ImageClassificationWithTokenClassificationModel,
 )
-from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from utils.consts import (
@@ -36,14 +29,12 @@ from vit_utils import (
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
 )
-from transformers import AutoModel, ViTForImageClassification
 from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
 vit_config = config["vit"]
 
 os.makedirs(vit_config['default_root_dir'], exist_ok=True)
@@ -65,6 +56,7 @@ def save_config_to_root_dir():
     with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
         yaml.dump(config, f)
 
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
@@ -75,7 +67,7 @@ feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
     model_type="vit-basic",
     is_wolf_transforms=vit_config["is_wolf_transforms"],
-)  # TODO if vit-for-dino is relevant
+)
 
 vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
 
