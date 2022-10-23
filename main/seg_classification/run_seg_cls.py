@@ -1,6 +1,4 @@
 import os
-import yaml
-
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -122,5 +120,5 @@ trainer = pl.Trainer(
     enable_checkpointing=vit_config["enable_checkpointing"]
 )
 if vit_config["enable_checkpointing"]:
-    save_config_to_root_dir()
+    save_config_to_root_dir(exp_name=exp_name)
 trainer.fit(model=model, datamodule=data_module)

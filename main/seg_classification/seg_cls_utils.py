@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 import torch
+import yaml
 from torch import Tensor, nn
 from config import config
 from main.seg_classification.seg_cls_consts import OBT_OBJECTS_PLOT_FOLDER_NAME, OBT_OBJECTS_FOLDER_NAME
