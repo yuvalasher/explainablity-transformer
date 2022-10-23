@@ -61,7 +61,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'asher_data_first_samples__use_logits_only_{loss_config["use_logits_only"]}_activation_func_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__is_sampled_data_uniformly_{vit_config["is_sampled_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
+exp_name = f'asher__use_logits_only_{loss_config["use_logits_only"]}_activation_func_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__is_sampled_data_uniformly_{vit_config["is_sampled_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
