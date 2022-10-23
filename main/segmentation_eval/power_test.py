@@ -5,10 +5,8 @@ from pathlib import Path
 import yaml
 from icecream import ic
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-print('START !')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 import numpy as np

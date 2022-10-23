@@ -1,8 +1,9 @@
 import os
 import sys
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+
+# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 from typing import Any
 
 from tqdm import tqdm
