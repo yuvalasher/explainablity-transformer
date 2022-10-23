@@ -1,3 +1,7 @@
+import pickle
+from pathlib import Path
+from typing import Any
+import numpy as np
 import torch
 from torch import Tensor, nn
 from config import config
@@ -7,7 +11,6 @@ loss_config = vit_config["seg_cls"]["loss"]
 
 bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction="mean")
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
-AUC_STOP_VALUE = 6.0
 
 
 def l1_loss(tokens_mask) -> Tensor:
@@ -34,3 +37,21 @@ def encourage_token_mask_to_prior_loss(tokens_mask: Tensor, prior: int = 0):
         tokens_mask, target_encourage_patches
     )  # turn off token masks
     return bce_encourage_prior_patches_loss
+
+
+def load_obj(path) -> Any:
+    with open(Path(path), 'rb') as f:
+        return pickle.load(f)
+
+
+def load_pickles_and_calculate_auc(path):
+    aucs = []
+    listdir = sorted(list(Path(path).iterdir()))
+    for pkl_path in listdir:
+        # print(pkl_path)
+        loaded_obj = load_obj(pkl_path)
+        auc = loaded_obj['auc']
+        aucs.append(auc)
+    # print(f'AUCS: {aucs}')
+    print(f"{len(aucs)} samples")
+    return np.mean(aucs)

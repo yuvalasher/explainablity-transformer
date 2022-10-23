@@ -1,11 +1,10 @@
 import os
 import sys
-
-
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-from typing import Any
 
+import wandb
+from pytorch_lightning.loggers import WandbLogger
 from tqdm import tqdm
 
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
@@ -14,11 +13,11 @@ from main.seg_classification.image_token_data_module_opt import ImageSegOptDataM
 import torch
 
 from config import config
-import numpy as np
-
 from icecream import ic
-import pickle
 from datetime import datetime as dt
+
+from main.seg_classification.seg_cls_consts import OBT_OBJECTS_FOLDER_NAME, OBT_OBJECTS_PLOT_FOLDER_NAME
+from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
 from pathlib import Path
@@ -35,20 +34,13 @@ from vit_utils import (
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
 )
-
 from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import EarlyStopping
 import gc
 from PIL import ImageFile
-
-# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 import logging
 import warnings
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 logging.getLogger('checkpoint').setLevel(0)
@@ -61,19 +53,15 @@ loss_config = vit_config["seg_cls"]["loss"]
 seed_everything(config["general"]["seed"])
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
-OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
+exp_name = f'direct_opt_from_ckpt__use_logits_only_{loss_config["use_logits_only"]}_activation_func_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__is_sampled_data_uniformly_{vit_config["is_sampled_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
-# CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
-
 
 CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
 CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
-RUN_BASE_MODEL = False  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+RUN_BASE_MODEL = vit_config["run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
@@ -99,7 +87,7 @@ feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
     model_type="vit-basic",
     is_wolf_transforms=vit_config["is_wolf_transforms"],
-)  # TODO if vit-for-dino is relevant
+)
 
 vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
 
@@ -119,38 +107,6 @@ model = OptImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
     feature_extractor=feature_extractor,
-    plot_path=plot_path,
-    warmup_steps=warmup_steps,
-    total_training_steps=total_training_steps,
-    batch_size=vit_config["batch_size"],
-    best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
-    checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-    best_auc_plot_path=BEST_AUC_PLOT_PATH,
-)
-
-
-def load_obj(path) -> Any:
-    with open(Path(path), 'rb') as f:
-        return pickle.load(f)
-
-
-def load_pickles_and_calculate_auc(path):
-    aucs = []
-    listdir = sorted(list(Path(path).iterdir()))
-    for pkl_path in listdir:
-        # print(pkl_path)
-        loaded_obj = load_obj(pkl_path)
-        auc = loaded_obj['auc']
-        aucs.append(auc)
-    # print(f'AUCS: {aucs}')
-    print(f"{len(aucs)} samples")
-    return np.mean(aucs)
-
-
-model = OptImageClassificationWithTokenClassificationModel(
-    vit_for_classification_image=vit_for_classification_image,
-    vit_for_patch_classification=vit_for_patch_classification,
-    feature_extractor=feature_extractor,
     is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,
     warmup_steps=warmup_steps,
@@ -162,15 +118,6 @@ model = OptImageClassificationWithTokenClassificationModel(
     run_base_model_only=RUN_BASE_MODEL,
 )
 
-early_stop_callback = EarlyStopping(
-    monitor="val/loss",
-    min_delta=vit_config["seg_cls"]["earlystopping"]["min_delta"],
-    patience=vit_config["seg_cls"]["earlystopping"]["patience"],
-    verbose=False,
-    mode="min",
-    check_on_train_epoch_end=True
-)
-
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
@@ -180,17 +127,16 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
-WANDB_PROJECT = "run_seg_cls_4"
-# run = wandb.init(project=WANDB_PROJECT, entity="yuvalasher", config=wandb.config)
-# wandb_logger = WandbLogger(name=f"seg_cls; {exp_name}", project=WANDB_PROJECT)
-
-DIRECT_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
+WANDB_PROJECT = config["general"]["wandb_project"]
+# run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+# wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 if __name__ == '__main__':
-    print(f"Total Images in path: {len(os.listdir(DIRECT_PATH))}")
+    IMAGES_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
+    print(f"Total Images in path: {len(os.listdir(IMAGES_PATH))}")
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
     start_time = dt.now()
-    listdir = sorted(list(Path(DIRECT_PATH).iterdir()))
+    listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
     for idx, image_path in tqdm(enumerate(listdir), position=0, leave=True, total=len(listdir)):
 
         data_module = ImageSegOptDataModule(
@@ -209,7 +155,6 @@ if __name__ == '__main__':
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
             max_epochs=vit_config["n_epochs"],
-            # devices=[1,2,3],
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
