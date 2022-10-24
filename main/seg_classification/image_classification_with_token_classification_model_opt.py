@@ -124,7 +124,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           )
 
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
-                # self.visualize_images_by_outputs(outputs=outputs)
+                outputs[0]["auc"] = auc
                 self.trainer.should_stop = True
 
         else:
@@ -199,7 +199,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           epoch_idx=self.current_epoch,
                                           )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
-                # self.visualize_images_by_outputs(outputs=outputs)
+                outputs[0]['auc'] = auc
                 self.trainer.should_stop = True
 
         if self.current_epoch == vit_config['n_epochs'] - 1:
