@@ -42,7 +42,6 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 
 
 class OptImageClassificationWithTokenClassificationModel(ImageClassificationWithTokenClassificationModel):
@@ -96,40 +95,9 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         image_resized = batch["image"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
-
             self.init_auc()
-            output = self.forward(inputs=inputs, image_resized=image_resized)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-            outputs = [{"image_resized": image_resized, "image_mask": images_mask,
-                        "resized_and_normalized_image": resized_and_normalized_image,
-                        "patches_mask": output.tokens_mask}]
-            auc = run_perturbation_test_opt(
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="train_step",
-                epoch_idx=self.current_epoch,
-            )
-            # print(f'Basemodel - AUC: {round(auc, 3)} !')
-            self.best_auc = auc
-            self.best_auc_epoch = self.current_epoch
-            self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
-            # self.auc_by_epoch.append(auc)
-
-            save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                          auc=auc,
-                                          vis=self.best_auc_vis,
-                                          original_image=self.best_auc_image,
-                                          epoch_idx=self.current_epoch,
-                                          )
-
-            if self.run_base_model_only or auc < AUC_STOP_VALUE:
-                outputs[0]["auc"] = auc
-                self.trainer.should_stop = True
-
-        else:
-            output = self.forward(inputs=inputs, image_resized=image_resized)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        output = self.forward(inputs=inputs, image_resized=image_resized)
+        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
             "loss": output.lossloss_output.loss,
@@ -164,19 +132,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         }
 
     def training_epoch_end(self, outputs):
-        # loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
-        # pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
-        # mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
-        # pred_loss_mul = torch.mean(torch.stack([output["pred_loss_mul"] for output in outputs]))
-        # mask_loss_mul = torch.mean(torch.stack([output["mask_loss_mul"] for output in outputs]))
-        # self.log("train/loss", loss, prog_bar=True, logger=True)
-        # self.log("train/prediction_loss", pred_loss, prog_bar=True, logger=True)
-        # self.log("train/mask_loss", mask_loss, prog_bar=True, logger=True)
-        # self.log("train/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
-        # self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        # self._visualize_outputs(
-        #     outputs, stage="train", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
-        # )
         auc = run_perturbation_test_opt(
             model=self.vit_for_classification_image,
             outputs=outputs,
@@ -217,31 +172,5 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         visu(
             original_image=image,
             transformer_attribution=mask,
-            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{auc}").resolve(),
+            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{round(auc,0)}").resolve(),
         )
-
-    def validation_epoch_end(self, outputs):
-        """
-        loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
-        pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
-        mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
-        pred_loss_mul = torch.mean(torch.stack([output["pred_loss_mul"] for output in outputs]))
-        mask_loss_mul = torch.mean(torch.stack([output["mask_loss_mul"] for output in outputs]))
-
-        self.log("val/loss", loss, prog_bar=True, logger=True)
-        self.log("val/prediction_loss", pred_loss, prog_bar=True, logger=True)
-        self.log("val/mask_loss", mask_loss, prog_bar=True, logger=True)
-        self.log("val/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
-        self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        self._visualize_outputs(
-            outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
-        )
-        if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
-            run_perturbation_test(
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="val",
-                epoch_idx=self.current_epoch,
-            )
-        """
-        return {"loss": torch.tensor(1)}
