@@ -76,6 +76,9 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
             mask = mask / mask.max(dim=1, keepdim=True)[0]
 
         mask = mask.view(batch_size, 1, 14, 14)
+        if vit_config["add_epsilon_to_patches_scores"]:
+            mask = mask + EPSILON
+            mask = torch.clamp(mask, max=1)
 
         interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=16, mode='bilinear')
 
