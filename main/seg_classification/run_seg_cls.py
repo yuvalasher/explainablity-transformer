@@ -121,7 +121,8 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
-    enable_checkpointing=vit_config["enable_checkpointing"]
+    enable_checkpointing=vit_config["enable_checkpointing"],
+    num_sanity_val_steps=0,
 )
 if vit_config["enable_checkpointing"]:
     save_config_to_root_dir(exp_name=exp_name)
