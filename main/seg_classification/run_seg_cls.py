@@ -74,8 +74,8 @@ ic(
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
     batch_size=vit_config["batch_size"],
-    train_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
-    val_images_path=str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
+    train_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
+    val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
     is_sampled_data_uniformly=vit_config["is_sampled_data_uniformly"],
 )
 
