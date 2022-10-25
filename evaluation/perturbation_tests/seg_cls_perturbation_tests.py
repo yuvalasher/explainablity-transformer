@@ -25,8 +25,9 @@ from config import config
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
-
+# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype

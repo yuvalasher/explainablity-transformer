@@ -31,9 +31,7 @@ class ImageSegOptDataModule(pl.LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True,
-                          generator=torch.Generator(device='cuda'))
+        return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self):
-        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False,
-                          generator=torch.Generator(device='cuda'))
+        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False)

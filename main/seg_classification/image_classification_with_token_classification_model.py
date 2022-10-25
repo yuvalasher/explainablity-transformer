@@ -37,11 +37,9 @@ pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 
-cuda = torch.cuda.is_available()
-device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
-
-
-
+# cuda = torch.cuda.is_available()
+# device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
+# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(

@@ -6,7 +6,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import torch
 from config import config
 
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+# cuda = torch.cuda.is_available()
+# device = torch.device("cuda" if cuda else "cpu")
 from icecream import ic
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
@@ -34,7 +36,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
+# torch.set_default_tensor_type('torch.cuda.FloatTensor')
 vit_config = config["vit"]
 
 os.makedirs(vit_config['default_root_dir'], exist_ok=True)
