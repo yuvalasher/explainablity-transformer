@@ -26,7 +26,7 @@ feature_extractor, vit_model = load_feature_extractor_and_vit_model(
 def optimize_params(vit_model: ViTForImageClassification, criterion: Callable):
     vit_ours_model = handle_model_config_and_freezing_for_task(
         model=load_ViTModel(vit_config, model_type="softmax_temp"),
-        freezing_transformer=vit_config["freezing_transformer"],
+        freezing_transformer=vit_config["freezing_classification_transformer"],
     )
 
     for idx, image_dict in enumerate(vit_config["images"]):

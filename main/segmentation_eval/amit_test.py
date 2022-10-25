@@ -449,7 +449,7 @@ if __name__ == '__main__':
     )
     model = freeze_multitask_model(
         model=model,
-        freezing_transformer=vit_config["freezing_transformer"],
+        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
     )
 
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)

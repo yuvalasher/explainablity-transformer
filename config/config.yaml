@@ -26,7 +26,7 @@ vit:
     - objective_gumble_softmax
     - objective_gumble_minimize_softmax
     - objective_opposite_gumble_softmax
-  freezing_transformer: True
+  freezing_classification_transformer: True
   freeze_classification_head: False
   num_labels: 1000
   save_every: 5

@@ -485,7 +485,7 @@ if __name__ == '__main__':
     )
     model = freeze_multitask_model(
         model=model,
-        freezing_transformer=vit_config["freezing_transformer"],
+        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
     )
     metric = IoU(2, ignore_index=-1)
 
