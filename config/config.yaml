@@ -14,6 +14,7 @@ vit:
   gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
+  segmentation_transformer_n_first_layers_to_freeze: 12
   is_sampled_data_uniformly: True
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True

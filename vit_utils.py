@@ -448,17 +448,17 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(model, freezing_classification_transformer: bool = True, segmentation_transformer_n_last_layers_to_unfreeze: int = 12):
+def freeze_multitask_model(model, freezing_classification_transformer: bool = True,
+                           segmentation_transformer_n_first_layers_to_freeze: int = 0):
     if freezing_classification_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-    # if is_segmentation_transformer_freeze:
-    #     for param in model.vit_for_patch_classification.vit.parameters():
-    #         param.requires_grad = False
-    # for param in model.vit_for_patch_classification.patch_pooler.parameters():
-    #     param.requires_grad = False
-    # for param in model.vit_for_classification_image.patch_classifier.parameters():
-    #     param.requires_grad = False
+
+    modules = [model.vit_for_patch_classification.vit.embeddings, model.vit_for_patch_classification.vit.encoder.layer[
+                                                                  :segmentation_transformer_n_first_layers_to_freeze]]
+    for module in modules:
+        for param in module.parameters():
+            param.requires_grad = False
     return model
 
 

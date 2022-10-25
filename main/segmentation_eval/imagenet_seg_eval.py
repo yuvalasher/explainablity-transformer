@@ -49,7 +49,6 @@ from utils.consts import (
     IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
 
-
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -419,6 +418,8 @@ if __name__ == '__main__':
     model = freeze_multitask_model(
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+        segmentation_transformer_n_first_layers_to_freeze=vit_config[
+            "segmentation_transformer_n_first_layers_to_freeze"]
     )
     metric = IoU(2, ignore_index=-1)
 
@@ -461,7 +462,6 @@ if __name__ == '__main__':
         labels = model.target
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
                                                                                     image=image_resized)
-
 
         predictions.append(pred)
         targets.append(target)
