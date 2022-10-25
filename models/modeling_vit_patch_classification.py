@@ -12,6 +12,7 @@ from transformers.models.vit.modeling_vit import ViTEncoder
 from config import config
 
 vit_config = config["vit"]
+EPSILON = 0.05
 
 
 class ViTForMaskGeneration(ViTPreTrainedModel):

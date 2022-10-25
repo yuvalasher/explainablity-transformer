@@ -15,6 +15,7 @@ vit:
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
   segmentation_transformer_n_first_layers_to_freeze: 0
+  add_epsilon_to_patches_scores: False
   is_sampled_data_uniformly: True
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
