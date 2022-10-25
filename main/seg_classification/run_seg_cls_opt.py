@@ -2,7 +2,8 @@ import os
 import sys
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from tqdm import tqdm
