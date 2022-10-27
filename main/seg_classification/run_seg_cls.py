@@ -1,4 +1,5 @@
 import os
+from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -50,12 +51,7 @@ gc.collect()
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'model_{vit_config["model_name"]}__is_uniformly_{vit_config["is_sampled_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
 
-feature_extractor, _ = load_feature_extractor_and_vit_model(
-    vit_config=vit_config,
-    model_type="vit-basic",
-    is_wolf_transforms=vit_config["is_wolf_transforms"],
-)
-
+feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
 
 ic(vit_config["model_name"])

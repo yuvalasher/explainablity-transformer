@@ -2,6 +2,7 @@ import os
 import sys
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+from feature_extractor import ViTFeatureExtractor
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import wandb
@@ -73,12 +74,7 @@ ic(EXP_PATH, RUN_BASE_MODEL)
 BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
     base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=EXP_NAME)
 
-feature_extractor, _ = load_feature_extractor_and_vit_model(
-    vit_config=vit_config,
-    model_type="vit-basic",
-    is_wolf_transforms=vit_config["is_wolf_transforms"],
-)
-
+feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
 
 ic(
