@@ -55,7 +55,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'direct_opt_from_ckpt__use_logits_only_{loss_config["use_logits_only"]}_activation_func_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__is_sampled_data_uniformly_{vit_config["is_sampled_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__n_layers_seg_transformer_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_to_patches_scores_{vit_config["add_epsilon_to_patches_scores"]}'
+exp_name = f'direct_opt_ckpt_28_model_{vit_config["model_name"]}__is_uniformly_{vit_config["is_sampled_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
 
@@ -66,7 +66,7 @@ RUN_BASE_MODEL = vit_config["run_base_model"]  # TODO - Need to pay attention! I
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
-EXP_NAME = 'EXP_NAME'
+ic(vit_config["model_name"])
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
 os.makedirs(EXP_PATH, exist_ok=True)
@@ -131,7 +131,6 @@ if __name__ == '__main__':
     start_time = dt.now()
     listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
     for idx, image_path in tqdm(enumerate(listdir), position=0, leave=True, total=len(listdir)):
-
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,
             batch_size=1,

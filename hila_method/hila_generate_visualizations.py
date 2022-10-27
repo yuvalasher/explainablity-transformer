@@ -155,10 +155,11 @@ def run_adp_pic_tests_hila(vit_for_image_classification: ViTForImageClassificati
 
 IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
+from config import config
 
 if __name__ == '__main__':
     BATCH_SIZE = 1
-    MODEL_NAME = 'google/vit-base-patch16-224'
+    MODEL_NAME = config["vit"]["model_name"]
     model_LRP = vit_LRP(pretrained=True).to(device)
     model_LRP.eval()
     lrp = LRP(model_LRP)
