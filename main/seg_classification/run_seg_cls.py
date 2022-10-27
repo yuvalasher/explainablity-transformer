@@ -31,7 +31,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
-# torch.set_default_tensor_type('torch.cuda.FloatTensor')
 vit_config = config["vit"]
 
 os.makedirs(vit_config['default_root_dir'], exist_ok=True)
@@ -43,7 +42,6 @@ if torch.cuda.is_available():
 
 seed_everything(config["general"]["seed"])
 import gc
-import torch
 from PIL import ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True

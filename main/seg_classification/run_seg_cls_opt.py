@@ -40,8 +40,6 @@ from PIL import ImageFile
 import logging
 import warnings
 
-# torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 logging.getLogger('checkpoint').setLevel(0)
 logging.getLogger('lightning').setLevel(0)
