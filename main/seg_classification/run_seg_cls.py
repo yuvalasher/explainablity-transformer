@@ -23,7 +23,7 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
-    )
+)
 from vit_utils import (
     load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
@@ -52,11 +52,14 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'model_{vit_config["model_name"]}__is_train_uniformly_{vit_config["is_sampled_train_data_uniformly"]}__is_val_uniformly_{vit_config["is_sampled_val_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+# exp_name = f'model_{vit_config["model_name"]}__is_train_uniformly_{vit_config["is_sampled_train_data_uniformly"]}__is_val_uniformly_{vit_config["is_sampled_val_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+exp_name = f'model_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'#__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+
 
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+
 if vit_config["model_name"] == "google/vit-base-patch16-224":
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
@@ -75,7 +78,8 @@ data_module = ImageSegDataModule(
     batch_size=vit_config["batch_size"],
     train_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
     val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    is_sampled_data_uniformly=vit_config["is_sampled_data_uniformly"],
+    is_sampled_train_data_uniformly=vit_config["is_sampled_train_data_uniformly"],
+    is_sampled_val_data_uniformly=vit_config["is_sampled_val_data_uniformly"],
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
