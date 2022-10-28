@@ -57,6 +57,8 @@ exp_name = f'model_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_
 
 
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
+ic(vit_config["is_wolf_transforms"])
+ic(vit_config["model_name"])
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 
@@ -67,7 +69,6 @@ else:
     vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
-ic(vit_config["model_name"])
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
@@ -88,6 +89,10 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     batch_size=vit_config["batch_size"],
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
+experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,
+                       f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
+ic(experiment_perturbation_results_path)
+
 model = ImageClassificationWithTokenClassificationModel(
     vit_for_classification_image=vit_for_classification_image,
     vit_for_patch_classification=vit_for_patch_classification,
@@ -97,10 +102,10 @@ model = ImageClassificationWithTokenClassificationModel(
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
     batch_size=vit_config["batch_size"],
+    experiment_path=experiment_perturbation_results_path
 )
 
-experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
-remove_old_results_dfs(experiment_path=experiment_path)
+remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
 model = freeze_multitask_model(
     model=model,
     freezing_classification_transformer=vit_config["freezing_classification_transformer"],

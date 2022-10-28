@@ -50,6 +50,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             total_training_steps: int,
             feature_extractor: ViTFeatureExtractor,
             plot_path,
+            experiment_path,
             is_clamp_between_0_to_1: bool = True,
             criterion: LossLoss = LossLoss(),
             n_classes: int = 1000,
@@ -68,6 +69,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
         self.plot_path = plot_path
         self.p = p
+        self.experiment_path = experiment_path
 
     def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
         if is_clamp_between_0_to_1:
@@ -203,6 +205,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,
+                experiment_path = self.experiment_path,
             )
 
         self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)

@@ -1296,10 +1296,10 @@ def get_image_and_inputs_and_transformed_image(
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
-    original_transformed_image = (
+    transformed_image = (
         wolf_image_transformations(image) if is_wolf_transforms else image_transformations(image)
     )
-    return inputs, original_transformed_image
+    return inputs, transformed_image
 
 
 def setup_model_and_optimizer(model_name: str):
