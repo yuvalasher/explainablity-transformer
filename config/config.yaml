@@ -16,11 +16,15 @@ vit:
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
   segmentation_transformer_n_first_layers_to_freeze: 0
   add_epsilon_to_patches_scores: False
-  is_sampled_data_uniformly: True
+  is_sampled_train_data_uniformly: True
+  is_sampled_val_data_uniformly: True
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
   model_name: google/vit-base-patch16-224
+#  model_name: facebook/deit-base-patch16-224
+#  model_name: google/vit-large-patch16-224
+#  model_name: WinKawaks/vit-small-patch16-224
   img_size: 224
   patch_size: 16
   n_heads: 12
