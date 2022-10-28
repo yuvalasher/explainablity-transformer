@@ -3,6 +3,7 @@ import sys
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 from feature_extractor import ViTFeatureExtractor
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import wandb
@@ -27,7 +28,6 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
 from vit_utils import (
     load_feature_extractor_and_vit_model,
@@ -79,7 +79,6 @@ vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained
 
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
-    str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
 

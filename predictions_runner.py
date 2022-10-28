@@ -6,11 +6,11 @@ from PIL import Image
 from pytorch_lightning import seed_everything
 import os
 from vit_loader.load_vit import load_vit_pretrained
-
+from config import config
 from transformers import ViTForImageClassification, ViTFeatureExtractor
 seed_everything(42)
 
-model_name = "google/vit-base-patch16-224"
+model_name = config["vit"]["model_name"]
 IMAGES_FOLDER_PATH = "/home/yuvalas/explainability/data/hila_robustvit"
 vit_for_classification_image, _ = load_vit_pretrained(model_name=model_name)
 

@@ -1,6 +1,10 @@
 import os
+
+from transformers import ViTForImageClassification
+
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
+from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -19,8 +23,7 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
-)
+    )
 from vit_utils import (
     load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
@@ -62,7 +65,6 @@ else:
 ic(vit_config["model_name"])
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
-    str(IMAGENET_TEST_IMAGES_ES_FOLDER_PATH),
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
 
@@ -90,7 +92,6 @@ model = ImageClassificationWithTokenClassificationModel(
     total_training_steps=total_training_steps,
     batch_size=vit_config["batch_size"],
 )
-ic(model.device)
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
 remove_old_results_dfs(experiment_path=experiment_path)
