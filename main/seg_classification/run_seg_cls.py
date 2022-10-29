@@ -56,7 +56,34 @@ gc.collect()
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 exp_name = f'neeew_amit__activation_function_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
+exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
+plot_path = Path(vit_config["plot_path"], exp_name)
+# CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
+CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
+CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
+RUN_BASE_MODEL = vit_config[
+    'run_base_model']  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+
+BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
+    'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
+
+EXP_NAME = 'del_fixed_ft_50000_new_model_seg_only_base_new'  # TODO - pay attention !!!
+
+EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
+os.makedirs(EXP_PATH, exist_ok=True)
+ic(EXP_PATH)
+
+BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
+
+os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
+os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
+BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
+os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
 ic(vit_config["is_wolf_transforms"])
 ic(vit_config["model_name"])

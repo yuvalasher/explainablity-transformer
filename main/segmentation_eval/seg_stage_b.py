@@ -1,9 +1,10 @@
 import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import sys
 from pathlib import Path
 
-from main.segmentation_eval.segmentation_model_opt import \
-    OptImageClassificationWithTokenClassificationModel_Segmentation
+
 
 os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
@@ -12,8 +13,7 @@ sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 from utils.saver import Saver
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+
 import yaml
 from icecream import ic
 
@@ -43,7 +43,8 @@ from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
 import matplotlib.pyplot as plt
 
 import torch.nn.functional as F
-
+from main.segmentation_eval.segmentation_model_opt import \
+    OptImageClassificationWithTokenClassificationModel_Segmentation
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model
@@ -313,11 +314,31 @@ if __name__ == '__main__':
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
+    OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
+    OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
+
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=28_val/epoch_auc=18.765.ckpt"
     CHECKPOINT_EPOCH_IDX = 29  # TODO - pay attention !!!
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
+    BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
+        'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
+
+    EXP_NAME = 'del_fixed_ft_50000_new_model_seg_only_base_new'  # TODO - pay attention !!!
+
+    BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
+
+    os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
+    os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
+    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
+    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
+    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
+    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+
+
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
@@ -344,22 +365,25 @@ if __name__ == '__main__':
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
         batch_size=batch_size,
-        best_auc_objects_path='',
+        best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
-        model_runtype='train'  # choose 'train' or 'test'
-    )
-    model = freeze_multitask_model(
-        model=model,
-        freezing_transformer=vit_config["freezing_transformer"],
+        model_runtype='train',
+        experiment_path='exp_name_amitt' # choose 'train' or 'test'
     )
 
+    model = freeze_multitask_model(
+        model=model,
+        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+        segmentation_transformer_n_first_layers_to_freeze=vit_config[
+            "segmentation_transformer_n_first_layers_to_freeze"]
+    )
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []
     predictions, targets = [], []
 
-    epochs = range(len(ds))
+    epochs = range(len(ds))[:2]
     for batch_idx in tqdm(epochs, leave=True, position=0):
         ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
         dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
