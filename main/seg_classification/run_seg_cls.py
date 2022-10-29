@@ -55,7 +55,7 @@ gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 # exp_name = f'model_{vit_config["model_name"]}__is_train_uniformly_{vit_config["is_sampled_train_data_uniformly"]}__is_val_uniformly_{vit_config["is_sampled_val_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
-exp_name = f'model_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'  # __n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+exp_name = f'model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'  # __n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
 
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
 ic(vit_config["is_wolf_transforms"])
@@ -93,7 +93,7 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
 experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,
-                                            f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
+                                            f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
