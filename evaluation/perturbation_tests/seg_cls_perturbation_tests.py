@@ -37,21 +37,22 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 
 
 def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_type: str = "POS",
-                           vis_class: str = "TOP", target_class: int = None) -> float:
+                           vis_class: str = "TOP", target_class: int = None,
+                           is_calculate_deletion_insertion: bool = False) -> Tuple[float,
+                                                                                   Optional[float]]:
     # ic(perturbation_type, vis_class, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
     num_samples = 0
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
+    prob_correct_model = np.zeros((n_samples))
     model_index = 0
 
     base_size = 224 * 224
     perturbation_steps = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
     num_correct_pertub = np.zeros((len(perturbation_steps), n_samples))  # 9 is the num perturbation steps
-    dissimilarity_pertub = np.zeros((len(perturbation_steps), n_samples))
-    logit_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
-    prob_diff_pertub = np.zeros((len(perturbation_steps), n_samples))
+    prob_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
     for batch in outputs:
         for data, vis in zip(batch["image_resized"], batch["image_mask"]):
@@ -66,24 +67,25 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
             norm_data = normalize(data.clone())
             inputs = {'pixel_values': norm_data}
             pred = model(**inputs)
-            probs = torch.softmax(pred.logits, dim=1)
-            # target_probs = torch.gather(probs, 1, target[:, None])[:, 0]
-            # second_probs = probs.data.topk(2, dim=1)[0][:, 1]
-            # temp = torch.log(target_probs / second_probs).data.cpu().numpy()
-            # dissimilarity_model[model_index:model_index + len(temp)] = temp
+            pred_probabilities = torch.softmax(pred.logits, dim=1)
+
             if vis_class == "TARGET":
                 if target_class is not None:
                     target = torch.tensor([target_class])
                 else:
                     raise (f"vis_class can't be {vis_class} and target_class be {target_class}")
             elif vis_class == "TOP":
-                target = torch.tensor([torch.argmax(probs).item()])
+                target = torch.tensor([torch.argmax(pred_probabilities).item()])
             else:
                 raise (f"vis_class can't be {vis_class}")
             target = target.to(device)
-            pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model = get_model_infer_metrics(
-                # TODO - verify
-                model_index=model_index, num_correct_model=num_correct_model, pred=pred.logits, target=target)
+
+            target_probs = torch.gather(pred_probabilities, 1, target[:, None])[:, 0]
+            pred_class = pred_probabilities.max(1, keepdim=True)[1].squeeze(1)
+            tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
+            num_correct_model[model_index:model_index + len(tgt_pred)] = tgt_pred
+            prob_correct_model[model_index:model_index + len(target_probs)] = target_probs.item()
+
             if vit_config['verbose']:
                 print(
                     f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
@@ -110,18 +112,6 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
 
-                # Probabilities Comparison
-                pred_probabilities = torch.softmax(out.logits, dim=1)
-                pred_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)  # hila
-                # pred_prob = pred_probabilities[0][target.item()].unsqueeze(0)
-                prob_diff = (pred_prob - pred_org_prob).data.cpu().numpy()
-                prob_diff_pertub[i, perturb_index:perturb_index + len(prob_diff)] = prob_diff
-
-                # Logits Comparison
-                pred_logit = out.logits.data.max(1, keepdim=True)[0].squeeze(1)  # hila
-                # pred_logit = out.logits[0][target.item()].unsqueeze(0)
-                logit_diff = (pred_logit - pred_org_logit).data.cpu().numpy()
-                logit_diff_pertub[i, perturb_index:perturb_index + len(logit_diff)] = logit_diff
                 if vit_config['verbose']:
                     print(
                         f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
@@ -134,20 +124,15 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
 
                 probs_pertub = torch.softmax(out.logits, dim=1)
                 target_probs = torch.gather(probs_pertub, 1, target[:, None])[:, 0]
-                second_probs = probs_pertub.data.topk(2, dim=1)[0][:, 1]
-                temp = torch.log(target_probs / second_probs).data.cpu().numpy()
-                dissimilarity_pertub[i, perturb_index:perturb_index + len(temp)] = temp
+                prob_pertub[perturbation_step, perturb_index:perturb_index + len(target_probs)] = target_probs.item()
 
             model_index += len(target)
             perturb_index += len(target)
-    # print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')
-    auc = get_auc(num_correct_pertub=num_correct_pertub, num_correct_model=num_correct_model)
-    # save_objects(experiment_dir=experiment_dir, num_correct_model=num_correct_model,
-    #              dissimilarity_model=dissimilarity_model, num_correct_pertub=num_correct_pertub,
-    #              dissimilarity_pertub=dissimilarity_pertub, logit_diff_pertub=logit_diff_pertub,
-    #              prob_diff_pertub=prob_diff_pertub, perturb_index=perturb_index,
-    #              perturbation_steps=perturbation_steps)
-    return auc
+    auc_perturbation = get_auc(num_correct_pertub=num_correct_pertub, num_correct_model=num_correct_model)
+    if is_calculate_deletion_insertion:
+        auc_deletion_insertion = get_auc(num_correct_pertub=prob_pertub, num_correct_model=prob_correct_model)
+        return auc_perturbation, auc_deletion_insertion
+    return auc_perturbation
 
 
 def get_auc(num_correct_pertub, num_correct_model):
@@ -194,14 +179,14 @@ def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[fl
     return _data
 
 
-def get_model_infer_metrics(model_index, num_correct_model, pred, target):
-    pred_probabilities = torch.softmax(pred, dim=1)
-    pred_org_logit = pred.data.max(1, keepdim=True)[0].squeeze(1)
-    pred_org_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)
-    pred_class = pred.data.max(1, keepdim=True)[1].squeeze(1)
-    tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
-    num_correct_model[model_index:model_index + len(tgt_pred)] = tgt_pred
-    return pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model
+# def get_model_infer_metrics(model_index, num_correct_model, pred, target):
+#     pred_probabilities = torch.softmax(pred, dim=1)
+#     pred_org_logit = pred.data.max(1, keepdim=True)[0].squeeze(1)
+#     pred_org_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)
+#     pred_class = pred.data.max(1, keepdim=True)[1].squeeze(1)
+#     tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
+#     num_correct_model[model_index:model_index + len(tgt_pred)] = tgt_pred
+#     return pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model
 
 
 def move_to_device_data_vis_and_target(data, target=None, vis=None):

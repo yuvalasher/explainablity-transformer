@@ -129,24 +129,30 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
 
 
 def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
-                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
+                             perturbation_config: Dict[str, Union[PerturbationType, bool]], gt_classes_list: List[int]):
     """
     :param config: contains the configuration of the perturbation test:
         * neg: True / False
         * vis_class: TARGET / TOP (predicted top-1)
     """
-    aucs = []
+    aucs_perturbation = []
+    aucs_auc_deletion_insertion = []
     vis_class = perturbation_config["vis_class"].name
     perturbation_type = perturbation_config["perturbation_type"].name
+    is_calculate_deletion_insertion = perturbation_config["is_calculate_deletion_insertion"]
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         outputs = [{'image_resized': image, 'image_mask': mask}]
-        auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
-                                     perturbation_type=perturbation_type, vis_class=vis_class,
-                                     target_class=gt_classes_list[image_idx])
-        aucs.append(auc)
-    # print(aucs)
-    return np.mean(aucs)
+        auc_perturbation, auc_deletion_insertion = eval_perturbation_test(experiment_dir=Path(""),
+                                                                          model=vit_for_image_classification,
+                                                                          outputs=outputs,
+                                                                          perturbation_type=perturbation_type,
+                                                                          vis_class=vis_class,
+                                                                          target_class=gt_classes_list[image_idx],
+                                                                          is_calculate_deletion_insertion=is_calculate_deletion_insertion)
+        aucs_perturbation.append(auc_perturbation)
+        aucs_auc_deletion_insertion.append(auc_deletion_insertion)
+    return np.mean(aucs_perturbation), np.mean(aucs_auc_deletion_insertion)
 
 
 def get_probability_and_class_idx_by_index(logits, index: int) -> Dict[str, Union[int, float]]:
@@ -204,7 +210,7 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
     adp_values_predicted, pic_values_predicted, acp_values_predicted = [], [], []
     adp_values_target, pic_values_target, acp_values_target = [], [], []
 
-    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks),total=len(gt_classes_list)):
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
         # show_mask(mask)
@@ -279,14 +285,17 @@ if __name__ == '__main__':
 
     # Perturbation tests
     # # TODO - Do it with loop of vis_class and perturbation_type
-    # perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
-    # print(
-    #     f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
-    # auc = infer_perturbation_tests(images_and_masks=images_and_masks,
-    #                                vit_for_image_classification=vit_for_image_classification,
-    #                                perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
+    perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.POS,
+                           "is_calculate_deletion_insertion": True}
+    print(
+        f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
+
+    auc_perturbation, auc_deletion_insertion = infer_perturbation_tests(images_and_masks=images_and_masks,
+                                                                              vit_for_image_classification=vit_for_image_classification,
+                                                                              perturbation_config=perturbation_config,
+                                                                              gt_classes_list=gt_classes_list)
     # print(f"timing: {(dt.now() - start_time).total_seconds()}")
-    # print(
+    print(
     #     f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
 
     """
