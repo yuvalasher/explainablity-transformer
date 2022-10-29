@@ -135,6 +135,6 @@ trainer = pl.Trainer(
     enable_checkpointing=vit_config["enable_checkpointing"],
 )
 if vit_config["enable_checkpointing"]:
-    save_config_to_root_dir()
+    save_config_to_root_dir(exp_name=exp_name)
 model.p = 1
 trainer.fit(model=model, datamodule=data_module)
