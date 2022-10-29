@@ -1,6 +1,6 @@
 from icecream import ic
 import glob
-from typing import Union, Any
+from typing import Union, Any, Tuple, Optional
 import pandas as pd
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -19,15 +19,14 @@ import os
 from torch import Tensor
 from tqdm import tqdm
 import numpy as np
-import argparse
 from config import config
 
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
+
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
@@ -41,7 +40,6 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                            vis_class: str = "TOP", target_class: int = None) -> float:
     # ic(perturbation_type, vis_class, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
-
     num_samples = 0
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
@@ -90,7 +88,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 print(
                     f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
 
-            org_shape = data.shape # Save original shape
+            org_shape = data.shape  # Save original shape
 
             if perturbation_type == 'NEG':
                 vis = -vis
@@ -101,9 +99,10 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
 
             vis = vis.reshape(org_shape[0], -1)
 
-            for i in range(len(perturbation_steps)):
+            for perturbation_step in range(len(perturbation_steps)):
                 _data = data.clone()
-                _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
+                _data = get_perturbated_data(vis=vis, image=_data,
+                                             perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
                 if vit_config['verbose']:
                     plot_image(_data)
@@ -125,12 +124,12 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 logit_diff_pertub[i, perturb_index:perturb_index + len(logit_diff)] = logit_diff
                 if vit_config['verbose']:
                     print(
-                        f'{100 * perturbation_steps[i]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
+                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
                 # Target-Class Comparison
                 target_class = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
                 temp = (target == target_class).type(target.type()).data.cpu().numpy()
-                num_correct_pertub[i, perturb_index:perturb_index + len(
+                num_correct_pertub[perturbation_step, perturb_index:perturb_index + len(
                     temp)] = temp  # num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
 
                 probs_pertub = torch.softmax(out.logits, dim=1)
@@ -281,10 +280,3 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment
         results_df.to_csv(output_csv_path, index=False)
         print(f"Saved results at: {output_csv_path}")
     return auc
-
-# if __name__ == "__main__":
-#     outputs = load_obj_from_path("/home/yuvalas/explainability/pickles/outputs.pkl")
-#     _, model = load_feature_extractor_and_vit_model(vit_config=vit_config,
-#                                                                     model_type='vit-basic',
-#                                                                     is_wolf_transforms=vit_config['is_wolf_transforms'])
-#     run_perturbation_test(model=model, outputs=outputs, stage='train', epoch_idx=0)
