@@ -12,10 +12,8 @@ from icecream import ic
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-print('START !')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 import numpy as np
 import torch
@@ -235,7 +233,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
 # hyperparameters
 num_workers = 0
 
-
 cls = ['airplane',
        'bicycle',
        'bird',
@@ -435,7 +432,6 @@ if __name__ == '__main__':
 
     metric = IoU(2, ignore_index=-1)
 
-
     model = OptImageClassificationWithTokenClassificationModel_Segmentation(
         vit_for_classification_image=vit_for_classification_image,
         vit_for_patch_classification=vit_for_patch_classification,
@@ -452,7 +448,9 @@ if __name__ == '__main__':
     )
     model = freeze_multitask_model(
         model=model,
-        freezing_transformer=vit_config["freezing_transformer"],
+        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+        segmentation_transformer_n_first_layers_to_freeze=vit_config[
+            "segmentation_transformer_n_first_layers_to_freeze"]
     )
 
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)

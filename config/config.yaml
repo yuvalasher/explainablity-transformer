@@ -6,20 +6,26 @@ general:
   images_folder_name_DGX: ILSVRC2012_val_Updated_DGX
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
-  wandb_project: vit-temp-softmax3
-  wandb_entity: yuvalasher
-
+  wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
+  wandb_entity: yuvalasher #amit_eshel
 vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp
   gpus: 1
   run_base_model: True
-  activation_function: 'sigmoid'   # choose from here: ['sigmoid','relu','softmax',None]
+  activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
+  segmentation_transformer_n_first_layers_to_freeze: 0
+  add_epsilon_to_patches_scores: False
+  is_sampled_train_data_uniformly: True
+  is_sampled_val_data_uniformly: True
   normalize_by_max_patch: False
-
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
   model_name: google/vit-base-patch16-224
+#  model_name: facebook/deit-base-patch16-224
+#  model_name: google/vit-large-patch16-224
+#  model_name: WinKawaks/vit-small-patch16-224
+  is_wolf_transforms: True
   img_size: 224
   patch_size: 16
   n_heads: 12
@@ -27,26 +33,17 @@ vit:
     - objective_gumble_softmax
     - objective_gumble_minimize_softmax
     - objective_opposite_gumble_softmax
-  freezing_transformer: True
+  freezing_classification_transformer: True
   freeze_classification_head: False
   num_labels: 1000
   save_every: 5
   images:
-    #    - image_name: 1111111111 (1).JPEG
-    #      correct_class: 3
-    #      contrastive_class:
-    #    - image_name: 00000069.JPEG # tricycle, trike, velocipede
-    #      correct_class: 870
-    #      contrastive_class:
     - image_name: 00000118.JPEG # Black & White
       correct_class: 3
       contrastive_class:
-  #    - image_name: 0000000005.JPEG # catdog
-  #      correct_class: 282 # cat
-  #      contrastive_class: 243 # dog
   batch_size: 32
-  default_root_dir: /home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification #/home/yuvalas/explainability/research/checkpoints/token_classification
-  plot_path: /home/amiteshel1/Projects/explainablity-transformer-cv/research/plots
+  default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
+  plot_path: /home/yuvalas/explainability/research/plots/token_classification/
   enable_checkpointing: True
   start_epoch_to_evaluate: 4
   n_batches_to_visualize: 2
@@ -60,7 +57,6 @@ vit:
   plot_visualizations: False
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
-  is_wolf_transforms: False
   seg_cls:
     train_n_label_sample: 6
     val_n_label_sample: 1
@@ -68,8 +64,9 @@ vit:
       normalize: False
       mask_loss: bce #choose l1, bce, entropy_softmax
       prediction_loss_mul: 1
-      mask_loss_mul: 45
+      mask_loss_mul: 50
       is_ce_neg: False
+      use_logits_only: False
     earlystopping:
       min_delta: 0.0001
       patience: 3

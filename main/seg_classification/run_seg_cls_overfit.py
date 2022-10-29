@@ -107,7 +107,8 @@ experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experi
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
-    freezing_transformer=vit_config["freezing_transformer"],
+    freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+    segmentation_transformer_n_first_layers_to_freeze=vit_config["segmentation_transformer_n_first_layers_to_freeze"]
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)

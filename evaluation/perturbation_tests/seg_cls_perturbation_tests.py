@@ -25,8 +25,9 @@ from config import config
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
 
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
-
+# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
@@ -274,10 +275,9 @@ def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
     plt.show();
 
 
-def run_perturbation_test(model, outputs, stage: str, epoch_idx: int):
+def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment_path):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
 
-    experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     if not os.path.exists(experiment_path):
         os.makedirs(experiment_path, exist_ok=True)
     output_csv_path = Path(experiment_path, f'{stage}_results_df.csv')

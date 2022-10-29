@@ -4,7 +4,6 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
-
 from transformers.modeling_outputs import SequenceClassifierOutput
 from transformers.models.vit import ViTPreTrainedModel, ViTModel
 from transformers.modeling_outputs import BaseModelOutputWithPooling
@@ -13,6 +12,7 @@ from transformers.models.vit.modeling_vit import ViTEncoder
 from config import config
 
 vit_config = config["vit"]
+EPSILON = 0.05
 
 
 class ViTForMaskGeneration(ViTPreTrainedModel):
@@ -24,13 +24,11 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
 
         # self.num_labels = config.num_labels
         self.vit = ViTModel(config, add_pooling_layer=False)
-
         # Classifier head
         self.patch_pooler = nn.Linear(config.hidden_size, config.hidden_size)
         self.activation = nn.Tanh()
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.patch_classifier = nn.Linear(config.hidden_size, 1)  # regression to one number
-
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -78,6 +76,9 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
             mask = mask / mask.max(dim=1, keepdim=True)[0]
 
         mask = mask.view(batch_size, 1, 14, 14)
+        if vit_config["add_epsilon_to_patches_scores"]:
+            mask = mask + EPSILON
+            mask = torch.clamp(mask, max=1)
 
         interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=16, mode='bilinear')
 

@@ -6,10 +6,8 @@ from icecream import ic
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-print('START !')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 import numpy as np
 import torch
@@ -419,7 +417,9 @@ if __name__ == '__main__':
     )
     model = freeze_multitask_model(
         model=model,
-        freezing_transformer=vit_config["freezing_transformer"],
+        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+        segmentation_transformer_n_first_layers_to_freeze=vit_config[
+            "segmentation_transformer_n_first_layers_to_freeze"]
     )
     metric = IoU(2, ignore_index=-1)
 

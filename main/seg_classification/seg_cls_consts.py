@@ -1,0 +1,3 @@
+AUC_STOP_VALUE = 6.0
+OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
+OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'

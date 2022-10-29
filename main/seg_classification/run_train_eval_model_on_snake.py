@@ -80,7 +80,8 @@ model = OptImageClassificationWithTokenClassificationModel(
 
 model = freeze_multitask_model(
     model=model,
-    freezing_transformer=vit_config["freezing_transformer"],
+    freezing_classification_transformer=vit_config["freezing_classification_transformer"],
+    segmentation_transformer_n_first_layers_to_freeze=vit_config["segmentation_transformer_n_first_layers_to_freeze"]
 )
 if __name__ == '__main__':
     m = model.load_from_checkpoint(CKPT_PATH,

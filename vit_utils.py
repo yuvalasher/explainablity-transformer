@@ -448,17 +448,17 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(model, freezing_transformer: bool = True):
-    if freezing_transformer:
+def freeze_multitask_model(model, freezing_classification_transformer: bool = True,
+                           segmentation_transformer_n_first_layers_to_freeze: int = 0):
+    if freezing_classification_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-    # if is_segmentation_transformer_freeze:
-    #     for param in model.vit_for_patch_classification.vit.parameters():
-    #         param.requires_grad = False
-    # for param in model.vit_for_patch_classification.patch_pooler.parameters():
-    #     param.requires_grad = False
-    # for param in model.vit_for_classification_image.patch_classifier.parameters():
-    #     param.requires_grad = False
+
+    modules = [model.vit_for_patch_classification.vit.embeddings, model.vit_for_patch_classification.vit.encoder.layer[
+                                                                  :segmentation_transformer_n_first_layers_to_freeze]]
+    for module in modules:
+        for param in module.parameters():
+            param.requires_grad = False
     return model
 
 
@@ -1296,10 +1296,10 @@ def get_image_and_inputs_and_transformed_image(
     if image is None and image_name is not None:
         image = get_image_from_path(Path(IMAGES_FOLDER_PATH, image_name))
     inputs = feature_extractor(images=image, return_tensors="pt")
-    original_transformed_image = (
+    transformed_image = (
         wolf_image_transformations(image) if is_wolf_transforms else image_transformations(image)
     )
-    return inputs, original_transformed_image
+    return inputs, transformed_image
 
 
 def setup_model_and_optimizer(model_name: str):

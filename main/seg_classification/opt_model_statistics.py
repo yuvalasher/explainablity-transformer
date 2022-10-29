@@ -99,14 +99,12 @@ def plot_image(image, idx, auc) -> None:  # [1,3,224,224] or [3,224,224]
 
 
 
-def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_classification, ):
+def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_classification):
     """
     Can calculate mean aucs from pickels
     """
     aucs = []
-    for idx in tqdm(range(4400,4450)):
-        # for idx in range(10):
-
+    for idx in tqdm(range(100)):
         loaded_obj = load_obj(
             Path(path_to_exp_pickles, f'{str(idx)}.pkl'))
         image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -123,7 +121,7 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
     df, df_stats = calculate_count__and_prec_auc(aucs)
     print(tabulate(df_stats, headers='keys'))
     plot_perturbations_vs_num_of_images(df)
-    print(f'AUC: {round(np.mean(auc), 4)}% for {len(aucs)} records')
+    print(f'AUC: {round(np.mean(aucs), 4)}% for {len(aucs)} records')
     print(aucs)
 
 
