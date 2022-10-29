@@ -60,12 +60,8 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
             num_samples += len(data)
-            # target = torch.tensor(1)  # run by the model or injected
-            # data = image
-            # vis = outputs.vis
             data, vis = move_to_device_data_vis_and_target(data=data, vis=vis)
 
-            # Compute model accuracy
             if vit_config['verbose']:
                 plot_image(data)
 
@@ -94,8 +90,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 print(
                     f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
 
-            # Save original shape
-            org_shape = data.shape
+            org_shape = data.shape # Save original shape
 
             if perturbation_type == 'NEG':
                 vis = -vis
