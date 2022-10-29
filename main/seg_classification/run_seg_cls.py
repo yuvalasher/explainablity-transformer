@@ -4,7 +4,7 @@ from typing import Tuple
 import yaml
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
@@ -71,7 +71,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'new_amit__activation_function_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
+exp_name = f'neeew_amit__activation_function_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
 
 feature_extractor, _ = load_feature_extractor_and_vit_model(
     vit_config=vit_config,
@@ -144,9 +144,9 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
-    enable_checkpointing=vit_config["enable_checkpointing"]
-    # enable_checkpointing=True
+    enable_checkpointing=vit_config["enable_checkpointing"],
 )
 if vit_config["enable_checkpointing"]:
     save_config_to_root_dir()
+model.p = 1
 trainer.fit(model=model, datamodule=data_module)

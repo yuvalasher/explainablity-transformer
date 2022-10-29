@@ -51,7 +51,6 @@ from utils.consts import (
     IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
 
-
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -426,7 +425,6 @@ if __name__ == '__main__':
 
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []
-
     predictions, targets = [], []
 
     print('START TRAINING !')
@@ -463,7 +461,6 @@ if __name__ == '__main__':
         labels = model.target
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
                                                                                     image=image_resized)
-
 
         predictions.append(pred)
         targets.append(target)

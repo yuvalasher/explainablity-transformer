@@ -107,7 +107,7 @@ class LossLoss:
             mask_loss = self.entropy_loss(mask_loss, tokens_mask)
 
         pred_pos_loss = prediction_loss(output=output, target=target)
-
+        pred_loss = pred_pos_loss
         if loss_config['is_ce_neg']:
             pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target)
             pred_loss = (pred_pos_loss + pred_neg_loss) / 2
@@ -132,6 +132,7 @@ class LossLoss:
         normalized_entropy = d.entropy() / np.log(d.param_shape[-1])
         mask_loss = normalized_entropy.mean()
         return mask_loss
+
 
 @dataclass
 class ImageClassificationWithTokenClassificationModelOutput:
@@ -539,48 +540,22 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         )
 
     def training_step(self, batch, batch_idx):
+
         if self.model_runtype == 'test':
             self.trainer.should_stop = True
             return
 
         inputs, target, image_resized = batch
-
         self.target = target
         original_image = inputs
         self.image_resized = image_resized
+
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-            output = self.forward(inputs, image_resized=image_resized)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-            outputs = [{"image_resized": image_resized, "image_mask": images_mask, "original_image": original_image,
-                        "patches_mask": output.tokens_mask}]
-            auc = run_perturbation_test_opt(
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="train_step",
-                epoch_idx=self.current_epoch,
-            )
 
-            self.best_auc = auc
-            self.best_auc_epoch = self.current_epoch
-            self.best_auc_vis = outputs[0]["image_mask"]
-            self.best_auc_image = outputs[0]["image_resized"]  # need original as will run perturbation tests on it
+        output = self.forward(inputs, image_resized=image_resized)
+        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
-            if self.save_best_auc_to_disk:
-                save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                              auc=auc,
-                                              vis=self.best_auc_vis,
-                                              original_image=self.best_auc_image,
-                                              epoch_idx=self.current_epoch,
-                                              )
-
-            if self.run_base_model_only or auc < AUC_STOP_VALUE:
-                self.trainer.should_stop = True
-                # self.visualize_images_by_outputs(outputs=outputs)
-
-        else:
-            output = self.forward(inputs=inputs, image_resized=image_resized)
-            images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
             "loss": output.lossloss_output.loss,
             "pred_loss": output.lossloss_output.pred_loss,
@@ -597,6 +572,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
         if self.model_runtype == 'test':
             self.trainer.should_stop = True
             return
+
         auc = run_perturbation_test_opt(
             model=self.vit_for_classification_image,
             outputs=outputs,
@@ -604,7 +580,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             epoch_idx=self.current_epoch,
         )
         if self.best_auc is None or auc < self.best_auc:
-
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
@@ -618,66 +593,10 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
                                               epoch_idx=self.current_epoch,
                                               )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
-                # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
         if self.current_epoch == vit_config['n_epochs'] - 1:
-            # print(f"AUC by Epoch: {self.auc_by_epoch}")
-            # print(f"Best auc: {self.best_auc} by epoch {self.best_auc_epoch}")
-            # self.visualize_images_by_outputs(outputs=outputs)
             self.trainer.should_stop = True
-
-    def validation_step(self, batch, batch_idx):
-        inputs, target, resize_img = batch
-
-        self.target = target
-
-        original_image = inputs
-
-        self.image_resized = resize_img
-
-        output = self.forward(inputs)
-        self.best_auc_vis = outputs[0]["image_mask"]
-
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        return {
-            "loss": output.lossloss_output.loss,
-            "pred_loss": output.lossloss_output.pred_loss,
-            "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
-            "mask_loss": output.lossloss_output.mask_loss,
-            "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-            "original_image": original_image,
-            "image_mask": images_mask,
-            "image_resized": resize_img,
-            "patches_mask": output.tokens_mask,
-        }
-
-    def validation_epoch_end(self, outputs):
-        """
-        loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
-        pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
-        mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
-        pred_loss_mul = torch.mean(torch.stack([output["pred_loss_mul"] for output in outputs]))
-        mask_loss_mul = torch.mean(torch.stack([output["mask_loss_mul"] for output in outputs]))
-
-        self.log("val/loss", loss, prog_bar=True, logger=True)
-        self.log("val/prediction_loss", pred_loss, prog_bar=True, logger=True)
-        self.log("val/mask_loss", mask_loss, prog_bar=True, logger=True)
-        self.log("val/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
-        self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
-        self._visualize_outputs(
-            outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
-        )
-        if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
-            run_perturbation_test(
-                model=self.vit_for_classification_image,
-                outputs=outputs,
-                stage="val",
-                epoch_idx=self.current_epoch,
-            )
-        """
-
-        return {"loss": torch.tensor(1)}
 
     def test_step(self, batch, batch_idx):
         inputs, target, image_resized = batch
@@ -729,6 +648,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(pl.Lightni
             mIoU = IoU.mean()
             mAp = np.mean(total_ap)
             mF1 = np.mean(total_f1)
+
         self.seg_results = {"mIoU": mIoU, 'pixAcc': pixAcc, 'mAp': mAp, 'mF1': mF1}
         return
 

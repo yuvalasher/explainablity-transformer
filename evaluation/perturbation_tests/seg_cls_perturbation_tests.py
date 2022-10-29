@@ -36,8 +36,7 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def eval_perturbation_test(experiment_dir: Path, model, outputs, model_type: str, auc_score: float,
-                           perturbation_type: str = "POS",
+def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_type: str = "POS",
                            vis_class: str = "TOP", target_class: int = None) -> float:
     # ic(perturbation_type, vis_class, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
@@ -106,12 +105,12 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, model_type: str
 
             vis = vis.reshape(org_shape[0], -1)
             org_img_class = pred.logits[0].argmax(dim=0).item()
-            print(
-                f'\nOriginal Image. Top Class: {org_img_class}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
-            image = data if len(data.shape) == 3 else data.squeeze(0)
-            plt.imshow(image.cpu().detach().permute(1, 2, 0))
-            plt.title(f'original_image  Top Class: {org_img_class}')
-            plt.show();
+            # print(
+            #     f'\nOriginal Image. Top Class: {org_img_class}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
+            # image = data if len(data.shape) == 3 else data.squeeze(0)
+            # plt.imshow(image.cpu().detach().permute(1, 2, 0))
+            # plt.title(f'original_image  Top Class: {org_img_class}')
+            # plt.show();
             for i in range(len(perturbation_steps)):
                 _data = data.clone()
                 _data = get_perturbated_data(vis=vis, image=_data, perturbation_step=perturbation_steps[i],
@@ -124,12 +123,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, model_type: str
                 _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
-                if i<=5:
-                    image = _data if len(_data.shape) == 3 else _data.squeeze(0)
-                    plt.imshow(image.cpu().detach().permute(1, 2, 0))
-                    plt.title(
-                        f'model: {model_type}  Org_Class: {org_img_class} Top Class: {out.logits[0].argmax(dim=0).item()} AUC: {int(auc_score)}  %pixel_off = {perturbation_steps[i]}')
-                    plt.show();
+
                 # Probabilities Comparison
                 pred_probabilities = torch.softmax(out.logits, dim=1)
                 pred_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)  # hila

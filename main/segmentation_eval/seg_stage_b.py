@@ -1,6 +1,13 @@
 import os
 import sys
 from pathlib import Path
+os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+
+print('START !')
+sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+
+from utils.saver import Saver
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import yaml
@@ -8,10 +15,6 @@ from icecream import ic
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-print('START !')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 import numpy as np
 import torch
@@ -34,7 +37,7 @@ from main.seg_classification.image_classification_with_token_classification_mode
 from utils import render
 from utils.iou import IoU
 
-from data.imagenet import Imagenet_Segmentation
+from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
 
 import matplotlib.pyplot as plt
 
@@ -65,15 +68,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-# warnings.filterwarnings("ignore", category=)
-# def save_config_to_file(results_save_dir):
-#     with open(os.path.join(results_save_dir, 'config.yaml'), 'w') as f:
-#         yaml.dump(config, f)
-
 def compute_pred(output):
     pred = output.data.max(1, keepdim=True)[1]  # get the index of the max log-probability
-    # pred[0, 0] = 282
-    # print('Pred cls : ' + str(pred))
+
     T = pred.squeeze().cpu().numpy()
     T = np.expand_dims(T, 0)
     T = (T[:, np.newaxis] == np.arange(1000)) * 1.0
@@ -81,84 +78,6 @@ def compute_pred(output):
     Tt = T.cuda()
 
     return Tt
-
-
-def eval_batch(image, labels, evaluator, index):
-    evaluator.zero_grad()
-    # Save input image
-    if args.save_img:
-        save_original_image_and_gt_mask(image, index, labels)
-
-    image.requires_grad = True
-
-    image = image.requires_grad_()
-    predictions = evaluator(image)
-
-    # if args.method != 'full_lrp':
-    #     # interpolate to full image size (224,224)
-    #     Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
-
-    # threshold between FG and BG is the mean
-    Res = (Res - Res.min()) / (Res.max() - Res.min())
-
-    ret = Res.mean()
-
-    Res_1 = Res.gt(ret).type(Res.type())
-    Res_0 = Res.le(ret).type(Res.type())
-
-    Res_1_AP = Res
-    Res_0_AP = 1 - Res
-
-    Res_1[Res_1 != Res_1] = 0
-    Res_0[Res_0 != Res_0] = 0
-    Res_1_AP[Res_1_AP != Res_1_AP] = 0
-    Res_0_AP[Res_0_AP != Res_0_AP] = 0
-
-    # TEST
-    pred = Res.clamp(min=args.thr) / Res.max()
-    pred = pred.view(-1).data.cpu().numpy()
-    target = labels.view(-1).data.cpu().numpy()
-    # print("target", target.shape)
-
-    output = torch.cat((Res_0, Res_1), 1)
-    output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
-
-    if args.save_img:
-        # Save predicted mask
-        mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
-        mask = mask[0].squeeze().data.cpu().numpy()
-        # mask = Res_1[0].squeeze().data.cpu().numpy()
-        mask = 255 * mask
-        mask = mask.astype('uint8')
-        imageio.imsave(os.path.join(args.exp_img_path, 'mask_' + str(index) + '.jpg'), mask)
-
-        relevance = F.interpolate(Res, [64, 64], mode='bilinear')
-        relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
-        # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
-        hm = np.sum(relevance, axis=-1)
-        maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
-        imageio.imsave(os.path.join(args.exp_img_path, 'heatmap_' + str(index) + '.jpg'), maps)
-
-    # Evaluate Segmentation
-    batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
-    batch_ap, batch_f1 = 0, 0
-
-    # Segmentation resutls
-    correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels[0])
-    inter, union = batch_intersection_union(output[0].data.cpu(), labels[0], 2)
-    batch_correct += correct
-    batch_label += labeled
-    batch_inter += inter
-    batch_union += union
-    # print("output", output.shape)
-    # print("ap labels", labels.shape)
-    # ap = np.nan_to_num(get_ap_scores(output, labels))
-    ap = np.nan_to_num(get_ap_scores(output_AP, labels))
-    f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
-    batch_ap += ap
-    batch_f1 += f1
-
-    return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
 
 def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
@@ -213,8 +132,8 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     batch_ap, batch_f1 = 0, 0
 
     # Segmentation resutls
-    correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels)  # labels should be [224,224]
-    inter, union = batch_intersection_union(output[0].data.cpu(), labels, 2)
+    correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels[0])  # labels should be [224,224]
+    inter, union = batch_intersection_union(output[0].data.cpu(), labels[0], 2)
     batch_correct += correct
     batch_label += labeled
     batch_inter += inter
@@ -222,8 +141,8 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     # print("output", output.shape)
     # print("ap labels", labels.shape)
     # ap = np.nan_to_num(get_ap_scores(output, labels))
-    ap = np.nan_to_num(get_ap_scores(output_AP, labels.unsqueeze(0)))
-    f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels))
+    ap = np.nan_to_num(get_ap_scores(output_AP, labels))
+    f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
     batch_ap += ap
     batch_f1 += f1
 
@@ -232,29 +151,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
 
 # hyperparameters
 num_workers = 0
-
-
-cls = ['airplane',
-       'bicycle',
-       'bird',
-       'boat',
-       'bottle',
-       'bus',
-       'car',
-       'cat',
-       'chair',
-       'cow',
-       'dining table',
-       'dog',
-       'horse',
-       'motobike',
-       'person',
-       'potted plant',
-       'sheep',
-       'sofa',
-       'train',
-       'tv'
-       ]
 
 
 def save_original_image_and_gt_mask(image, index, labels):
@@ -379,32 +275,37 @@ if __name__ == '__main__':
 
     parser.add_argument('--imagenet-seg-path', type=str, required=True)
     args = parser.parse_args()
+    args.checkname = args.method + '_' + args.arc
     args.save_img = False
 
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
+    # Define Saver
+    saver = Saver(args)
+    saver.results_dir = os.path.join(saver.experiment_dir, 'results')
+    if not os.path.exists(saver.results_dir):
+        os.makedirs(saver.results_dir)
+    if not os.path.exists(os.path.join(saver.results_dir, 'input')):
+        os.makedirs(os.path.join(saver.results_dir, 'input'))
+    if not os.path.exists(os.path.join(saver.results_dir, 'explain')):
+        os.makedirs(os.path.join(saver.results_dir, 'explain'))
+
+    args.exp_img_path = os.path.join(saver.results_dir, 'explain/img')
+    if not os.path.exists(args.exp_img_path):
+        os.makedirs(args.exp_img_path)
+    args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
+    if not os.path.exists(args.exp_np_path):
+        os.makedirs(args.exp_np_path)
+
     # Data
-    batch_size = 32
+    batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
     ds = Imagenet_Segmentation(args.imagenet_seg_path,
                                batch_size=batch_size,
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
-    # #### HILA --- LRP
-    # model_LRP = vit_LRP(pretrained=True).cuda()
-    # model_LRP.eval()
-    # lrp = LRP(model_LRP)
-    # epochs = range(len(ds))[:20]
-    # mIoU_b, pixAcc_b, mAp_b, mF1_b = [], [], [], []
-    # mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, q=-1)
-    # print('HILA')
-    # print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    # print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    # print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    # print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-    # print('FINISH !!')
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
@@ -412,9 +313,10 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=33_val/epoch_auc=19.340.ckpt"
-    CHECKPOINT_EPOCH_IDX = 34  # TODO - pay attention !!!
-    RUN_BASE_MODEL = vit_config['run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
+    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=28_val/epoch_auc=18.765.ckpt"
+    CHECKPOINT_EPOCH_IDX = 29  # TODO - pay attention !!!
+    RUN_BASE_MODEL = vit_config[
+        'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
@@ -433,7 +335,6 @@ if __name__ == '__main__':
 
     metric = IoU(2, ignore_index=-1)
 
-
     model = OptImageClassificationWithTokenClassificationModel_Segmentation(
         vit_for_classification_image=vit_for_classification_image,
         vit_for_patch_classification=vit_for_patch_classification,
@@ -446,35 +347,70 @@ if __name__ == '__main__':
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
-        model_runtype='test'
+        model_runtype='train'  # choose 'train' or 'test'
     )
     model = freeze_multitask_model(
         model=model,
         freezing_transformer=vit_config["freezing_transformer"],
     )
 
-    dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
-    data_module = ImageSegOptDataModuleSegmentation(train_data_loader=dl)
-    trainer = pl.Trainer(
-        logger=[],
-        accelerator='gpu',
-        gpus=1,
-        devices=1,
-        num_sanity_val_steps=0,
-        check_val_every_n_epoch=100,
-        max_epochs=35, #vit_config["n_epochs"],
-        resume_from_checkpoint=CKPT_PATH,
-        enable_progress_bar=True,
-        enable_checkpointing=False,
-        default_root_dir=vit_config["default_root_dir"],
-        weights_summary=None
-    )
-    trainer.fit(model=model, datamodule=data_module)
-    trainer.test(model=model, datamodule=data_module)
+    total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
+    total_ap, total_f1 = [], []
+    predictions, targets = [], []
 
-    mIoU, pixAcc, mAp, mF1 = model.seg_results['mIoU'], model.seg_results['pixAcc'], model.seg_results['mAp'], \
-                             model.seg_results['mF1']
-    print("Mean IoU over %d classes: %.4f" % (2, mIoU))
-    print("Pixel-wise Accuracy: %2.2f%%" % (pixAcc * 100))
-    print("Mean AP over %d classes: %.4f" % (2, mAp))
-    print("Mean F1 over %d classes: %.4f" % (2, mF1))
+    epochs = range(len(ds))
+    for batch_idx in tqdm(epochs, leave=True, position=0):
+        ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
+        dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
+        data_module = ImageSegOptDataModuleSegmentation(
+            train_data_loader=dl
+        )
+        trainer = pl.Trainer(
+            logger=[],
+            accelerator='gpu',
+            gpus=1,
+            devices=[1, 2],
+            num_sanity_val_steps=0,
+            check_val_every_n_epoch=100,
+            max_epochs=vit_config["n_epochs"],
+            resume_from_checkpoint=CKPT_PATH,
+            enable_progress_bar=False,
+            enable_checkpointing=False,
+            default_root_dir=vit_config["default_root_dir"],
+            weights_summary=None
+        )
+
+        trainer.fit(model=model, datamodule=data_module)
+
+        image_resized = model.image_resized
+        Res = model.best_auc_vis
+        labels = model.target
+        correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
+                                                                                    image=image_resized)
+
+        predictions.append(pred)
+        targets.append(target)
+
+        total_correct += correct.astype('int64')
+        total_label += labeled.astype('int64')
+        total_inter += inter.astype('int64')
+        total_union += union.astype('int64')
+        total_ap += [ap]
+        total_f1 += [f1]
+        pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
+        IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
+        mIoU = IoU.mean()
+        mAp = np.mean(total_ap)
+        mF1 = np.mean(total_f1)
+        if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
+            print('Curr epoch: ', batch_idx)
+            print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+            print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+            print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+            print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+
+    print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
+    print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
+    print("Mean AP over %d classes: %.4f\n" % (2, mAp))
+    print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    print("FINISH !!!!!")

@@ -1,3 +1,4 @@
+import pandas as pd
 from icecream import ic
 from datetime import datetime as dt
 import os
@@ -13,9 +14,11 @@ from config import config
 from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
+import seaborn as sns
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
 # from utils.utils_functions import get_gt_classes
 # from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
+from main.seg_classification.image_classification_with_token_classification_model import prediction_loss
 from vit_loader.load_vit import load_vit_pretrained
 import torch
 from enum import Enum
@@ -65,10 +68,12 @@ def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
     plt.show();
 
 
-def show_mask(mask):  # [1, 1, 224, 224]
+def show_mask(mask, model_type='N/A', auc='N/A'):  # [1, 1, 224, 224]
     mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
     _ = plt.imshow(mask.squeeze(0).cpu().detach())
+    plt.title(f'model: {model_type}, auc: {auc}')
     plt.show()
+    return
 
 
 def normalize_mask_values(mask, clamp_between_0_to_1: bool = False):
@@ -125,11 +130,13 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
         image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
         image = image if image.mode == "RGB" else image.convert("RGB")
         image_resized = resize(image).unsqueeze(0)
-        yield dict(image_resized=image_resized.to(device), image_mask=loaded_obj["vis"].to(device))
+        yield dict(image_resized=image_resized.to(device),
+                   image_mask=loaded_obj["vis"].to(device),
+                   auc=loaded_obj["auc"])
 
 
 def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
-                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int]):
+                             perturbation_config: Dict[str, PerturbationType], gt_classes_list: List[int], q: int = 1):
     """
     :param config: contains the configuration of the perturbation test:
         * neg: True / False
@@ -138,15 +145,139 @@ def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
     aucs = []
     vis_class = perturbation_config["vis_class"].name
     perturbation_type = perturbation_config["perturbation_type"].name
-    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
+    for image_idx, image_and_mask in enumerate(images_and_masks):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
+        mask = mask ** q
+        if image_idx == 1:
+            show_mask(mask)
         outputs = [{'image_resized': image, 'image_mask': mask}]
+
         auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification, outputs=outputs,
                                      perturbation_type=perturbation_type, vis_class=vis_class,
                                      target_class=gt_classes_list[image_idx])
         aucs.append(auc)
     # print(aucs)
     return np.mean(aucs)
+
+
+def calculate_logitis_prob_loss_per_image(images_and_masks, vit_for_image_classification):
+    q_arr = np.arange(1, 4.5, 0.5)
+    flag = True
+    df_a = pd.DataFrame(columns=[f'{q_val}' for q_val in q_arr])
+    df_b = pd.DataFrame(columns=[f'{q_val}' for q_val in q_arr])
+    df_c = pd.DataFrame(columns=[f'{q_val}' for q_val in q_arr])
+    for image_idx, image_and_mask in enumerate(images_and_masks):
+
+        pred_logitis_arr, pred_probs_arr, pred_loss_arr = [], [], []
+        for q in q_arr:
+            image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
+            # original:
+            if flag:
+                plot_image(image)
+                show_mask(mask)
+                flag = False
+            _norm_img = normalize(image)
+            inputs_org = {'pixel_values': _norm_img}
+            out_org = vit_for_image_classification(**inputs_org)
+            org_probs = torch.softmax(out_org.logits, dim=1)
+            gt_idx = out_org.logits.argmax().item()
+
+            mask = mask ** q
+            if image_idx == 0:
+                show_mask(mask)
+
+            # pred
+            data = image * mask
+            _norm_data = normalize(data)
+            inputs = {'pixel_values': _norm_data}
+            out = vit_for_image_classification(**inputs)
+            pred_probs = torch.softmax(out.logits, dim=1)
+
+            # calculate_loss
+            pred_loss = prediction_loss(output=out.logits, target=out_org.logits)
+            pred_logitis_arr.append(out.logits[0][gt_idx].cpu().item())
+            pred_probs_arr.append(pred_probs[0][gt_idx].cpu().item())
+            pred_loss_arr.append(pred_loss.cpu().item())
+            df_a.loc[image_idx, f'{q}'] = out.logits[0][gt_idx].cpu().item()
+            df_b.loc[image_idx, f'{q}'] = pred_probs[0][gt_idx].cpu().item()
+            df_c.loc[image_idx, f'{q}'] = pred_loss.cpu().item()
+        plot_metric_vs_power(q_arr, pred_logitis_arr, 'logitis', image_idx)
+        plot_metric_vs_power(q_arr, pred_probs_arr, 'proba', image_idx)
+        plot_metric_vs_power(q_arr, pred_loss_arr, 'pred_loss_ce', image_idx)
+        # sns.boxplot(data=df_a)
+        flag = True
+    sns.boxplot(data=df_a)
+    plt.title('logits')
+    plt.show()
+    sns.boxplot(data=df_b)
+    plt.title('proba')
+    plt.show()
+    sns.boxplot(data=df_c)
+    plt.title('ce_loss')
+    plt.show()
+    return
+
+
+def compare_opt_vs_base_per_image(images_and_masks__dict, vit_for_image_classification, perturbation_config,
+                                  gt_classes_list):
+    vis_class = perturbation_config["vis_class"].name
+    perturbation_type = perturbation_config["perturbation_type"].name
+
+    for image_idx, image_and_mask in enumerate(images_and_masks__dict):
+
+        keys = [k for k in images_and_masks__dict.keys()]
+        for idx,x in enumerate(zip(images_and_masks__dict[keys[0]], images_and_masks__dict[keys[1]])):
+            if idx>=4:
+                img_opt, mask_opt = x[0]['image_resized'], x[0]['image_mask']  # [1,3,224,224], [1,1,224,224]
+                img_base, mask_base = x[1]['image_resized'], x[1]['image_mask']  # [1,3,224,224], [1,1,224,224]
+
+                outputs = [{'image_resized': img_opt, 'image_mask': mask_opt}]
+                auc_opt = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification,
+                                                 outputs=outputs,
+                                                 perturbation_type=perturbation_type, vis_class=vis_class,
+                                                 target_class=gt_classes_list[image_idx], model_type='opt',
+                                                 auc_score=x[0]['auc'])
+
+                outputs = [{'image_resized': img_base, 'image_mask': mask_base}]
+                auc_base = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_image_classification,
+                                                  outputs=outputs,
+                                                  perturbation_type=perturbation_type, vis_class=vis_class,
+                                                  target_class=gt_classes_list[image_idx], model_type='base',
+                                                  auc_score=x[1]['auc'])
+
+            # original:
+            # if flag:
+            #     plot_image(image)
+            #     show_mask(mask)
+            #     flag = False
+            # _norm_img = normalize(image)
+            # inputs_org = {'pixel_values': _norm_img}
+            # out_org = vit_for_image_classification(**inputs_org)
+            # org_probs = torch.softmax(out_org.logits, dim=1)
+            # gt_idx = out_org.logits.argmax().item()
+            #
+            # if image_idx == 0:
+            #     show_mask(mask)
+            #
+            # # pred
+            # data = image * mask
+            # _norm_data = normalize(data)
+            # inputs = {'pixel_values': _norm_data}
+            # out = vit_for_image_classification(**inputs)
+            # pred_probs = torch.softmax(out.logits, dim=1)
+            #
+            # # calculate_loss
+            # pred_loss = prediction_loss(output=out.logits, target=out_org.logits)
+
+    return
+
+
+def plot_metric_vs_power(q_arr, metric_a, metric_name, image_idx):
+    plt.plot(q_arr, metric_a)
+    plt.grid()
+    plt.title(f'img_idx = {image_idx} - metric = {metric_name}')
+    plt.show()
+    return
 
 
 def get_probability_and_class_idx_by_index(logits, index: int) -> Dict[str, Union[int, float]]:
@@ -204,7 +335,7 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
     adp_values_predicted, pic_values_predicted, acp_values_predicted = [], [], []
     adp_values_target, pic_values_target, acp_values_target = [], [], []
 
-    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks),total=len(gt_classes_list)):
+    for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         # plot_image(image)
         # show_mask(mask)
@@ -255,31 +386,40 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
 
 if __name__ == '__main__':
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_50000/opt_objects"
-    OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
-    print(OPTIMIZATION_PKL_PATH)
+    # OPT
+    OPT_OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
+    # BASE
+    BASE_OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_base/base_model/objects_pkl/"
+    # print(OPTIMIZATION_PKL_PATH)
     vit_for_image_classification, _ = load_vit_pretrained(model_name=config["vit"]["model_name"])
     vit_for_image_classification = vit_for_image_classification.to(device)
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-    images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                                               mask_path=OPTIMIZATION_PKL_PATH, device=device)
+    # images_and_masks= read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+    #                                                            mask_path=OPTIMIZATION_PKL_PATH, device=device)
+
+    images_and_masks_opt = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                                                   mask_path=OPT_OPTIMIZATION_PKL_PATH, device=device)
+    images_and_masks_base = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                                                    mask_path=BASE_OPTIMIZATION_PKL_PATH, device=device)
+
     start_time = dt.now()
 
-    # ADP & PIC metrics
-    evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
-                                           images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list)
-    ic(evaluation_metrics)
-    print(
-        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
-
-    print(
-        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
-
-    print(f"timing: {(dt.now() - start_time).total_seconds()}")
+    # # ADP & PIC metrics
+    # evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
+    #                                        images_and_masks=images_and_masks,
+    #                                        gt_classes_list=gt_classes_list)
+    # ic(evaluation_metrics)
+    # print(
+    #     f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+    #
+    # print(
+    #     f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
+    #
+    # print(f"timing: {(dt.now() - start_time).total_seconds()}")
 
     # Perturbation tests
     # # TODO - Do it with loop of vis_class and perturbation_type
-    # perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.NEG}
+    perturbation_config = {'vis_class': VisClass.TOP, 'perturbation_type': PerturbationType.POS}
     # print(
     #     f'Perturbation tests for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
     # auc = infer_perturbation_tests(images_and_masks=images_and_masks,
@@ -289,18 +429,55 @@ if __name__ == '__main__':
     # print(
     #     f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
 
+    # assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
+    # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
+    # assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
     """
-    assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
-    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
-    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
     """
-    """
-     images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
-    for i in range(len(images_and_masks)):
-        plot_image(images_and_masks[i]["image_resized"])
-        show_mask(images_and_masks[i]["image_mask"])
-    print(1)
-    auc = infer_perturbation_tests(images_and_masks=images_and_masks,
-                                   vit_for_image_classification=vit_for_image_classification,
-                                   perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
-   """
+    # images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
+    images_and_masks_arr = []
+    n_samples = 10
+    # aucs = []
+    images_and_masks__dict = {'opt': [],
+                              'base': []}
+
+    for i, x in enumerate(zip(images_and_masks_opt, images_and_masks_base)):
+        if len(images_and_masks__dict['opt']) > n_samples:
+            print(len(images_and_masks__dict['opt']))
+            break
+
+        if x[1]['auc'] > 20 and x[0]['auc'] < 6:
+
+            # show_mask(mask=x[0]['image_mask'], model_type='opt', auc=x[0]['auc'])
+            # show_mask(mask=x[1]['image_mask'], model_type='base', auc=x[1]['auc'])
+            images_and_masks__dict['opt'].append(x[0])
+            images_and_masks__dict['base'].append(x[1])
+
+    # print(aucs)
+    # print(f"{len(aucs)} samples --- Mean AUC: {np.mean(aucs)}")
+    # calculate_logitis_prob_loss_per_image(images_and_masks, vit_for_image_classification)
+    compare_opt_vs_base_per_image(images_and_masks__dict, vit_for_image_classification,
+                                  perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
+    # # for val in images_and_masks_arr:
+    # #     plot_image(val["image_resized"])
+    # #     show_mask(val["image_mask"])
+    # print('Start inference !')
+    # q_arr = np.arange(1, 5, 0.5)
+    # auc_arr = []
+    # for q in tqdm(q_arr, position=0, leave=True, total=len(q_arr)):
+    #     auc = infer_perturbation_tests(images_and_masks=images_and_masks_arr,
+    #                                    vit_for_image_classification=vit_for_image_classification,
+    #                                    perturbation_config=perturbation_config, gt_classes_list=gt_classes_list, q=q)
+    #     auc_arr.append(auc)
+    #
+    # plt.plot(q_arr, auc_arr, label='ours')
+    # plt.legend()
+    # plt.grid()
+    # plt.title(f'{auc} - num_samples = {n_samples}')
+    # plt.savefig(
+    #     f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_pertubatio_power/sample_{n_samples}.png')
+    # plt.show()
+    # print(dict(zip(q_arr, auc_arr)))
+    #
+    # print(f"The infer auc = {np.mean(auc_arr)}")
+    # # print("FINISH !")
