@@ -53,8 +53,7 @@ gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 # exp_name = f'model_{vit_config["model_name"]}__is_train_uniformly_{vit_config["is_sampled_train_data_uniformly"]}__is_val_uniformly_{vit_config["is_sampled_val_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
-exp_name = f'model_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'#__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
-
+exp_name = f'model_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'  # __n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
 
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
 ic(vit_config["is_wolf_transforms"])
@@ -62,12 +61,14 @@ ic(vit_config["model_name"])
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 
-if vit_config["model_name"] == "google/vit-base-patch16-224":
+if vit_config["model_name"] in ["google/vit-base-patch16-224", "augreg"]:
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
 else:
     vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+if "deit" in vit_config["model_name"].lower():
+    vit_config["is_wolf_transforms"] = True
 
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
@@ -90,7 +91,7 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
 experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,
-                       f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
+                                            f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
@@ -119,8 +120,9 @@ run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"]
 wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
+    # resume_from_checkpoint="/home/yuvalas/explainability/research/checkpoints/token_classification/asher_use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=20_val/epoch_auc=19.100.ckpt",
     callbacks=[
-        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=20)],
+        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
     logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
