@@ -1,6 +1,10 @@
 import os
 import sys
 from pathlib import Path
+
+from main.segmentation_eval.segmentation_model_opt import \
+    OptImageClassificationWithTokenClassificationModel_Segmentation
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import yaml
@@ -29,8 +33,6 @@ from main.seg_classification.image_token_data_module_opt_segmentation import Ima
 from utils.metrices import *
 
 from config import config
-from main.seg_classification.image_classification_with_token_classification_model_opt import \
-    OptImageClassificationWithTokenClassificationModel, OptImageClassificationWithTokenClassificationModel_Segmentation
 from utils import render
 from utils.iou import IoU
 
