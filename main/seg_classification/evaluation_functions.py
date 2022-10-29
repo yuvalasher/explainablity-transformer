@@ -23,7 +23,8 @@ from enum import Enum
 IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 seed_everything(config['general']['seed'])
-device = torch.device(type='cuda', index=config["general"]["gpu_index"])
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 
 
 def get_gt_classes(path):
@@ -294,15 +295,10 @@ if __name__ == '__main__':
                                                                               vit_for_image_classification=vit_for_image_classification,
                                                                               perturbation_config=perturbation_config,
                                                                               gt_classes_list=gt_classes_list)
-    # print(f"timing: {(dt.now() - start_time).total_seconds()}")
+    print(f"timing: {(dt.now() - start_time).total_seconds()}")
     print(
-    #     f'Mean AUC: {auc} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
+        f'Mean Perturbation AUC: {auc_perturbation}; Mean Deletion-Insertion AUC: {auc_deletion_insertion} for {perturbation_config["vis_class"]}; {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH}')
 
-    """
-    assert calculate_avg_drop_percentage(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0.5
-    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.8, saliency_map_confidence=0.4) == 0
-    assert calculate_percentage_increase_in_confidence(full_image_confidence=0.4, saliency_map_confidence=0.8) == 1
-    """
     """
      images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
     for i in range(len(images_and_masks)):
