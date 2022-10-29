@@ -127,7 +127,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             epoch_idx=self.current_epoch,
         )
         # self.auc_by_epoch.append(auc)
-        # print(f"EPOCHEEEE: {self.current_epoch}")
+        # ic(self.current_epoch, round(self.best_auc, 0), round(auc,0))
         if self.best_auc is None or auc < self.best_auc:
             # print(f'New Best AUC: {round(auc, 3)} !')
             self.best_auc = auc
@@ -143,6 +143,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 outputs[0]['auc'] = auc
+                # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
         if self.current_epoch == vit_config['n_epochs'] - 1:
@@ -160,5 +161,5 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         visu(
             original_image=image,
             transformer_attribution=mask,
-            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{round(auc,0)}").resolve(),
+            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__{self.current_epoch}__AUC_{round(auc,0)}").resolve(),
         )
