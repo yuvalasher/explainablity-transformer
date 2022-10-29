@@ -75,7 +75,8 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         if vit_config["normalize_by_max_patch"]:
             mask = mask / mask.max(dim=1, keepdim=True)[0]
 
-        mask = mask.view(batch_size, 1, 14, 14)
+        mask = mask.view(batch_size, 1, int(vit_config["img_size"] / vit_config["patch_size"]),
+                         int(vit_config["img_size"] / vit_config["patch_size"]))
         if vit_config["add_epsilon_to_patches_scores"]:
             mask = mask + EPSILON
             mask = torch.clamp(mask, max=1)

@@ -280,7 +280,7 @@ def save_saliency_map(
         saliency_map: Tensor,
         filename: Path,
         verbose: bool = False,
-        image_size: int = 224,
+        image_size: int = vit_config["img_size"],
 ) -> None:
     """
     Save saliency map on image.
@@ -331,11 +331,12 @@ def visu(original_image, transformer_attribution, file_name: str):
     """
     if type(transformer_attribution) == np.ndarray:
         transformer_attribution = torch.tensor(transformer_attribution)
-    transformer_attribution = transformer_attribution.reshape(1, 14, 14)
+    transformer_attribution = transformer_attribution.reshape(1, int(vit_config["img_size"] / vit_config["patch_size"]),
+                                                              int(vit_config["img_size"] / vit_config["patch_size"]))
     transformer_attribution = torch.nn.functional.interpolate(
-        transformer_attribution.unsqueeze(0), scale_factor=16, mode="bilinear"
+        transformer_attribution.unsqueeze(0), scale_factor=vit_config["patch_size"], mode="bilinear"
     )
-    transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
+    transformer_attribution = transformer_attribution.reshape(vit_config["img_size"], vit_config["img_size"]).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min()
     )
@@ -501,8 +502,8 @@ def plot_scores(
         file_name: str,
         iteration_idx: int,
         image_plot_folder_path: Union[str, Path],
-        image_size: int = 224,
-        patch_size: int = 16,
+        image_size: int = vit_config["img_size"],
+        patch_size: int = vit_config["patch_size"]
 ) -> None:
     num_patches = (image_size // patch_size) * (image_size // patch_size)
 

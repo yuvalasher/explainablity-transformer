@@ -22,6 +22,7 @@ vit:
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
   model_name: google/vit-base-patch16-224
+#  model_name: google/vit-base-patch16-384
 #  model_name: facebook/deit-base-patch16-224
 #  model_name: google/vit-large-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224

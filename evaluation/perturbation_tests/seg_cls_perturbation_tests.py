@@ -48,7 +48,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
     prob_correct_model = np.zeros((n_samples))
     model_index = 0
 
-    base_size = 224 * 224
+    base_size = vit_config["img_size"] * vit_config["img_size"]
     perturbation_steps = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
     num_correct_pertub = np.zeros((len(perturbation_steps), n_samples))  # 9 is the num perturbation steps
@@ -170,7 +170,7 @@ def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[fl
     pic - original image (3, 224, 224)
     """
     _data = image.clone()
-    org_shape = (1, 3, 224, 224)
+    org_shape = (1, 3, vit_config["img_size"], vit_config["img_size"])
     _, idx = torch.topk(vis, int(base_size * perturbation_step), dim=-1)  # vis.shape (50176) / 2 = 25088
     idx = idx.unsqueeze(1).repeat(1, org_shape[1], 1)
     _data = _data.reshape(org_shape[0], org_shape[1], -1)
