@@ -1,10 +1,11 @@
 import os
+
+from main.segmentation_eval.segmentation_utils import print_segmentation_results
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import sys
 from pathlib import Path
-
-
 
 os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
@@ -12,7 +13,6 @@ print('START !')
 sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 from utils.saver import Saver
-
 
 import yaml
 from icecream import ic
@@ -68,6 +68,13 @@ logging.getLogger('checkpoint').setLevel(0)
 logging.getLogger('lightning').setLevel(0)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+vit_config = config["vit"]
+loss_config = vit_config["seg_cls"]["loss"]
+
+CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
+CHECKPOINT_EPOCH_IDX = 28  # TODO - pay attention !!!
+RUN_BASE_MODEL = vit_config[
+    'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
 
 def compute_pred(output):
@@ -309,8 +316,6 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    vit_config = config["vit"]
-    loss_config = vit_config["seg_cls"]["loss"]
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
@@ -318,10 +323,6 @@ if __name__ == '__main__':
     OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=28_val/epoch_auc=18.765.ckpt"
-    CHECKPOINT_EPOCH_IDX = 29  # TODO - pay attention !!!
-    RUN_BASE_MODEL = vit_config[
-        'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
         'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
@@ -337,8 +338,6 @@ if __name__ == '__main__':
     BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
     os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
     os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
@@ -370,7 +369,7 @@ if __name__ == '__main__':
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='train',
-        experiment_path='exp_name_amitt' # choose 'train' or 'test'
+        experiment_path='exp_name_amitt'  # choose 'train' or 'test'
     )
 
     model = freeze_multitask_model(
@@ -397,7 +396,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=vit_config["n_epochs"],
+            max_epochs=CHECKPOINT_EPOCH_IDX + 25,
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
@@ -428,14 +427,7 @@ if __name__ == '__main__':
         mAp = np.mean(total_ap)
         mF1 = np.mean(total_f1)
         if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
-            print('Curr epoch: ', batch_idx)
-            print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-            print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-            print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-            print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+            print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
 
-    print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
     print("FINISH !!!!!")
+    print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
