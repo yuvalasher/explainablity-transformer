@@ -271,6 +271,7 @@ if __name__ == '__main__':
                                                                mask_path=OPTIMIZATION_PKL_PATH, device=device)
     start_time = dt.now()
 
+    """
     # ADP & PIC metrics
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
                                            images_and_masks=images_and_masks,
@@ -283,6 +284,7 @@ if __name__ == '__main__':
         f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
 
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
+    """
 
     # Perturbation tests
     # # TODO - Do it with loop of vis_class and perturbation_type
