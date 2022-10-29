@@ -1,15 +1,20 @@
 import os
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import sys
 from pathlib import Path
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+from main.segmentation_eval.segmentation_model_opt import \
+    OptImageClassificationWithTokenClassificationModel_Segmentation
+
+
+print('CUDA_VISIBLE_DEVICES ', os.environ['CUDA_VISIBLE_DEVICES'])
 import yaml
 from icecream import ic
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 import numpy as np
@@ -28,8 +33,6 @@ from main.seg_classification.image_token_data_module_opt_segmentation import Ima
 from utils.metrices import *
 
 from config import config
-from main.seg_classification.image_classification_with_token_classification_model_opt import \
-    OptImageClassificationWithTokenClassificationModel, OptImageClassificationWithTokenClassificationModel_Segmentation
 from utils import render
 from utils.iou import IoU
 
@@ -410,8 +413,8 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-    CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
+    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=33_val/epoch_auc=19.340.ckpt"
+    CHECKPOINT_EPOCH_IDX = 34  # TODO - pay attention !!!
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
@@ -444,13 +447,13 @@ if __name__ == '__main__':
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
-        model_runtype='test'
+        model_runtype='test',
+        experiment_path='exp_name_amitt'
     )
     model = freeze_multitask_model(
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],
-        segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"]
+        segmentation_transformer_n_first_layers_to_freeze=vit_config["segmentation_transformer_n_first_layers_to_freeze"]
     )
 
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
@@ -462,7 +465,7 @@ if __name__ == '__main__':
         devices=1,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=100,
-        max_epochs=vit_config["n_epochs"],
+        max_epochs=35,  # vit_config["n_epochs"],
         resume_from_checkpoint=CKPT_PATH,
         enable_progress_bar=True,
         enable_checkpointing=False,
@@ -471,10 +474,10 @@ if __name__ == '__main__':
     )
     trainer.fit(model=model, datamodule=data_module)
     trainer.test(model=model, datamodule=data_module)
-    # trainer.fit(model=model, datamodule=data_module)
+
     mIoU, pixAcc, mAp, mF1 = model.seg_results['mIoU'], model.seg_results['pixAcc'], model.seg_results['mAp'], \
                              model.seg_results['mF1']
-    print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    print("Mean IoU over %d classes: %.4f" % (2, mIoU))
+    print("Pixel-wise Accuracy: %2.2f%%" % (pixAcc * 100))
+    print("Mean AP over %d classes: %.4f" % (2, mAp))
+    print("Mean F1 over %d classes: %.4f" % (2, mF1))

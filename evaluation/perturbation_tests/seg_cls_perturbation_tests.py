@@ -100,15 +100,25 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 raise (NotImplementedError(f'perturbation_type config {perturbation_type} not exists'))
 
             vis = vis.reshape(org_shape[0], -1)
+            org_img_class = pred.logits[0].argmax(dim=0).item()
+            # print(
+            #     f'\nOriginal Image. Top Class: {org_img_class}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
+            # image = data if len(data.shape) == 3 else data.squeeze(0)
+            # plt.imshow(image.cpu().detach().permute(1, 2, 0))
+            # plt.title(f'original_image  Top Class: {org_img_class}')
+            # plt.show();
 
             for perturbation_step in range(len(perturbation_steps)):
                 _data = data.clone()
                 _data = get_perturbated_data(vis=vis, image=_data,
                                              perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
+
+
+
                 if vit_config['verbose']:
                     plot_image(_data)
-                _norm_data = normalize(_data)
+                _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
 

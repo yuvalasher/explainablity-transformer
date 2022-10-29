@@ -7,7 +7,9 @@ from main.seg_classification.seg_cls_utils import save_config_to_root_dir
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+import torch
 from config import config
 from icecream import ic
 from utils import remove_old_results_dfs
@@ -131,8 +133,8 @@ trainer = pl.Trainer(
     progress_bar_refresh_rate=30,
     default_root_dir=vit_config["default_root_dir"],
     enable_checkpointing=vit_config["enable_checkpointing"],
-    num_sanity_val_steps=0,
 )
 if vit_config["enable_checkpointing"]:
-    save_config_to_root_dir(exp_name=exp_name)
+    save_config_to_root_dir()
+model.p = 1
 trainer.fit(model=model, datamodule=data_module)

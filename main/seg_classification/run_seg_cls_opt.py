@@ -67,12 +67,12 @@ BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
 
 ic(vit_config["model_name"])
 
-EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
+EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)
 ic(EXP_PATH, RUN_BASE_MODEL)
 
 BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
-    base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=EXP_NAME)
+    base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])

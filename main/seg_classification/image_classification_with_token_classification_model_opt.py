@@ -10,34 +10,22 @@ from pathlib import Path
 from typing import Tuple, Callable
 
 import pytorch_lightning as pl
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import wandb
-from torch.optim import AdamW
-from tqdm import tqdm
-from transformers import get_linear_schedule_with_warmup
 
 from config import config
-from evaluation.evaluation_utils import patch_score_to_image
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
-    run_perturbation_test, save_best_auc_objects_to_disk, run_perturbation_test_opt,
-)
+
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk, run_perturbation_test_opt)
+
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
-    ImageClassificationWithTokenClassificationModelOutput
+
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
-from main.seg_classification.output_dataclasses.lossloss_output import LossLossOutput
+
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
-from main.seg_classification.seg_cls_utils import l1_loss, prediction_loss, encourage_token_mask_to_prior_loss
-from utils import save_obj_to_disk
-from utils.metrices import batch_pix_accuracy, batch_intersection_union, get_ap_scores, get_f1_scores
-from vit_utils import visu, get_loss_multipliers
+
+from vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
-from transformers.modeling_outputs import SequenceClassifierOutput
 
 pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
