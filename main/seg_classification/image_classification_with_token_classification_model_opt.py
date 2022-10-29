@@ -59,7 +59,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
                          n_classes=n_classes,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         experiment_path=Path(""))
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
