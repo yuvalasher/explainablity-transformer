@@ -54,18 +54,20 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'direct_opt_ckpt_28_model_{vit_config["model_name"]}__is_uniformly_{vit_config["is_sampled_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+exp_name = f'direct_opt_ckpt_27_model_{vit_config["model_name"].replace("/", "_")}__is_uniformly_{vit_config["is_sampled_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
-
-CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
-RUN_BASE_MODEL = vit_config["run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+# CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
+CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
+CHECKPOINT_EPOCH_IDX = 28  # TODO - pay attention !!!
+RUN_BASE_MODEL = vit_config[
+    "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
 ic(vit_config["model_name"])
+EXP_NAME = 'ft_new_unif_ckpt_27'
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)

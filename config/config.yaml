@@ -26,8 +26,8 @@ vit:
 #  model_name: facebook/deit-base-patch16-224
 #  model_name: google/vit-large-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
-  is_wolf_transforms: True
-  img_size: 224
+  is_wolf_transforms: False
+  img_size: 224 #384
   patch_size: 16
   n_heads: 12
   gumble_objectives:
