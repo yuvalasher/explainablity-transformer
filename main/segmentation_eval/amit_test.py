@@ -1,4 +1,7 @@
 import os
+
+from main.segmentation_eval.segmentation_utils import print_segmentation_results
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import sys
@@ -477,7 +480,4 @@ if __name__ == '__main__':
 
     mIoU, pixAcc, mAp, mF1 = model.seg_results['mIoU'], model.seg_results['pixAcc'], model.seg_results['mAp'], \
                              model.seg_results['mF1']
-    print("Mean IoU over %d classes: %.4f" % (2, mIoU))
-    print("Pixel-wise Accuracy: %2.2f%%" % (pixAcc * 100))
-    print("Mean AP over %d classes: %.4f" % (2, mAp))
-    print("Mean F1 over %d classes: %.4f" % (2, mF1))
+    print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
