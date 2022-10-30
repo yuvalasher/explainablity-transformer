@@ -29,7 +29,7 @@ class Saver(object):
         p = OrderedDict()
         p['train_dataset'] = self.args.train_dataset
         p['lr'] = self.args.lr
-        p['epoch'] = self.args.epochs
+        p['epoch'] = self.args.n_batches
 
         for key, val in p.items():
             log_file.write(key + ':' + str(val) + '\n')

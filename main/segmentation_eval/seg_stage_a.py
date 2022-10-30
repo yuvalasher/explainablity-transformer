@@ -4,6 +4,7 @@ from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
+
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -94,6 +95,7 @@ if __name__ == '__main__':
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
+    vit_config["enable_checkpointing"] = False
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()

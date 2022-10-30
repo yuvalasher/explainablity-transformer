@@ -53,6 +53,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 seed_everything(config["general"]["seed"])
+vit_config["enable_checkpointing"] = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 

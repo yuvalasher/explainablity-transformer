@@ -1,13 +1,14 @@
+N_EPOCHS_TO_OPTIMIZE_STAGE_B = 12
 import os
 
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
 
-os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 print('START !')
 sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
@@ -70,6 +71,8 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
+vit_config["enable_checkpointing"] = False
+IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
 
 CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
@@ -281,8 +284,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-img', action='store_true',
                         default=False,
                         help='')
-
-    parser.add_argument('--imagenet-seg-path', type=str, required=True)
+    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEGMENTATION_DATASET_PATH)
     args = parser.parse_args()
     args.checkname = args.method + '_' + args.arc
     args.save_img = False
@@ -382,8 +384,8 @@ if __name__ == '__main__':
     total_ap, total_f1 = [], []
     predictions, targets = [], []
 
-    epochs = range(len(ds))[:2]
-    for batch_idx in tqdm(epochs, leave=True, position=0):
+    n_batches = range(len(ds))
+    for batch_idx in tqdm(n_batches, leave=True, position=0):
         ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
         dl = DataLoader(ds_loop, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
         data_module = ImageSegOptDataModuleSegmentation(
@@ -396,7 +398,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=CHECKPOINT_EPOCH_IDX + 25,
+            max_epochs=CHECKPOINT_EPOCH_IDX + N_EPOCHS_TO_OPTIMIZE_STAGE_B,
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
@@ -426,7 +428,7 @@ if __name__ == '__main__':
         mIoU = IoU.mean()
         mAp = np.mean(total_ap)
         mF1 = np.mean(total_f1)
-        if (batch_idx % 100 == 0) or (batch_idx == epochs[-1]):
+        if (batch_idx % 100 == 0) or (batch_idx == n_batches[-1]):
             print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
 
     print("FINISH !!!!!")
