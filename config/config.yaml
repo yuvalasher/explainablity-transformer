@@ -45,8 +45,8 @@ vit:
   batch_size: 32
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
-  enable_checkpointing: True
-  start_epoch_to_evaluate: 4
+  enable_checkpointing: False
+  start_epoch_to_evaluate: 1
   n_batches_to_visualize: 2
   n_epochs: 50
   lr: 2.0e-3
