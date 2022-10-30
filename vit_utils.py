@@ -336,7 +336,8 @@ def visu(original_image, transformer_attribution, file_name: str):
     transformer_attribution = torch.nn.functional.interpolate(
         transformer_attribution.unsqueeze(0), scale_factor=vit_config["patch_size"], mode="bilinear"
     )
-    transformer_attribution = transformer_attribution.reshape(vit_config["img_size"], vit_config["img_size"]).data.cpu().numpy()
+    transformer_attribution = transformer_attribution.reshape(vit_config["img_size"],
+                                                              vit_config["img_size"]).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min()
     )
@@ -1336,3 +1337,11 @@ def get_loss_multipliers(loss_config) -> Dict[str, float]:
         prediction_loss_mul = loss_config["prediction_loss_mul"]
         mask_loss_mul = loss_config["mask_loss_mul"]
     return dict(prediction_loss_mul=prediction_loss_mul, mask_loss_mul=mask_loss_mul)
+
+
+def get_checkpoint_idx(ckpt_path: str) -> int:
+    return int(ckpt_path.split("epoch=")[-1].split("_val")[0]) + 1
+
+
+def get_ckpt_model_auc(ckpt_path: str) -> float:
+    return float(ckpt_path.split("epoch_auc=")[-1].split(".ckpt")[0])

@@ -47,7 +47,7 @@ from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -72,7 +72,7 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 
 CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
-CHECKPOINT_EPOCH_IDX = 28  # TODO - pay attention !!!
+CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 RUN_BASE_MODEL = vit_config[
     'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 

@@ -1,6 +1,10 @@
 import os
 
+from transformers import ViTForImageClassification
+
+from feature_extractor import ViTFeatureExtractor
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
+from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
@@ -40,7 +44,7 @@ import torch.nn.functional as F
 
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
 from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH
 
@@ -95,19 +99,22 @@ if __name__ == '__main__':
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 
-    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
-    CHECKPOINT_EPOCH_IDX = 28  # TODO - pay attention !!!
+    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
+    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_WinKawaks/vit-small-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_30__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=3_val/epoch_auc=16.950.ckpt"
+    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google_vit-base-patch16-384_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_70__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_16/None/checkpoints/epoch=9_val/epoch_auc=21.750.ckpt"
+    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
-    feature_extractor, _ = load_feature_extractor_and_vit_model(
-        vit_config=vit_config,
-        model_type="vit-basic",
-        is_wolf_transforms=vit_config["is_wolf_transforms"],
-    )
-
-    vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
-        model_name=vit_config["model_name"])
+    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    if vit_config["model_name"] in ["google/vit-base-patch16-224", "augreg"]:
+        vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
+            model_name=vit_config["model_name"])
+    else:
+        vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+        vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+    if "deit" in vit_config["model_name"].lower():
+        vit_config["is_wolf_transforms"] = True
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs"],
