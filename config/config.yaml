@@ -48,7 +48,7 @@ vit:
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 2
-  n_epochs: 50
+  n_epochs: 20
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
   num_steps: 180
