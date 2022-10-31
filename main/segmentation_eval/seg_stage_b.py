@@ -1,25 +1,12 @@
 import os
-
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
-from main.segmentation_eval.segmentation_utils import print_segmentation_results
-
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
-
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-print('START !')
-sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
+# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 from utils.saver import Saver
-
-import yaml
 from icecream import ic
-
 from main.segmentation_eval.ViT_explanation_generator import LRP
-
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -38,11 +25,8 @@ from utils.metrices import *
 from config import config
 from utils import render
 from utils.iou import IoU
-
 from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
-
 import matplotlib.pyplot as plt
-
 import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
@@ -56,6 +40,8 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH,
 )
 from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 import pytorch_lightning as pl
 import gc
@@ -63,6 +49,8 @@ from PIL import ImageFile
 import warnings
 import logging
 
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 logging.getLogger('checkpoint').setLevel(0)
 logging.getLogger('lightning').setLevel(0)
@@ -294,10 +282,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.checkname = args.method + '_' + args.arc
 
-    cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if cuda else "cpu")
-
-
     saver = Saver(args)
     saver.experiment_dir = "/home/yuvalas/explainability/main/segmentation_eval/"
     saver.results_dir = "/home/yuvalas/explainability/main/segmentation_eval/results_plots"
@@ -370,7 +354,7 @@ if __name__ == '__main__':
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []
     predictions, targets = [], []
-
+    random.seed(config["general"]["seed"])
     n_batches = range(len(ds))
     for batch_idx in tqdm(n_batches, leave=True, position=0):
         ds_loop = Imagenet_Segmentation_Loop(*ds[batch_idx])
