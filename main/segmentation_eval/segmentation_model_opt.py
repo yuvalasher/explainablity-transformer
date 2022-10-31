@@ -79,7 +79,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
 
     def training_step(self, batch, batch_idx):
-
         if self.model_runtype == 'test':
             self.trainer.should_stop = True
             return
@@ -138,13 +137,9 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
 
     def test_step(self, batch, batch_idx):
         inputs, target, image_resized = batch
-
         self.target = target
-
         self.image_resized = image_resized
-
         output = self.forward(inputs, image_resized)
-
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         # plt.imshow(images_mask.squeeze(0).squeeze(0).cpu().detach())
         # plt.title('TEST')
@@ -191,9 +186,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         return
 
     def eval_results_per_res(self, Res, image, labels, q=-1):
-
         Res = (Res - Res.min()) / (Res.max() - Res.min())
-
         if q == -1:
             ret = Res.mean()
         else:
@@ -241,7 +234,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
     def eval_results_per_bacth(self, Res, image, labels, q=-1):
-
         # vit_output: SequenceClassifierOutput = self.vit_for_classification_image(self.normalize_image(image))
         # gt_idx = vit_output.logits.argmax(dim=1)
         # q_arr = np.arange(0, 1, 0.05)
