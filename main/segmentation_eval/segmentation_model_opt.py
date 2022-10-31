@@ -124,13 +124,12 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             self.best_auc_vis = outputs[0]["image_mask"]
             self.best_auc_image = outputs[0]["image_resized"]
 
-
-            save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-                                          auc=auc,
-                                          vis=self.best_auc_vis,
-                                          original_image=self.best_auc_image,
-                                          epoch_idx=self.current_epoch,
-                                          )
+            # save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
+            #                               auc=auc,
+            #                               vis=self.best_auc_vis,
+            #                               original_image=self.best_auc_image,
+            #                               epoch_idx=self.current_epoch,
+            #                               )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 self.trainer.should_stop = True
 

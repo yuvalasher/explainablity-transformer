@@ -56,7 +56,6 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
-# from ViT_LRP import vit_base_patch16_224 as vit_LRP
 from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 import pytorch_lightning as pl
 import gc

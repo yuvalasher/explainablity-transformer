@@ -1,10 +1,9 @@
-N_EPOCHS_TO_OPTIMIZE_STAGE_B = 12
 import os
 
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
 
@@ -54,9 +53,8 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
-from ViT_LRP import vit_base_patch16_224 as vit_LRP
+from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 
 import pytorch_lightning as pl
 import gc
@@ -94,7 +92,7 @@ def compute_pred(output):
 
 def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     if args.save_img:
-        save_original_image_and_gt_mask(image, index, labels)
+        save_original_image_and_gt_mask(image=image_resized, labels=labels, plot_path=image_plots_path)
 
     Res = (Res - Res.min()) / (Res.max() - Res.min())
 
@@ -124,20 +122,21 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
 
     if args.save_img:
-        # Save predicted mask
-        mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
-        mask = mask[0].squeeze().data.cpu().numpy()
-        # mask = Res_1[0].squeeze().data.cpu().numpy()
-        mask = 255 * mask
-        mask = mask.astype('uint8')
-        imageio.imsave(os.path.join(args.exp_img_path, 'mask_' + str(index) + '.jpg'), mask)
-
-        relevance = F.interpolate(Res, [64, 64], mode='bilinear')
-        relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
-        # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
-        hm = np.sum(relevance, axis=-1)
-        maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
-        imageio.imsave(os.path.join(args.exp_img_path, 'heatmap_' + str(index) + '.jpg'), maps)
+        save_heatmap_and_seg_mask(Res=Res, plot_path=image_plots_path)
+        # # Save predicted mask
+        # mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
+        # mask = mask[0].squeeze().data.cpu().numpy()
+        # # mask = Res_1[0].squeeze().data.cpu().numpy()
+        # mask = 255 * mask
+        # mask = mask.astype('uint8')
+        # imageio.imsave(Path(args.exp_img_path, 'mask_' + str(index) + '.jpg'), mask)
+        #
+        # relevance = F.interpolate(Res, [64, 64], mode='bilinear')
+        # relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
+        # # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
+        # hm = np.sum(relevance, axis=-1)
+        # maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
+        # imageio.imsave(Path(args.exp_img_path, 'heatmap_' + str(index) + '.jpg'), maps)
 
     # Evaluate Segmentation
     batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
@@ -165,22 +164,21 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
 num_workers = 0
 
 
-def save_original_image_and_gt_mask(image, index, labels):
+def save_original_image_and_gt_mask(image, labels, plot_path):
     img = image[0].permute(1, 2, 0).data.cpu().numpy()
     img = 255 * (img - img.min()) / (img.max() - img.min())
     img = img.astype('uint8')
-    os.makedirs(os.path.join(saver.results_dir, f'input/{index}'), exist_ok=True)
-    Image.fromarray(img, 'RGB').save(os.path.join(saver.results_dir, f'input/{index}/{index}_input.png'))
+    Image.fromarray(img, 'RGB').save(Path(plot_path, 'input.jpg'))
     Image.fromarray((labels.repeat(3, 1, 1).permute(1, 2, 0).data.cpu().numpy() * 255).astype('uint8'),
-                    'RGB').save(
-        os.path.join(saver.results_dir, f'input/{index}/{index}_mask.png'))
+                    'RGB').save(Path(plot_path, 'gt.jpg'))
 
 
-def save_heatmap_and_seg_mask(Res, index, exp_name):
-    Res = (Res - Res.min()) / (Res.max() - Res.min())
-    ret = Res.mean()
-    Res_1 = Res.gt(ret).type(Res.type())
-    Res_1_AP = Res
+def save_heatmap_and_seg_mask(Res, plot_path):
+    Res_cloned = Res.clone()
+    Res = (Res_cloned - Res_cloned.min()) / (Res_cloned.max() - Res_cloned.min())
+    ret = Res_cloned.mean()
+    Res_1 = Res_cloned.gt(ret).type(Res_cloned.type())
+    Res_1_AP = Res_cloned
     Res_1[Res_1 != Res_1] = 0
     # Save predicted mask
     mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
@@ -188,52 +186,52 @@ def save_heatmap_and_seg_mask(Res, index, exp_name):
     # mask = Res_1[0].squeeze().data.cpu().numpy()
     mask = 255 * mask
     mask = mask.astype('uint8')
-    imageio.imsave(os.path.join(saver.results_dir, f'input/{index}', f'{str(index)}_mask_{exp_name}.jpg'), mask)
-    relevance = F.interpolate(Res, [64, 64], mode='bilinear')
+    imageio.imsave(os.path.join(plot_path, 'mask.jpg'), mask)
+    relevance = F.interpolate(Res_cloned, [64, 64], mode='bilinear')
     relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
     # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
     hm = np.sum(relevance, axis=-1)
     maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
-    imageio.imsave(os.path.join(saver.results_dir, f'input/{index}', f'{str(index)}_heatmap_{exp_name}.jpg'), maps)
+    imageio.imsave(os.path.join(plot_path, 'heatmap.jpg'), maps)
     return
 
 
-def calculate_metrics_segmentations(epochs, ds, q: int):
-    total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
-    total_ap, total_f1 = [], []
-    predictions, targets = [], []
-
-    for batch_idx in tqdm(epochs, position=0, leave=True, total=len(epochs)):
-        img, labels, image_resized = ds[batch_idx]
-
-        Res = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
-                               method="transformer_attribution").reshape(
-            1, 1, 14, 14)
-
-        Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
-
-        correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res,
-                                                                                    index=batch_idx,
-                                                                                    q=q,
-                                                                                    labels=labels,
-                                                                                    image=image_resized)
-
-        predictions.append(pred)
-        targets.append(target)
-
-        total_correct += correct.astype('int64')
-        total_label += labeled.astype('int64')
-        total_inter += inter.astype('int64')
-        total_union += union.astype('int64')
-        total_ap += [ap]
-        total_f1 += [f1]
-        pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
-        IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
-        mIoU = IoU.mean()
-        mAp = np.mean(total_ap)
-        mF1 = np.mean(total_f1)
-
-    return mIoU, pixAcc, mAp, mF1
+# def calculate_metrics_segmentations(epochs, ds, q: int):
+#     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
+#     total_ap, total_f1 = [], []
+#     predictions, targets = [], []
+#
+#     for batch_idx in tqdm(epochs, position=0, leave=True, total=len(epochs)):
+#         img, labels, image_resized = ds[batch_idx]
+#
+#         Res = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
+#                                method="transformer_attribution").reshape(
+#             1, 1, 14, 14)
+#
+#         Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
+#
+#         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res,
+#                                                                                     index=batch_idx,
+#                                                                                     q=q,
+#                                                                                     labels=labels,
+#                                                                                     image=image_resized)
+#
+#         predictions.append(pred)
+#         targets.append(target)
+#
+#         total_correct += correct.astype('int64')
+#         total_label += labeled.astype('int64')
+#         total_inter += inter.astype('int64')
+#         total_union += union.astype('int64')
+#         total_ap += [ap]
+#         total_f1 += [f1]
+#         pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
+#         IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
+#         mIoU = IoU.mean()
+#         mAp = np.mean(total_ap)
+#         mF1 = np.mean(total_f1)
+#
+#     return mIoU, pixAcc, mAp, mF1
 
 
 def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
@@ -267,6 +265,7 @@ def init_get_normalize_and_trns():
 
 if __name__ == '__main__':
     # Args
+    ic(vit_config["n_epochs"])
     parser = argparse.ArgumentParser(description='Training multi-class classifier')
     parser.add_argument('--arc', type=str, default='vgg', metavar='N',
                         help='Model architecture')
@@ -287,29 +286,22 @@ if __name__ == '__main__':
     parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEGMENTATION_DATASET_PATH)
     args = parser.parse_args()
     args.checkname = args.method + '_' + args.arc
-    args.save_img = False
 
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
-    # Define Saver
+
     saver = Saver(args)
-    saver.results_dir = os.path.join(saver.experiment_dir, 'results')
-    if not os.path.exists(saver.results_dir):
-        os.makedirs(saver.results_dir)
-    if not os.path.exists(os.path.join(saver.results_dir, 'input')):
-        os.makedirs(os.path.join(saver.results_dir, 'input'))
-    if not os.path.exists(os.path.join(saver.results_dir, 'explain')):
-        os.makedirs(os.path.join(saver.results_dir, 'explain'))
+    saver.experiment_dir = "/home/yuvalas/explainability/main/segmentation_eval/"
+    saver.results_dir = "/home/yuvalas/explainability/main/segmentation_eval/results_plots"
 
-    args.exp_img_path = os.path.join(saver.results_dir, 'explain/img')
-    if not os.path.exists(args.exp_img_path):
-        os.makedirs(args.exp_img_path)
-    args.exp_np_path = os.path.join(saver.results_dir, 'explain/np')
-    if not os.path.exists(args.exp_np_path):
-        os.makedirs(args.exp_np_path)
+    args.save_img = False  # TODO - Pay Attention - Important
 
-    # Data
+    ic(vit_config["n_epochs_to_optimize_stage_b"])
+    ic(vit_config['run_base_model'])
+    ic(args.save_img)
+    print(f'Debuggingggggggggg - args.save_img: {args.save_img}')
+
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
@@ -321,25 +313,12 @@ if __name__ == '__main__':
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
-    OBT_OBJECTS_PLOT_FOLDER_NAME = 'objects_png'
-    OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
         'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
-    EXP_NAME = 'del_fixed_ft_50000_new_model_seg_only_base_new'  # TODO - pay attention !!!
-
-    BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-    BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
-
-    os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
-    os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-    BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-    BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
-    os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
-    os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
+    EXP_NAME = ''  # TODO - pay attention !!!
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
@@ -351,12 +330,12 @@ if __name__ == '__main__':
         model_name=vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-        n_epochs=vit_config["n_epochs"],
+        n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
         train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
         batch_size=vit_config["batch_size"],
     )
 
-    metric = IoU(2, ignore_index=-1)
+    metric = IoU(num_classes=2, ignore_index=-1)
 
     model = OptImageClassificationWithTokenClassificationModel_Segmentation(
         vit_for_classification_image=vit_for_classification_image,
@@ -366,7 +345,7 @@ if __name__ == '__main__':
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
         batch_size=batch_size,
-        best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
+        best_auc_objects_path=Path(""),
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
@@ -398,7 +377,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=CHECKPOINT_EPOCH_IDX + N_EPOCHS_TO_OPTIMIZE_STAGE_B,
+            max_epochs=CHECKPOINT_EPOCH_IDX + vit_config["n_epochs_to_optimize_stage_b"],
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
@@ -411,6 +390,8 @@ if __name__ == '__main__':
         image_resized = model.image_resized
         Res = model.best_auc_vis
         labels = model.target
+        image_plots_path = Path(saver.results_dir, f'{batch_idx}')
+        os.makedirs(image_plots_path, exist_ok=True)
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
                                                                                     image=image_resized)
 
