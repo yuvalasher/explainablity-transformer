@@ -98,6 +98,7 @@ def compute_pred(output):
 
 def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     if args.save_img:
+        os.makedirs(image_plots_path, exist_ok=True)
         save_original_image_and_gt_mask(image=image_resized, labels=labels, plot_path=image_plots_path)
 
     Res = (Res - Res.min()) / (Res.max() - Res.min())
@@ -398,7 +399,6 @@ if __name__ == '__main__':
         Res = model.best_auc_vis
         labels = model.target
         image_plots_path = Path(saver.results_dir, f'{batch_idx}')
-        os.makedirs(image_plots_path, exist_ok=True)
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
                                                                                     image=image_resized)
 
