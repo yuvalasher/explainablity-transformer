@@ -98,7 +98,7 @@ ic(
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-    n_epochs=vit_config["n_epochs"],
+    n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
     train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
     batch_size=vit_config["batch_size"],
 )
@@ -134,6 +134,7 @@ WANDB_PROJECT = config["general"]["wandb_project"]
 
 if __name__ == '__main__':
     IMAGES_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
+    ic(exp_name)
     print(f"Total Images in path: {len(os.listdir(IMAGES_PATH))}")
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
     start_time = dt.now()
@@ -154,7 +155,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=vit_config["n_epochs"],
+            max_epochs=CHECKPOINT_EPOCH_IDX + vit_config["n_epochs_to_optimize_stage_b"],
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
