@@ -297,11 +297,12 @@ if __name__ == '__main__':
 
     args.save_img = False  # TODO - Pay Attention - Important
 
+    ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
     ic(vit_config["n_epochs_to_optimize_stage_b"])
+    ic(loss_config["use_logits_only"])
     ic(vit_config['run_base_model'])
     ic(args.save_img)
-    print(f'Debuggingggggggggg - args.save_img: {args.save_img}')
-
+    print(f'Debuggingggggggggg - args.save_img: {args.save_img}\n')
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
