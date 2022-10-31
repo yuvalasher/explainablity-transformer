@@ -3,6 +3,7 @@ import os
 from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
@@ -100,10 +101,11 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-
-    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
-    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_WinKawaks/vit-small-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_30__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=3_val/epoch_auc=16.950.ckpt"
-    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google_vit-base-patch16-384_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_70__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_16/None/checkpoints/epoch=9_val/epoch_auc=21.750.ckpt"
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    vit_config["img_size"] = IMG_SIZE
+    vit_config["patch_size"] = PATCH_SIZE
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model

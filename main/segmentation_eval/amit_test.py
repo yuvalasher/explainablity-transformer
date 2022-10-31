@@ -1,5 +1,6 @@
 import os
 
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -47,7 +48,7 @@ import torch.nn.functional as F
 
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -416,8 +417,14 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/asher__use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=33_val/epoch_auc=19.340.ckpt"
-    CHECKPOINT_EPOCH_IDX = 34  # TODO - pay attention !!!
+    IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
+
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+    vit_config["img_size"] = IMG_SIZE
+    vit_config["patch_size"] = PATCH_SIZE
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 

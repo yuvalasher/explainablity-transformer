@@ -1,5 +1,6 @@
 import os
 
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -72,8 +73,13 @@ loss_config = vit_config["seg_cls"]["loss"]
 vit_config["enable_checkpointing"] = False
 IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
 
-CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
+CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+vit_config["img_size"] = IMG_SIZE
+vit_config["patch_size"] = PATCH_SIZE
+
 RUN_BASE_MODEL = vit_config[
     'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
