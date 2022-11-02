@@ -125,26 +125,47 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
     print(aucs)
 
 
+def pas():
+    HOME_BASE_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls"
+    EXP_NAME = "direct_opt_ckpt_27_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32"
+    OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH, EXP_NAME)
+    OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+    indices = [44347]
+    for idx in indices:
+        plot_image(load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))["original_image"], idx=idx+1, auc=0)
+
+    # original_images = []
+    # for idx in tqdm(range(41000, len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)))):
+    #     loaded_obj = load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))
+    #     image = loaded_obj["original_image"].clone()
+    #     if any([(image == d_).all() for d_ in original_images]):
+    #         print(idx)
+    #     else:
+    #         original_images.append(loaded_obj["original_image"].clone())
+
 if __name__ == '__main__':
-    # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/ft_pasten/opt_objects"
-    # opt
-    OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_opt/opt_model/objects_pkl"
-    # base
-    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_only_base/base_model/objects_pkl/"
+    pas()
+    HOME_BASE_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls"
+    # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/direct_opt_ckpt_27_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/"
+    # START_RUN_TIME = dt(2022, 10, 29, 21, 35)  # start time of the experiment for calculating expected end time
+    # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_11"
+    # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_12"
 
-    # seg - opt
-    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_seg_only_opt/opt_model/objects_pkl/"
 
-    # seg - base
-    # OPTIMIZATION_PKL_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/experiments/seg_cls/ft_50000_new_model_seg_only_base/opt_model/objects_pkl/"
-
-    print(OPTIMIZATION_PKL_PATH)
-
-    # Calculation of statistics on pickles - can be during running experiment - calculating by the last pickle
-    n_samples = len(os.listdir(OPTIMIZATION_PKL_PATH))
-    calculate_mean_auc(n_samples=n_samples, path=OPTIMIZATION_PKL_PATH)
-    statistics_expected_run_time(path=OPTIMIZATION_PKL_PATH, start_time=dt(2022, 10, 11, 19,
-                                                                           24))  # start time of the experiment for calculating expected end time
+    # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_uni_True_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_12_kl_on_heatmaps_True_reg_loss_mul_50"
+    # OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH, EXP_NAME)
+    # OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+    # OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+    # START_RUN_TIME = dt(2022, 10, 31, 13, 19)
+    # """
+    # ic(OPTIMIZATION_PKL_PATH_BASE)
+    # calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)), path=OPTIMIZATION_PKL_PATH_BASE)
+    # statistics_expected_run_time(path=OPTIMIZATION_PKL_PATH_BASE, start_time=START_RUN_TIME)
+    #
+    # """
+    # ic(OPTIMIZATION_PKL_PATH_OPT)
+    # calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)), path=OPTIMIZATION_PKL_PATH_OPT)
+    # statistics_expected_run_time(path=OPTIMIZATION_PKL_PATH_OPT, start_time=START_RUN_TIME)
 
     # plotting visualizations with images by saved pickles
 
@@ -152,3 +173,17 @@ if __name__ == '__main__':
     # vit_for_image_classification = vit_for_image_classification.to(device)
     # plot_visualizations_and_images(path_to_exp_pickles=OPTIMIZATION_PKL_PATH,
     #                                vit_for_image_classification=vit_for_image_classification)
+
+    # OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+    # OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+    """
+    for idx in range(10):
+        loaded_obj = load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))
+        image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                               f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+        image = image if image.mode == "RGB" else image.convert("RGB")
+        image_resized = resize(image).unsqueeze(0)
+        plot_image(image_resized, idx, loaded_obj['auc'])
+        show_mask(loaded_obj["vis"], idx, loaded_obj['auc'])
+    """
+
