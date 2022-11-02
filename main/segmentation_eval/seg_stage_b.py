@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
     saver = Saver(args)
     saver.experiment_dir = "/home/yuvalas/explainability/main/segmentation_eval/"
-    saver.results_dir = "/home/yuvalas/explainability/main/segmentation_eval/results_plots"
+    saver.results_dir = "/home/yuvalas/explainability/main/segmentation_eval/l2_heatmaps"
 
     args.save_img = False  # TODO - Pay Attention - Important
 
@@ -292,6 +292,9 @@ if __name__ == '__main__':
     ic(vit_config["n_epochs_to_optimize_stage_b"])
     ic(loss_config["use_logits_only"])
     ic(vit_config['run_base_model'])
+    ic(vit_config["seg_cls"]["loss"]['regularization_loss_mul'])
+    ic(vit_config['kl_on_heatmaps'])
+    ic(vit_config['l2_on_weights'])
     ic(args.save_img)
     print(f'Debuggingggggggggg - args.save_img: {args.save_img}\n')
     batch_size = 1
@@ -380,10 +383,13 @@ if __name__ == '__main__':
         trainer.fit(model=model, datamodule=data_module)
 
         image_resized = model.image_resized
+        # ic(batch_idx, model.first_auc, model.best_auc)
         Res = model.best_auc_vis
         labels = model.target
         image_plots_path = Path(saver.results_dir, f'{batch_idx}')
-        correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res, labels=labels, index=batch_idx,
+        correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res=Res,
+                                                                                    labels=labels,
+                                                                                    index=batch_idx,
                                                                                     image=image_resized)
 
         predictions.append(pred)
