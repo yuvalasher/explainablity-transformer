@@ -138,7 +138,6 @@ def check_all_images_in_pickles(path):
 
 
 if __name__ == '__main__':
-    pas()
     HOME_BASE_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls"
     # OPTIMIZATION_PKL_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls/direct_opt_ckpt_27_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/"
     # START_RUN_TIME = dt(2022, 10, 29, 21, 35)  # start time of the experiment for calculating expected end time
