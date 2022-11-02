@@ -98,7 +98,6 @@ def plot_image(image, idx, auc) -> None:  # [1,3,224,224] or [3,224,224]
     plt.show()
 
 
-
 def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_classification):
     """
     Can calculate mean aucs from pickels
@@ -125,23 +124,18 @@ def plot_visualizations_and_images(path_to_exp_pickles: str, vit_for_image_class
     print(aucs)
 
 
-def pas():
-    HOME_BASE_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls"
-    EXP_NAME = "direct_opt_ckpt_27_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32"
-    OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH, EXP_NAME)
-    OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
-    indices = [44347]
-    for idx in indices:
-        plot_image(load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))["original_image"], idx=idx+1, auc=0)
+def check_all_images_in_pickles(path):
+    for idx in tqdm(range(len(os.listdir(path)))):
+        loaded_obj = load_obj(Path(path, f'{str(idx)}.pkl'))
+        loaded_image = loaded_obj["original_image"].clone()
 
-    # original_images = []
-    # for idx in tqdm(range(41000, len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)))):
-    #     loaded_obj = load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))
-    #     image = loaded_obj["original_image"].clone()
-    #     if any([(image == d_).all() for d_ in original_images]):
-    #         print(idx)
-    #     else:
-    #         original_images.append(loaded_obj["original_image"].clone())
+        image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                               f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+        image = image if image.mode == "RGB" else image.convert("RGB")
+        image_resized = resize(image).unsqueeze(0)
+        if not torch.equal(image_resized.to(loaded_image.device), loaded_image):
+            print(idx)
+
 
 if __name__ == '__main__':
     pas()
@@ -150,7 +144,6 @@ if __name__ == '__main__':
     # START_RUN_TIME = dt(2022, 10, 29, 21, 35)  # start time of the experiment for calculating expected end time
     # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_11"
     # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_12"
-
 
     # EXP_NAME = "direct_opt_ckpt_28_auc_18.545_model_google_vit-base-patch16-224_train_uni_True_val_uni_True_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32__layers_freezed_12_kl_on_heatmaps_True_reg_loss_mul_50"
     # OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH, EXP_NAME)
@@ -186,4 +179,3 @@ if __name__ == '__main__':
         plot_image(image_resized, idx, loaded_obj['auc'])
         show_mask(loaded_obj["vis"], idx, loaded_obj['auc'])
     """
-
