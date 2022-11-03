@@ -110,6 +110,7 @@ class ImageSegDataset(Dataset):
                      train_n_samples: int) -> Tuple[List[str], List[int]]:
         images_name_without_val = sorted(list(set(images_name) - set(val_samples)))
         if is_sampled_train_data_uniformly:
+            df = df.query('img_name == @images_name_without_val')
             train_sampled, train_gt_classes = self.sample_uniform(df=df, n_samples=train_n_samples)
         else:
             random.seed(config["general"]["seed"])
