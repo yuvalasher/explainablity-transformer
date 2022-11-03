@@ -78,7 +78,6 @@ BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
 
 ic(vit_config["model_name"])
-# EXP_NAME = 'ft_new_unif_ckpt_27'
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)
@@ -135,6 +134,17 @@ WANDB_PROJECT = config["general"]["wandb_project"]
 # run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
 # wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
+
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
+
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
+
+
 if __name__ == '__main__':
     IMAGES_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
     ic(exp_name)
@@ -142,12 +152,14 @@ if __name__ == '__main__':
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
     start_time = dt.now()
     listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
-    for idx, image_path in tqdm(enumerate(listdir), position=0, leave=True, total=len(listdir)):
+    targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
+    for idx, (image_path, target) in tqdm(enumerate(zip(listdir, targets)), position=0, leave=True, total=len(listdir)):
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,
             batch_size=1,
             train_image_path=str(image_path),
             val_image_path=str(image_path),
+            target=target,
         )
         trainer = pl.Trainer(
             # callbacks=[early_stop_callback],
@@ -166,7 +178,7 @@ if __name__ == '__main__':
             weights_summary=None
         )
         trainer.fit(model=model, datamodule=data_module)
-        if (idx % 1000 == 0):
+        if (idx % 1000 == 0 and idx > 0):
             mean_auc = load_pickles_and_calculate_auc(
                 path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
             print(f"Epoch: {idx}  ---> Mean AUC: {mean_auc}")

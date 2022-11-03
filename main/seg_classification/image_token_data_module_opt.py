@@ -13,21 +13,25 @@ class ImageSegOptDataModule(pl.LightningDataModule):
             batch_size: int,
             train_image_path: str,
             val_image_path: str,
+            target: int,
     ):
         super().__init__()
         self.batch_size = batch_size
         self.feature_extractor = feature_extractor
         self.train_image_path = train_image_path
         self.val_image_path = val_image_path
+        self.target = target
 
     def setup(self, stage=None):
         self.train_dataset = ImageSegOptDataset(
             image_path=self.train_image_path,
             feature_extractor=self.feature_extractor,
+            target=self.target
         )
         self.val_dataset = ImageSegOptDataset(
             image_path=self.val_image_path,
             feature_extractor=self.feature_extractor,
+            target=self.target,
         )
 
     def train_dataloader(self):

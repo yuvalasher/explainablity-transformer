@@ -82,10 +82,11 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
+        target_class = batch["target_class"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
@@ -95,6 +96,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -105,7 +107,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        target_class = batch["target_class"]
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -115,6 +118,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,

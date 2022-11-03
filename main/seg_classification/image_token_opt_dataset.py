@@ -18,9 +18,11 @@ class ImageSegOptDataset(Dataset):
             self,
             image_path: Union[str, WindowsPath],
             feature_extractor: ViTFeatureExtractor,
+            target: int
     ):
         self.feature_extractor = feature_extractor
         self.image_path = image_path
+        self.target = target
 
     def __len__(self):
         return 1
@@ -38,4 +40,5 @@ class ImageSegOptDataset(Dataset):
             pixel_values=inputs["pixel_values"],
             resized_and_normalized_image=resized_and_normalized_image,
             image=image_resized,
+            target_class=torch.tensor(self.target),
         )
