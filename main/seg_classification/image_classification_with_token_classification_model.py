@@ -86,7 +86,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
         return tensor
 
-    def forward(self, inputs, image_resized, target_class) -> ImageClassificationWithTokenClassificationModelOutput:
+    def forward(self, inputs, image_resized, target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         if vit_config["activation_function"]:
