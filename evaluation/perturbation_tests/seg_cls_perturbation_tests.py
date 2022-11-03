@@ -114,10 +114,10 @@ def eval_perturbation_test(experiment_dir: Path,
                 _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
-
+                pertub_pred_probabilities = torch.softmax(out.logits, dim=1)
                 if vit_config['verbose']:
                     print(
-                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
+                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pertub_pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pertub_pred_probabilities[0][target].item(), 5)}')
 
                 # Target-Class Comparison
                 target_class_pertub = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
