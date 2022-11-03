@@ -150,6 +150,7 @@ def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
                                                                           perturbation_type=perturbation_type,
                                                                           target_class=gt_classes_list[image_idx],
                                                                           is_calculate_deletion_insertion=is_calculate_deletion_insertion)
+        # print(1)
         aucs_perturbation.append(auc_perturbation)
         aucs_auc_deletion_insertion.append(auc_deletion_insertion)
     return np.mean(aucs_perturbation), np.mean(aucs_auc_deletion_insertion)
@@ -396,10 +397,6 @@ if __name__ == '__main__':
     # images_and_masks= read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
     #                                                            mask_path=OPTIMIZATION_PKL_PATH, device=device)
 
-    images_and_masks_opt = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                                                   mask_path=OPTIMIZATION_PKL_PATH_OPT, device=device)
-    images_and_masks_base = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                                                    mask_path=OPTIMIZATION_PKL_PATH_BASE, device=device)
     """
     # ADP & PIC metrics
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
@@ -415,8 +412,13 @@ if __name__ == '__main__':
     # # TODO - Do it with loop of perturbation_type
     perturbation_config = {'perturbation_type': PerturbationType.POS,
                            "is_calculate_deletion_insertion": True}
+
+    print('************************************************************************************')
+    PKL_PATH = OPTIMIZATION_PKL_PATH_OPT
     print(
-        f'Perturbation tests {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH_OPT}')
+        f'Perturbation tests {perturbation_config["perturbation_type"]}. data: {PKL_PATH}')
+    images_and_masks_opt = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                                                   mask_path=PKL_PATH, device=device)
 
     auc_perturbation_opt, auc_deletion_insertion_opt = infer_perturbation_tests(images_and_masks=images_and_masks_opt,
                                                                         vit_for_image_classification=vit_for_image_classification,
@@ -424,10 +426,15 @@ if __name__ == '__main__':
                                                                         gt_classes_list=gt_classes_list)
 
     print(
-        f'Opt Model; Perturbation tests {perturbation_config["perturbation_type"]}. data: {OPTIMIZATION_PKL_PATH_BASE}')
+        f'Opt Model; Perturbation tests {perturbation_config["perturbation_type"]}. data: {PKL_PATH}')
     print(
         f'Mean Perturbation AUC: {auc_perturbation_opt}; Mean Deletion-Insertion AUC: {auc_deletion_insertion_opt} for {perturbation_config["perturbation_type"]}. data: {PKL_PATH}')
 
+
+    print('************************************************************************************')
+    PKL_PATH = OPTIMIZATION_PKL_PATH_BASE
+    images_and_masks_base = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                                                    mask_path=PKL_PATH, device=device)
 
     auc_perturbation_base, auc_deletion_insertion_base = infer_perturbation_tests(images_and_masks=images_and_masks_base,
                                                                         vit_for_image_classification=vit_for_image_classification,
