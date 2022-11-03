@@ -10,6 +10,7 @@ from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_
 
 # from utils.consts import EXPERIMENTS_FOLDER_PATH
 from pathlib import Path
+
 EXPERIMENTS_FOLDER_PATH = Path('/home/yuvalas/explainability/research/experiments')
 
 # from vit_utils import *
@@ -38,11 +39,13 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
-def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_type: str = "POS",
-                           vis_class: str = "TOP", target_class: int = None,
-                           is_calculate_deletion_insertion: bool = False) -> Tuple[float,
-                                                                                   Optional[float]]:
-    # ic(perturbation_type, vis_class, target_class)
+def eval_perturbation_test(experiment_dir: Path,
+                           model,
+                           outputs,
+                           perturbation_type: str = "POS",
+                           target_class: int = None,
+                           is_calculate_deletion_insertion: bool = False) -> Tuple[float, Optional[float]]:
+    # ic(perturbation_type, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
@@ -59,7 +62,9 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
         for data, vis in zip(batch["image_resized"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
-            data, vis = move_to_device_data_vis_and_target(data=data, vis=vis)
+            target = torch.tensor([target_class])
+            vars_dict = move_to_device_data_vis_and_target(data=data, target=target, vis=vis)
+            data, target, vis = vars_dict["data"], vars_dict["target"], vars_dict["vis"]
 
             if vit_config['verbose']:
                 plot_image(data)
@@ -69,9 +74,6 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
             pred = model(**inputs)
             pred_probabilities = torch.softmax(pred.logits, dim=1)
 
-            target = torch.tensor([target_class])
-            target = target.to(device)
-
             target_probs = torch.gather(pred_probabilities, 1, target[:, None])[:, 0]
             pred_class = pred_probabilities.max(1, keepdim=True)[1].squeeze(1)
             tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
@@ -80,7 +82,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
 
             if vit_config['verbose']:
                 print(
-                    f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
+                    f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
             org_shape = data.shape  # Save original shape
 
@@ -195,8 +197,8 @@ def move_to_device_data_vis_and_target(data, target=None, vis=None):
     vis = vis.to(device)
     if target is not None:
         target = target.to(device)
-        return data, target, vis
-    return data, vis
+        return dict(data=data, target=target, vis=vis)
+    return dict(data=data, vis=vis)
 
 
 def update_results_df(results_df: pd.DataFrame, vis_type: str, auc: float):
