@@ -119,7 +119,6 @@ run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"]
 wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
-    # resume_from_checkpoint="/home/yuvalas/explainability/research/checkpoints/token_classification/asher_use_logits_only_False_activation_func_sigmoid__normalize_by_max_patch_False__is_sampled_data_uniformly_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=20_val/epoch_auc=19.100.ckpt",
     callbacks=[
         ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
     logger=[wandb_logger],
