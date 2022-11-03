@@ -143,12 +143,11 @@ def infer_perturbation_tests(images_and_masks, vit_for_image_classification,
     is_calculate_deletion_insertion = perturbation_config["is_calculate_deletion_insertion"]
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-        outputs = [{'image_resized': image, 'image_mask': mask}]
+        outputs = [{'image_resized': image, 'image_mask': mask, 'target_class': gt_classes_list[image_idx]}]
         auc_perturbation, auc_deletion_insertion = eval_perturbation_test(experiment_dir=Path(""),
                                                                           model=vit_for_image_classification,
                                                                           outputs=outputs,
                                                                           perturbation_type=perturbation_type,
-                                                                          target_class=gt_classes_list[image_idx],
                                                                           is_calculate_deletion_insertion=is_calculate_deletion_insertion)
         # print(1)
         aucs_perturbation.append(auc_perturbation)

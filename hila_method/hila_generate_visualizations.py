@@ -83,7 +83,7 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
 def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]:
     outputs: List[Dict[str, Tensor]] = []
     for batch_idx, (data, target) in enumerate(tqdm(dataloader)):
-        # target = target.to(device)
+        target = target.to(device)
         resized_image = data.clone()
         data = normalize(data)
         data = data.to(device)
@@ -100,7 +100,7 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
             # ic(data.device, Res.device, Res_patches.device)
             # target = target.cpu()
             # ic(target.device)
-        outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches})
+        outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches, 'target_class': target})
     return outputs
 
 

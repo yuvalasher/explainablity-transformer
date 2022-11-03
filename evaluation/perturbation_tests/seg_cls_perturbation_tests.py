@@ -43,8 +43,7 @@ def eval_perturbation_test(experiment_dir: Path,
                            model,
                            outputs,
                            perturbation_type: str = "POS",
-                           target_class: int = None,
-                           is_calculate_deletion_insertion: bool = False) -> Tuple[float, Optional[float]]:
+                           is_calculate_deletion_insertion: bool = False) -> Union[float, Tuple[float, float]]:
     # ic(perturbation_type, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
@@ -59,10 +58,10 @@ def eval_perturbation_test(experiment_dir: Path,
     prob_pertub = np.zeros((len(perturbation_steps), n_samples))
     perturb_index = 0
     for batch in outputs:
-        for data, vis in zip(batch["image_resized"], batch["image_mask"]):
+        for data, vis, target in zip(batch["image_resized"], batch["image_mask"], batch["target_class"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
-            target = torch.tensor([target_class])
+            target = target.unsqueeze(0)
             vars_dict = move_to_device_data_vis_and_target(data=data, target=target, vis=vis)
             data, target, vis = vars_dict["data"], vars_dict["target"], vars_dict["vis"]
 
@@ -261,8 +260,7 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment
         print(vis_type)
         vit_type_experiment_path = Path(experiment_path, vis_type)
         # vit_type_experiment_path = create_folder(vit_type_experiment_path)
-        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
-                                     outputs=outputs)
+        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model, outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
         results_df.to_csv(output_csv_path, index=False)

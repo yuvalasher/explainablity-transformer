@@ -26,7 +26,7 @@ class LossLoss:
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
-    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor,
+    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor, target_class: Tensor,
                  neg_output: Tensor = None) -> LossLossOutput:
         """
         Objective 1 - Keep the classification as original with as much as dark tokens
@@ -46,10 +46,10 @@ class LossLoss:
         else:
             raise (f"Value of self.mask_loss is not recognized")
 
-        pred_pos_loss = prediction_loss(output=output, target=target)
+        pred_pos_loss = prediction_loss(output=output, target=target, target_class=target_class)
         pred_loss = pred_pos_loss
         if loss_config['is_ce_neg']:
-            pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target)
+            pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target, target_class=target_class)
             pred_loss = (pred_pos_loss + pred_neg_loss) / 2
 
         prediction_loss_multiplied = self.prediction_loss_mul * pred_loss

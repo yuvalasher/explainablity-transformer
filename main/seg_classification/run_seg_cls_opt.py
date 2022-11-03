@@ -68,7 +68,8 @@ BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
 vit_config["img_size"] = IMG_SIZE
 vit_config["patch_size"] = PATCH_SIZE
 
-exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}' #__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
+
 plot_path = Path(vit_config["plot_path"], exp_name)
 RUN_BASE_MODEL = vit_config[
     "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
@@ -87,14 +88,12 @@ BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_M
     base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-if vit_config["model_name"] in ["google/vit-base-patch16-224", "augreg"]:
+if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
 else:
     vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
-if "deit" in vit_config["model_name"].lower():
-    vit_config["is_wolf_transforms"] = True
 
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
