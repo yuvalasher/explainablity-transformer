@@ -84,7 +84,6 @@ def init_get_normalize_and_trns():
 if __name__ == '__main__':
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
-
     IMAGENET_SEG_PATH = '/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat'
     # Data
     batch_size = 32
@@ -96,6 +95,7 @@ if __name__ == '__main__':
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
+    vit_config["train_model_by_target_gt_class"] = False
     vit_config["enable_checkpointing"] = False
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
