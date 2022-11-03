@@ -8,7 +8,9 @@ from torchvision import transforms
 from datasets.imagenet_results_dataset import ImagenetResults
 from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
 
-from utils.consts import EXPERIMENTS_FOLDER_PATH
+# from utils.consts import EXPERIMENTS_FOLDER_PATH
+from pathlib import Path
+EXPERIMENTS_FOLDER_PATH = Path('/home/yuvalas/explainability/research/experiments')
 
 # from vit_utils import *
 from pathlib import Path
