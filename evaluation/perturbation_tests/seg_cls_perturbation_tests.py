@@ -44,7 +44,6 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                                                                                    Optional[float]]:
     # ic(perturbation_type, vis_class, target_class)
     # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
-    num_samples = 0
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
     prob_correct_model = np.zeros((n_samples))
@@ -60,7 +59,6 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
         for data, vis in zip(batch["image_resized"], batch["image_mask"]):
             data = data.unsqueeze(0)
             vis = vis.unsqueeze(0)
-            num_samples += len(data)
             data, vis = move_to_device_data_vis_and_target(data=data, vis=vis)
 
             if vit_config['verbose']:
@@ -71,15 +69,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
             pred = model(**inputs)
             pred_probabilities = torch.softmax(pred.logits, dim=1)
 
-            if vis_class == "TARGET":
-                if target_class is not None:
-                    target = torch.tensor([target_class])
-                else:
-                    raise (f"vis_class can't be {vis_class} and target_class be {target_class}")
-            elif vis_class == "TOP":
-                target = torch.tensor([torch.argmax(pred_probabilities).item()])
-            else:
-                raise (f"vis_class can't be {vis_class}")
+            target = torch.tensor([target_class])
             target = target.to(device)
 
             target_probs = torch.gather(pred_probabilities, 1, target[:, None])[:, 0]
@@ -90,7 +80,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
 
             if vit_config['verbose']:
                 print(
-                    f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
+                    f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
 
             org_shape = data.shape  # Save original shape
 
@@ -102,7 +92,7 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                 raise (NotImplementedError(f'perturbation_type config {perturbation_type} not exists'))
 
             vis = vis.reshape(org_shape[0], -1)
-            org_img_class = pred.logits[0].argmax(dim=0).item()
+            # org_img_class = pred.logits[0].argmax(dim=0).item()
             # print(
             #     f'\nOriginal Image. Top Class: {org_img_class}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
             # image = data if len(data.shape) == 3 else data.squeeze(0)
@@ -112,11 +102,10 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
 
             for perturbation_step in range(len(perturbation_steps)):
                 _data = data.clone()
-                _data = get_perturbated_data(vis=vis, image=_data,
+                _data = get_perturbated_data(vis=vis,
+                                             image=_data,
                                              perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
-
-
 
                 if vit_config['verbose']:
                     plot_image(_data)
@@ -129,8 +118,8 @@ def eval_perturbation_test(experiment_dir: Path, model, outputs, perturbation_ty
                         f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
                 # Target-Class Comparison
-                target_class = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
-                temp = (target == target_class).type(target.type()).data.cpu().numpy()
+                target_class_pertub = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
+                temp = (target == target_class_pertub).type(target.type()).data.cpu().numpy()
                 num_correct_pertub[perturbation_step, perturb_index:perturb_index + len(
                     temp)] = temp  # num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
 
