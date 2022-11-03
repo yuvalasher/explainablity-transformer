@@ -59,6 +59,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 vit_config["enable_checkpointing"] = False
+vit_config["train_model_by_target_gt_class"] = False
 IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
 
 CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
