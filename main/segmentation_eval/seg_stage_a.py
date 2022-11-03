@@ -111,14 +111,12 @@ if __name__ == '__main__':
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-    if vit_config["model_name"] in ["google/vit-base-patch16-224", "augreg"]:
+    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
             model_name=vit_config["model_name"])
     else:
         vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
         vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
-    if "deit" in vit_config["model_name"].lower():
-        vit_config["is_wolf_transforms"] = True
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs"],
