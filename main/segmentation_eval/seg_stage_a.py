@@ -1,5 +1,5 @@
 import os
-
+from icecream import ic
 from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
@@ -8,8 +8,8 @@ from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
 
@@ -104,6 +104,7 @@ if __name__ == '__main__':
     CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    ic(CKPT_PATH)
     vit_config["img_size"] = IMG_SIZE
     vit_config["patch_size"] = PATCH_SIZE
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
