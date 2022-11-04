@@ -89,8 +89,12 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     batch_size=vit_config["batch_size"],
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
-experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,
-                                            f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
+
+# experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df"
+#                                             f'testtest_{NNN}_train_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__target_gt_{vit_config["train_model_by_target_gt_class"]}')
+
+experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df", exp_name)
+
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
