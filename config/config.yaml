@@ -44,7 +44,7 @@ vit:
       correct_class: 3
       contrastive_class:
   batch_size: 32
-  default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
+  default_root_dir: /raid/yuvalas/checkpoints #/home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
   enable_checkpointing: False
   start_epoch_to_evaluate: 1

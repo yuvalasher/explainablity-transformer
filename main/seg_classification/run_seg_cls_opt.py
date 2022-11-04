@@ -21,7 +21,8 @@ from config import config
 from icecream import ic
 from datetime import datetime as dt
 
-from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy
+from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy, \
+    get_gt_classes
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
@@ -30,7 +31,8 @@ import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
-    EXPERIMENTS_FOLDER_PATH,
+    EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
+    GT_VALIDATION_PATH_LABELS,
 )
 from vit_utils import (
     load_feature_extractor_and_vit_model,
@@ -74,8 +76,7 @@ plot_path = Path(vit_config["plot_path"], exp_name)
 RUN_BASE_MODEL = vit_config[
     "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
-BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-    'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
+BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config["train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
 
 ic(vit_config["model_name"])
 
@@ -131,18 +132,9 @@ print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
 WANDB_PROJECT = config["general"]["wandb_project"]
+
 # run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
 # wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
-
-
-GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
-
-
-def get_gt_classes(path):
-    with open(path, 'r') as f:
-        gt_classes_list = f.readlines()
-    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
-    return gt_classes_list
 
 
 if __name__ == '__main__':

@@ -6,8 +6,7 @@ from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
@@ -93,7 +92,7 @@ plot_path = Path(vit_config["plot_path"], exp_name)
 # experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df"
 #                                             f'testtest_{NNN}_train_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__target_gt_{vit_config["train_model_by_target_gt_class"]}')
 
-experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df", exp_name)
+experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df", exp_name)
 
 ic(experiment_perturbation_results_path)
 
@@ -132,7 +131,8 @@ trainer = pl.Trainer(
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     num_sanity_val_steps=0,
-    default_root_dir=vit_config["default_root_dir"],
+    default_root_dir=Path(vit_config["default_root_dir"],
+                          'target' if vit_config["train_model_by_target_gt_class"] else 'predicted'),
     enable_checkpointing=vit_config["enable_checkpointing"],
 )
 if vit_config["enable_checkpointing"]:
