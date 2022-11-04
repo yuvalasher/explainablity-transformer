@@ -38,7 +38,9 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
+    IMAGENET_SEG_PATH,
 )
+
 from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
@@ -60,9 +62,10 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
-IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
 
-CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
+CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                      target_or_predicted_model], \
                                   VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
                                   VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
@@ -279,7 +282,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-img', action='store_true',
                         default=False,
                         help='')
-    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEGMENTATION_DATASET_PATH)
+    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEG_PATH)
     args = parser.parse_args()
     args.checkname = args.method + '_' + args.arc
 

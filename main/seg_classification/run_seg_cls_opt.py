@@ -61,8 +61,10 @@ gc.collect()
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
+target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
 
-CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                      target_or_predicted_model], \
                                   VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
                                   VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
@@ -76,7 +78,8 @@ plot_path = Path(vit_config["plot_path"], exp_name)
 RUN_BASE_MODEL = vit_config[
     "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
-BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config["train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
+BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config[
+    "train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
 
 ic(vit_config["model_name"])
 ic(vit_config["train_model_by_target_gt_class"])

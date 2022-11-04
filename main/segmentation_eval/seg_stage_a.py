@@ -96,7 +96,10 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+    target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
+
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                          target_or_predicted_model], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
     ic(CKPT_PATH)
