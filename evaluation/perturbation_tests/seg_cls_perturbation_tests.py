@@ -113,20 +113,22 @@ def eval_perturbation_test(experiment_dir: Path,
                 _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
-                pertub_pred_probabilities = torch.softmax(out.logits, dim=1)
-                if vit_config['verbose']:
-                    print(
-                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pertub_pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(pertub_pred_probabilities[0][target].item(), 5)}')
 
-                # Target-Class Comparison
+                # Target-Class Comparison Accuracy AUC
                 target_class_pertub = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
                 temp = (target == target_class_pertub).type(target.type()).data.cpu().numpy()
                 num_correct_pertub[perturbation_step, perturb_index:perturb_index + len(
                     temp)] = temp  # num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
 
-                probs_pertub = torch.softmax(out.logits, dim=1)
-                target_probs = torch.gather(probs_pertub, 1, target[:, None])[:, 0]
+                # Targer-Class Probability AUC
+                perturbation_probabilities = torch.softmax(out.logits, dim=1)
+                target_probs = torch.gather(perturbation_probabilities, 1, target[:, None])[:, 0]
                 prob_pertub[perturbation_step, perturb_index:perturb_index + len(target_probs)] = target_probs.item()
+
+                if vit_config['verbose']:
+                    print(
+                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs_pertub[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(probs_pertub[0][target].item(), 5)}')
+
 
             model_index += len(target)
             perturb_index += len(target)
