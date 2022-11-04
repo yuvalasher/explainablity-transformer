@@ -59,7 +59,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
                          n_classes=n_classes,
-                         batch_size=batch_size)
+                         batch_size=batch_size,
+                         experiment_path=Path(""))
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
@@ -81,10 +82,11 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
+        target_class = batch["target_class"]
 
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
         return {
@@ -94,6 +96,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -104,7 +107,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        target_class = batch["target_class"]
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -114,6 +118,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -127,7 +132,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             epoch_idx=self.current_epoch,
         )
         # self.auc_by_epoch.append(auc)
-        # print(f"EPOCHEEEE: {self.current_epoch}")
+        # ic(self.current_epoch, round(self.best_auc, 0), round(auc,0))
         if self.best_auc is None or auc < self.best_auc:
             # print(f'New Best AUC: {round(auc, 3)} !')
             self.best_auc = auc
@@ -143,6 +148,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 outputs[0]['auc'] = auc
+                # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
         if self.current_epoch == vit_config['n_epochs'] - 1:
@@ -160,5 +166,5 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         visu(
             original_image=image,
             transformer_attribution=mask,
-            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{round(auc,0)}").resolve(),
+            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__{self.current_epoch}__AUC_{round(auc,0)}").resolve(),
         )

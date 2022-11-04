@@ -1,3 +1,12 @@
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.segmentation_eval.segmentation_model_opt import \
+    OptImageClassificationWithTokenClassificationModel_Segmentation
+from main.segmentation_eval.segmentation_utils import print_segmentation_results
+
+IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
+# TH_PLOTS_BASE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/"
+TH_PLOTS_BASE_PATH = "/home/yuvalas/explainability/main/segmentation_eval/segmenation_plots"
+
 import os
 import sys
 from pathlib import Path
@@ -26,7 +35,7 @@ from utils.metrices import *
 
 from config import config
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
-    OptImageClassificationWithTokenClassificationModel, OptImageClassificationWithTokenClassificationModel_Segmentation
+    OptImageClassificationWithTokenClassificationModel
 from utils import render
 from utils.saver import Saver
 from utils.iou import IoU
@@ -40,7 +49,7 @@ import torch.nn.functional as F
 
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_ckpt_model_auc
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -48,8 +57,7 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_ES_FOLDER_PATH,
 )
-from ViT_LRP import vit_base_patch16_224 as vit_LRP
-
+from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -338,10 +346,8 @@ def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
     plt.legend()
     plt.grid()
     plt.title(f'{metrics_title} - num_samples = {n_samples}')
-    plt.savefig(
-        f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/{metrics_title}__{n_samples}.png')
+    plt.savefig(Path(TH_PLOTS_BASE_PATH, f'{metrics_title}__{n_samples}.png'))
     plt.close()
-
 
 if __name__ == '__main__':
     # Args
@@ -363,7 +369,7 @@ if __name__ == '__main__':
                         default=False,
                         help='')
 
-    parser.add_argument('--imagenet-seg-path', type=str, required=True)
+    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEGMENTATION_DATASET_PATH)
     args = parser.parse_args()
 
     args.checkname = args.method + '_' + args.arc
@@ -390,9 +396,9 @@ if __name__ == '__main__':
     if not os.path.exists(args.exp_np_path):
         os.makedirs(args.exp_np_path)
 
-    with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots', 'config.yaml'),
-              'w') as f:
-        yaml.dump(config, f)
+    # with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots', 'config.yaml'),
+    #           'w') as f:
+    #     yaml.dump(config, f)
 
     # Data
     normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
@@ -426,12 +432,17 @@ if __name__ == '__main__':
     OBT_OBJECTS_FOLDER_NAME = 'objects_pkl'
 
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+    BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
+    vit_config["img_size"] = IMG_SIZE
+    vit_config["patch_size"] = PATCH_SIZE
+
+    exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}__norm_by_max_p_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}'  # __n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
     plot_path = Path(vit_config["plot_path"], exp_name)
-    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
-    CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-    CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
@@ -474,15 +485,18 @@ if __name__ == '__main__':
         vit_for_classification_image=vit_for_classification_image,
         vit_for_patch_classification=vit_for_patch_classification,
         feature_extractor=feature_extractor,
-        plot_path=plot_path,
+        plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
-        batch_size=vit_config["batch_size"],
-        best_auc_objects_path=BEST_AUC_OBJECTS_PATH,
+        batch_size=batch_size,
+        best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
-        best_auc_plot_path=BEST_AUC_PLOT_PATH,
-        run_base_model_only=RUN_BASE_MODEL
+        best_auc_plot_path='',
+        run_base_model_only=RUN_BASE_MODEL,
+        model_runtype='train',
+        experiment_path='exp_name_amitt'  # choose 'train' or 'test'
     )
+
     model = freeze_multitask_model(
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],
@@ -504,22 +518,18 @@ if __name__ == '__main__':
     mIoU_b, pixAcc_b, mAp_b, mF1_b = [], [], [], []
     q_arr = [-1]  # np.arange(0, 1, 0.1)
     for q in tqdm(q_arr):
-        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='ours', q=q)
+        # mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='ours', q=q)
+        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, q=q)
         mIoU_a.append(mIoU)
         pixAcc_a.append(pixAcc)
         mAp_a.append(mAp)
         mF1_a.append(mF1)
         print('Ours!')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
-        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='hila', q=q)
+        print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
+        # mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, method='hila', q=q)
+        mIoU, pixAcc, mAp, mF1 = calculate_metrics_segmentations(epochs, ds, q=q)
         print('HILA')
-        print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-        print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-        print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-        print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+        print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
         mIoU_b.append(mIoU)
         pixAcc_b.append(pixAcc)
         mAp_b.append(mAp)
@@ -531,10 +541,7 @@ if __name__ == '__main__':
     plot_metric(q_arr, metric_a=mAp_a, metric_b=mAp_b, metrics_title='mAp', n_samples=len(epochs))
     plot_metric(q_arr, metric_a=mF1_a, metric_b=mF1_b, metrics_title='mF1', n_samples=len(epochs))
     print('FINISH!!')
-    # print("Mean IoU over %d classes: %.4f\n" % (2, mIoU))
-    # print("Pixel-wise Accuracy: %2.2f%%\n" % (pixAcc * 100))
-    # print("Mean AP over %d classes: %.4f\n" % (2, mAp))
-    # print("Mean F1 over %d classes: %.4f\n" % (2, mF1))
+    # print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
     # print("FINISH !!!!!")
     # txtfile = os.path.join(saver.experiment_dir, 'result_mIoU_%.4f.txt' % mIoU)
     # # txtfile = 'result_mIoU_%.4f.txt' % mIoU

@@ -54,43 +54,15 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'neeew_amit__activation_function_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}__pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}'
+exp_name = f'model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
 
-exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
-
-plot_path = Path(vit_config["plot_path"], exp_name)
-# CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
-CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
-RUN_BASE_MODEL = vit_config[
-    'run_base_model']  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
-
-BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-    'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
-
-EXP_NAME = 'del_fixed_ft_50000_new_model_seg_only_base_new'  # TODO - pay attention !!!
-
-EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME)
-os.makedirs(EXP_PATH, exist_ok=True)
-ic(EXP_PATH)
-
-BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
-
-os.makedirs(BEST_AUC_PLOT_PATH, exist_ok=True)
-os.makedirs(BEST_AUC_OBJECTS_PATH, exist_ok=True)
-
-BASE_MODEL_BEST_AUC_PLOT_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-BASE_MODEL_BEST_AUC_OBJECTS_PATH = Path(BASE_AUC_OBJECTS_PATH, EXP_NAME, 'base_model', OBT_OBJECTS_FOLDER_NAME)
-os.makedirs(BASE_MODEL_BEST_AUC_PLOT_PATH, exist_ok=True)
-os.makedirs(BASE_MODEL_BEST_AUC_OBJECTS_PATH, exist_ok=True)
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
 ic(vit_config["is_wolf_transforms"])
 ic(vit_config["model_name"])
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 
-if vit_config["model_name"] == "google/vit-base-patch16-224":
+if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
 else:
@@ -117,8 +89,12 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     batch_size=vit_config["batch_size"],
 )
 plot_path = Path(vit_config["plot_path"], exp_name)
-experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,
-                       f'{vit_config["evaluation"]["experiment_folder_name"]}_{vit_config["model_name"]}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_uni_{vit_config["is_sampled_train_data_uniformly"]}')
+
+# experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df"
+#                                             f'testtest_{NNN}_train_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__target_gt_{vit_config["train_model_by_target_gt_class"]}')
+
+experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH,"results_df", exp_name)
+
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
@@ -148,17 +124,18 @@ wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
     callbacks=[
-        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=20)],
+        ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
     logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
+    num_sanity_val_steps=0,
     default_root_dir=vit_config["default_root_dir"],
     enable_checkpointing=vit_config["enable_checkpointing"],
 )
 if vit_config["enable_checkpointing"]:
-    save_config_to_root_dir()
+    save_config_to_root_dir(exp_name=exp_name)
 model.p = 1
 trainer.fit(model=model, datamodule=data_module)

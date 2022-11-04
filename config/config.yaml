@@ -21,12 +21,14 @@ vit:
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
+  train_model_by_target_gt_class: True # TODO - Pay Attention - Important!
   model_name: google/vit-base-patch16-224
+#  model_name: google/vit-base-patch16-384
 #  model_name: facebook/deit-base-patch16-224
 #  model_name: google/vit-large-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
-  is_wolf_transforms: True
-  img_size: 224
+  is_wolf_transforms: False
+  img_size: 224 #384
   patch_size: 16
   n_heads: 12
   gumble_objectives:
@@ -44,10 +46,11 @@ vit:
   batch_size: 32
   default_root_dir: /home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
-  enable_checkpointing: True
-  start_epoch_to_evaluate: 4
+  enable_checkpointing: False
+  start_epoch_to_evaluate: 1
   n_batches_to_visualize: 2
-  n_epochs: 50
+  n_epochs: 20
+  n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
   num_steps: 180
   print_every: 1

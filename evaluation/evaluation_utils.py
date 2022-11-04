@@ -6,6 +6,9 @@ from torch import Tensor
 from sklearn.metrics import auc
 import os
 import numpy as np
+from config import config
+
+vit_config = config["vit"]
 
 
 def get_iteration_idx_of_minimum_loss(path) -> int:
@@ -43,10 +46,12 @@ def patch_score_to_image(transformer_attribution: Tensor, output_2d_tensor: bool
     :param transformer_attribution: Tensor with score of each patch in the picture
     :return:
     """
-    transformer_attribution = transformer_attribution.reshape(1, 1, 14, 14)
+    transformer_attribution = transformer_attribution.reshape(1, 1,
+                                                              int(vit_config["img_size"] / vit_config["patch_size"]),
+                                                              int(vit_config["img_size"] / vit_config["patch_size"]))
     transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16, mode='bilinear')
     if output_2d_tensor:
-        transformer_attribution = transformer_attribution.reshape(224, 224).data.cpu().numpy()
+        transformer_attribution = transformer_attribution.reshape(vit_config["img_size"], vit_config["img_size"]).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min())
     return transformer_attribution

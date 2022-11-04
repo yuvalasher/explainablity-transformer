@@ -2,10 +2,12 @@ import os
 import sys
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-from feature_extractor import ViTFeatureExtractor
+from transformers import ViTForImageClassification
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+from feature_extractor import ViTFeatureExtractor
+#
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from tqdm import tqdm
@@ -20,6 +22,7 @@ from icecream import ic
 from datetime import datetime as dt
 
 from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy
+from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
 from pathlib import Path
@@ -33,7 +36,7 @@ from vit_utils import (
     load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
-    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
+    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
 )
 from pytorch_lightning import seed_everything
 import gc
@@ -50,17 +53,26 @@ warnings.filterwarnings("ignore", category=UserWarning)
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 seed_everything(config["general"]["seed"])
+vit_config["enable_checkpointing"] = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'direct_opt_ckpt_28_model_{vit_config["model_name"]}__is_uniformly_{vit_config["is_sampled_data_uniformly"]}__use_logits_{loss_config["use_logits_only"]}_activation_{vit_config["activation_function"]}__normalize_by_max_patch_{vit_config["normalize_by_max_patch"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}__bs_{vit_config["batch_size"]}__n_layers_seg_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}__add_epsilon_{vit_config["add_epsilon_to_patches_scores"]}'
+
+CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
+vit_config["img_size"] = IMG_SIZE
+vit_config["patch_size"] = PATCH_SIZE
+
+exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
-
-CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
-RUN_BASE_MODEL = vit_config["run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+RUN_BASE_MODEL = vit_config[
+    "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
 BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
     'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
@@ -75,7 +87,12 @@ BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_M
     base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(model_name=vit_config["model_name"])
+if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+    vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
+        model_name=vit_config["model_name"])
+else:
+    vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+    vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
 ic(
     str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
@@ -83,7 +100,7 @@ ic(
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-    n_epochs=vit_config["n_epochs"],
+    n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
     train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
     batch_size=vit_config["batch_size"],
 )
@@ -117,18 +134,32 @@ WANDB_PROJECT = config["general"]["wandb_project"]
 # run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
 # wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
+
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
+
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
+
+
 if __name__ == '__main__':
     IMAGES_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
+    ic(exp_name)
     print(f"Total Images in path: {len(os.listdir(IMAGES_PATH))}")
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
     start_time = dt.now()
     listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
-    for idx, image_path in tqdm(enumerate(listdir), position=0, leave=True, total=len(listdir)):
+    targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
+    for idx, (image_path, target) in tqdm(enumerate(zip(listdir, targets)), position=0, leave=True, total=len(listdir)):
         data_module = ImageSegOptDataModule(
             feature_extractor=feature_extractor,
             batch_size=1,
             train_image_path=str(image_path),
             val_image_path=str(image_path),
+            target=target,
         )
         trainer = pl.Trainer(
             # callbacks=[early_stop_callback],
@@ -139,7 +170,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=vit_config["n_epochs"],
+            max_epochs=CHECKPOINT_EPOCH_IDX + vit_config["n_epochs_to_optimize_stage_b"],
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
@@ -147,7 +178,7 @@ if __name__ == '__main__':
             weights_summary=None
         )
         trainer.fit(model=model, datamodule=data_module)
-        if (idx % 1000 == 0):
+        if (idx % 1000 == 0 and idx > 0):
             mean_auc = load_pickles_and_calculate_auc(
                 path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
             print(f"Epoch: {idx}  ---> Mean AUC: {mean_auc}")
@@ -156,3 +187,4 @@ if __name__ == '__main__':
         path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
     print(f"Mean AUC: {mean_auc}")
     print("FINISH!!!")
+    ic(exp_name)

@@ -32,7 +32,8 @@ from transformers.image_utils import (
 from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
-
+from config import config
+vit_config = config["vit"]
 
 class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
     r"""
@@ -65,7 +66,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
     def __init__(
             self,
             do_resize=True,
-            size=224,
+            size=vit_config["img_size"],
             resample=Image.BILINEAR,
             do_normalize=True,
             image_mean=None,
@@ -143,7 +144,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
         if self.is_wolf_transforms:
             images = [self.resize(image=image, size=get_transforms_size(image), resample=self.resample) for image in
                       images]
-            images = [self.center_crop(image=image, size=(224, 224)) for image in images]
+            images = [self.center_crop(image=image, size=(vit_config["img_size"], vit_config["img_size"])) for image in images]
         else:
             if self.do_resize and self.size is not None:
                 images = [self.resize(image=image, size=self.size, resample=self.resample) for image in images]

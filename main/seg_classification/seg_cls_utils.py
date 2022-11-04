@@ -21,12 +21,15 @@ def l1_loss(tokens_mask) -> Tensor:
     return torch.abs(tokens_mask).mean()
 
 
-def prediction_loss(output, target):
-    argmax_target = torch.argmax(target, dim=1)
+def prediction_loss(output, target, target_class):
+    if vit_config["train_model_by_target_gt_class"]:
+        target_class_to_compare = target_class
+    else:
+        target_class_to_compare = torch.argmax(target, dim=1)
     if loss_config["use_logits_only"]:
         # return -torch.gather(output, 1, argmax_target.unsqueeze(1)).squeeze(1).sum()
-        return -torch.gather(output, 1, argmax_target.unsqueeze(1)).squeeze(1).mean()
-    return ce_loss(output, argmax_target)  # maximize the pred to original model
+        return -torch.gather(output, 1, target_class_to_compare.unsqueeze(1)).squeeze(1).mean()
+    return ce_loss(output, target_class_to_compare)  # maximize the pred to original model
 
 
 def encourage_token_mask_to_prior_loss(tokens_mask: Tensor, prior: int = 0):
@@ -73,7 +76,7 @@ def create_folder_hierarchy(base_auc_objects_path: str, exp_name: str):
     return best_auc_plot_path, best_auc_objects_path, base_model_best_auc_plot_path, base_model_best_auc_objects_path
 
 def save_config_to_root_dir(exp_name):
-    path_dir = os.path.join(vit_config["default_root_dir"], f"seg_cls; {exp_name}")
+    path_dir = os.path.join(vit_config["default_root_dir"], f"{exp_name}")
     os.makedirs(path_dir, exist_ok=True)
     with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
         yaml.dump(config, f)

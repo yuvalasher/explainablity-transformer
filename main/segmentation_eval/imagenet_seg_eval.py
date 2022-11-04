@@ -4,6 +4,7 @@ from pathlib import Path
 
 from icecream import ic
 
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
 # os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
@@ -40,7 +41,7 @@ import torch.nn.functional as F
 
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -362,9 +363,12 @@ if __name__ == '__main__':
     exp_name = f'aa_direct_opt_from_ckpt_80_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}_sigmoid_{vit_config["is_sigmoid_segmentation"]}_train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}_mlp_classifier_{vit_config["is_mlp_on_segmentation"]}_is_relu_{vit_config["is_relu_segmentation"]}'
 
     plot_path = Path(vit_config["plot_path"], exp_name)
-    # CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/seg_cls; pred_l_1_mask_l_l1_80_sigmoid_False_freezed_seg_transformer_False_train_n_samples_6000_lr_0.002_mlp_classifier_True/None/checkpoints/epoch=3-step=751.ckpt"
-    CKPT_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/research/checkpoints/token_classification/seg_cls; amit__pred_1_mask_l_bce_50_sigmoid_True_train_n_samples_6000_lr_0.002_mlp_classifier_True_is_relu_False/None/checkpoints/epoch=4--val/epoch_auc=19.940.ckpt"
-    CHECKPOINT_EPOCH_IDX = 5  # TODO - pay attention !!!
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
+                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+    vit_config["img_size"] = IMG_SIZE
+    vit_config["patch_size"] = PATCH_SIZE
     RUN_BASE_MODEL = True  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
 
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][

@@ -37,6 +37,7 @@ pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 
+
 # cuda = torch.cuda.is_available()
 # device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
 # device = torch.device(type='cuda', index=config["general"]["gpu_index"])
@@ -85,7 +86,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
         return tensor
 
-    def forward(self, inputs, image_resized) -> ImageClassificationWithTokenClassificationModelOutput:
+    def forward(self, inputs, image_resized, target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         if vit_config["activation_function"]:
@@ -110,7 +111,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
-            tokens_mask=tokens_mask
+            tokens_mask=tokens_mask, target_class=target_class
         )
 
         return ImageClassificationWithTokenClassificationModelOutput(
@@ -125,7 +126,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        target_class = batch["target_class"]
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -135,6 +137,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -144,7 +147,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
-        output = self.forward(inputs=inputs, image_resized=image_resized)
+        target_class = batch["target_class"]
+        output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         return {
@@ -154,6 +158,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
+            "target_class": target_class,
             "image_mask": images_mask,
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -205,7 +210,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,
-                experiment_path = self.experiment_path,
+                experiment_path=self.experiment_path,
             )
 
         self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)
@@ -248,6 +253,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
 from matplotlib import pyplot as plt
 from torch import Tensor
+
 
 def show_mask(mask):  # [1, 1, 224, 224]
     mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
