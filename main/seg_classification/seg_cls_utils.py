@@ -65,7 +65,7 @@ def load_pickles_and_calculate_auc(path):
 
 def create_folder_hierarchy(base_auc_objects_path: str, exp_name: str):
     best_auc_plot_path = Path(base_auc_objects_path, exp_name, 'opt_model', OBT_OBJECTS_PLOT_FOLDER_NAME)
-    best_auc_objects_path  = Path(base_auc_objects_path, exp_name, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
+    best_auc_objects_path = Path(base_auc_objects_path, exp_name, 'opt_model', OBT_OBJECTS_FOLDER_NAME)
     os.makedirs(best_auc_plot_path, exist_ok=True)
     os.makedirs(best_auc_objects_path, exist_ok=True)
 
@@ -75,8 +75,16 @@ def create_folder_hierarchy(base_auc_objects_path: str, exp_name: str):
     os.makedirs(base_model_best_auc_objects_path, exist_ok=True)
     return best_auc_plot_path, best_auc_objects_path, base_model_best_auc_plot_path, base_model_best_auc_objects_path
 
+
 def save_config_to_root_dir(exp_name):
     path_dir = os.path.join(vit_config["default_root_dir"], f"{exp_name}")
     os.makedirs(path_dir, exist_ok=True)
     with open(os.path.join(path_dir, 'config.yaml'), 'w') as f:
         yaml.dump(config, f)
+
+
+def get_gt_classes(path):
+    with open(path, 'r') as f:
+        gt_classes_list = f.readlines()
+    gt_classes_list = [int(record.split()[-1].replace('\n', '')) for record in gt_classes_list]
+    return gt_classes_list
