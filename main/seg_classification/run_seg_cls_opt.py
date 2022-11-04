@@ -79,6 +79,7 @@ RUN_BASE_MODEL = vit_config[
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config["train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
 
 ic(vit_config["model_name"])
+ic(vit_config["train_model_by_target_gt_class"])
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)
