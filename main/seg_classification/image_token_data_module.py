@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from main.seg_classification.image_token_dataset import ImageSegDataset, ImagesDataset
-
+from icecream import ic
 
 class ImageSegDataModule(pl.LightningDataModule):
     def __init__(
@@ -34,11 +34,13 @@ class ImageSegDataModule(pl.LightningDataModule):
         self.val_dataset = ImagesDataset(images_path=self.val_images_path,
             feature_extractor=self.feature_extractor,images_name=dataset.val_set, targets=dataset.val_gt_classes)
         print("dataset.train_gt_classes")
-        print(dataset.train_gt_classes)
+        ic(len(dataset.train_gt_classes))
+        # print(dataset.train_gt_classes)
 
         print("dataset.val_gt_classes")
-        print(dataset.val_set)
-        print(dataset.val_gt_classes)
+        ic(len(dataset.val_gt_classes))
+        # print(dataset.val_set)
+        # print(dataset.val_gt_classes)
 
     def train_dataloader(self):
         return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True)
