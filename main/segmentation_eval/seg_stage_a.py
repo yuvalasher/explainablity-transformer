@@ -16,10 +16,6 @@ from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
 
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-
 import torch
 import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
@@ -48,7 +44,7 @@ from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
-from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH
+from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH
 
 import pytorch_lightning as pl
 import gc
@@ -84,7 +80,6 @@ def init_get_normalize_and_trns():
 if __name__ == '__main__':
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
-    IMAGENET_SEG_PATH = '/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat'
     # Data
     batch_size = 32
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
