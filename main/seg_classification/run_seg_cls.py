@@ -136,6 +136,7 @@ trainer = pl.Trainer(
                           'target' if vit_config["train_model_by_target_gt_class"] else 'predicted'),
     enable_checkpointing=vit_config["enable_checkpointing"],
 )
+
 if vit_config["enable_checkpointing"]:
     save_config_to_root_dir(exp_name=exp_name)
 model.p = 1
