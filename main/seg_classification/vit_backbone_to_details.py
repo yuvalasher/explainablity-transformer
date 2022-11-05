@@ -4,7 +4,7 @@ VIT_BASE_224_TARGET_CKPT_PATH = "/raid/yuvalas/checkpoints/target/lightning_logs
 VIT_BASE_224_TARGET_CKPT_PATH_16_155_1000_samples = "/raid/yuvalas/checkpoints/target/lightning_logs/version_12/checkpoints/epoch=47_val/epoch_auc=16.155.ckpt"
 
 VIT_SMALL_224_PREDICTED_CKPT_PATH = "/raid/yuvalas/checkpoints/predicted/train_1000/vit-small-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_30__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=3_val/epoch_auc=16.950.ckpt"
-VIT_SMALL_224_TRAGET_CKPT_PATH = "/raid/yuvalas/checkpoints/target/lightning_logs/version_14/checkpoints/epoch=9_val/epoch_auc=15.490.ckpt"
+VIT_SMALL_224_TRAGET_CKPT_PATH = "/raid/yuvalas/checkpoints/target/lightning_logs/version_16/checkpoints/epoch=11_val/epoch_auc=14.855.ckpt"
 
 # VIT_BASE_384_CKPT_PATH = "/home/yuvalas/explainability/research/checkpoints/token_classification/model_google_vit-base-patch16-384_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_70__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_16/None/checkpoints/epoch=9_val/epoch_auc=21.750.ckpt"
 
