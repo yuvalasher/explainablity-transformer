@@ -299,7 +299,6 @@ if __name__ == '__main__':
                     model_name=backbone_name)
             else:
                 vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-
             vit_for_image_classification = vit_for_image_classification.to(device)
 
             gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
