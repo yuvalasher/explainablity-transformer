@@ -27,7 +27,22 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_pertur
 
 seed_everything(config["general"]["seed"])
 
+IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
+GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
+
+
+def load_obj(path: str):
+    with open(Path(path), 'rb') as f:
+        return pickle.load(f)
+
+
+def save_obj_to_disk(path, obj) -> None:
+    if type(path) == str and path[-4:] != '.pkl':
+        path += '.pkl'
+
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def get_gt_classes(path):
@@ -100,7 +115,8 @@ def compute_saliency_and_save(dataloader: DataLoader) -> List[Dict[str, Tensor]]
             # ic(data.device, Res.device, Res_patches.device)
             # target = target.cpu()
             # ic(target.device)
-        outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches, 'target_class': target})
+        outputs.append(
+            {'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches, 'target_class': target})
     return outputs
 
 
@@ -154,23 +170,6 @@ def run_adp_pic_tests_hila(vit_for_image_classification, images_and_masks):
         f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
 
     print(f"timing: {(dt.now() - start_time).total_seconds()}")
-
-
-IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
-GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
-
-
-def load_obj(path: str):
-    with open(Path(path), 'rb') as f:
-        return pickle.load(f)
-
-
-def save_obj_to_disk(path, obj) -> None:
-    if type(path) == str and path[-4:] != '.pkl':
-        path += '.pkl'
-
-    with open(path, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == '__main__':
