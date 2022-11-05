@@ -288,37 +288,36 @@ if __name__ == '__main__':
     PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
     for target_or_predicted_model in ["predicted", "target"]:
         for backbone_name in VIT_BACKBONE_DETAILS.keys():
-            if "small" not in backbone_name:
-                HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
-                OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
-                OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
-                OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+            HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
+            OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
+            OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+            OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
 
-                feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
-                if backbone_name in ["google/vit-base-patch16-224"]:
-                    vit_for_image_classification, _ = load_vit_pretrained(
-                        model_name=backbone_name)
-                else:
-                    vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
+            feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
+            if backbone_name in ["google/vit-base-patch16-224"]:
+                vit_for_image_classification, _ = load_vit_pretrained(
+                    model_name=backbone_name)
+            else:
+                vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
 
-                vit_for_image_classification = vit_for_image_classification.to(device)
+            vit_for_image_classification = vit_for_image_classification.to(device)
 
-                gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-                run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
-                                exp_name=HOME_BASE_PATH,
-                                is_base_model=False,
-                                target_or_predicted_model=target_or_predicted_model,
-                                backbone_name=backbone_name,
-                                imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                device=device)
+            gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
+                            exp_name=HOME_BASE_PATH,
+                            is_base_model=False,
+                            target_or_predicted_model=target_or_predicted_model,
+                            backbone_name=backbone_name,
+                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                            device=device)
 
-                # run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,  # TODO
-                #                 exp_name=HOME_BASE_PATH,
-                #                 is_base_model=True,
-                #                 target_or_predicted_model=target_or_predicted_model,
-                #                 backbone_name=backbone_name,
-                #                 imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                #                 device=device)
+            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
+                            exp_name=HOME_BASE_PATH,
+                            is_base_model=True,
+                            target_or_predicted_model=target_or_predicted_model,
+                            backbone_name=backbone_name,
+                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                            device=device)
 
     """
      images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
