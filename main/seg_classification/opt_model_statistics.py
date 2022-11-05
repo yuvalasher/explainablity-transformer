@@ -65,9 +65,11 @@ def calculate_mean_auc(n_samples: int, path):
     # print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     print(f"Mean AUC: {np.mean(aucs)}")
-    df, df_stats = calculate_count__and_prec_auc(aucs)
-    print(tabulate(df_stats, headers='keys'))
-    plot_perturbations_vs_num_of_images(df)
+    # df, df_stats = calculate_count__and_prec_auc(aucs)
+    # print(tabulate(df_stats, headers='keys'))
+    # plot_perturbations_vs_num_of_images(df)
+
+
     # counter = Counter(aucs)
     # print(sorted(counter.items()))
     # print(get_precentage_counter(counter))
@@ -256,9 +258,9 @@ if __name__ == '__main__':
     IMAGES_IDX_BY_AUC_DIFF_BASE_OPT_MODEL_PATH = "/home/yuvalas/explainability/pickles/images_idx_by_auc_diff_base_opt_model.pkl"
     HILA_AUC_BY_IMG_IDX_PATH = "/home/yuvalas/explainability/pickles/hila_auc_by_img_idx.pkl"
 
-    for model_type in VIT_BACKBONE_DETAILS.keys():
+    for backbone_type in VIT_BACKBONE_DETAILS.keys():
         for target_or_predicted_model in ["predicted", "target"]:
-            HOME_BASE_PATH = VIT_BACKBONE_DETAILS[model_type]["experiment_base_path"][target_or_predicted_model]
+            HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_type]["experiment_base_path"][target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
             OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
