@@ -96,10 +96,8 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
-
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                          target_or_predicted_model], \
+    # vit_config["train_model_by_target_gt_class"]
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"]['predicted'], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
                                       VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
     ic(CKPT_PATH)
@@ -110,6 +108,7 @@ if __name__ == '__main__':
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    ic(vit_config["model_name"])
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
             model_name=vit_config["model_name"])
