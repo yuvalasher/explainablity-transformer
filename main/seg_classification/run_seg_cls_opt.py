@@ -64,7 +64,8 @@ loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
 
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                                     'predicted'], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     target_or_predicted_model], \
+                                                 VIT_BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "mask_loss"]

@@ -166,6 +166,7 @@ if __name__ == '__main__':
         default_root_dir=vit_config["default_root_dir"],
         weights_summary=None
     )
+
     trainer.fit(model=model, datamodule=data_module)
     trainer.test(model=model, datamodule=data_module)
 
