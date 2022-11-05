@@ -63,14 +63,17 @@ from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
 target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
 
-CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                      target_or_predicted_model], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                                     'predicted'], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "mask_loss"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
+loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["img_size"] = IMG_SIZE
 vit_config["patch_size"] = PATCH_SIZE
+ic(loss_config["mask_loss_mul"])
 
 exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
 

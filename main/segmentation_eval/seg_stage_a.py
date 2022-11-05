@@ -97,12 +97,16 @@ if __name__ == '__main__':
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     # vit_config["train_model_by_target_gt_class"]
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"]['predicted'], \
-                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
-                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                                     'predicted'], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "mask_loss"]
     ic(CKPT_PATH)
     vit_config["img_size"] = IMG_SIZE
     vit_config["patch_size"] = PATCH_SIZE
+    loss_config["mask_loss_mul"] = MASK_LOSS_MUL
+    ic(loss_config["mask_loss_mul"])
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model

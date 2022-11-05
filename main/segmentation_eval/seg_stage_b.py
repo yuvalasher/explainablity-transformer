@@ -64,14 +64,16 @@ vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
 
 target_or_predicted_model = "target" if vit_config["train_model_by_target_gt_class"] else "predicted"
-CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                      target_or_predicted_model], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                                     'predicted'], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "mask_loss"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 vit_config["img_size"] = IMG_SIZE
+loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["patch_size"] = PATCH_SIZE
-
+ic(loss_config["mask_loss_mul"])
 RUN_BASE_MODEL = vit_config[
     'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
