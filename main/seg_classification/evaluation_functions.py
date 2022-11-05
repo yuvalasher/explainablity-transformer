@@ -19,6 +19,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_pertur
 # from utils.utils_functions import get_gt_classes
 # from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
 # from main.seg_classification.image_classification_with_token_classification_model import prediction_loss
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from vit_loader.load_vit import load_vit_pretrained
 import torch
 from enum import Enum
@@ -429,13 +430,20 @@ if __name__ == '__main__':
     print(
         f'Mean Perturbation AUC: {auc_perturbation_opt}; Mean Deletion-Insertion AUC: {auc_deletion_insertion_opt} for {perturbation_config["perturbation_type"]}. data: {PKL_PATH}')
 
+    PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
+    for target_or_predicted_model in ["predicted", "target"]:
+        HOME_BASE_PATH = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["experiment_base_path"][target_or_predicted_model]
+        model_type = HOME_BASE_PATH.split("model_")[1].split("_train")[0]
+        OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
+        OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+        OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
 
-    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-        vit_for_image_classification, _ = load_vit_pretrained(
-            model_name=vit_config["model_name"])
-    else:
-        vit_for_image_classification = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+        feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+        if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+            vit_for_image_classification, _ = load_vit_pretrained(
+                model_name=vit_config["model_name"])
+        else:
+            vit_for_image_classification = ViTForImageClassification.from_pretrained(vit_config["model_name"])
 
     auc_perturbation_base, auc_deletion_insertion_base = infer_perturbation_tests(images_and_masks=images_and_masks_base,
                                                                         vit_for_image_classification=vit_for_image_classification,
