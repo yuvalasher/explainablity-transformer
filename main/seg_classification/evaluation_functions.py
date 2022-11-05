@@ -430,10 +430,12 @@ if __name__ == '__main__':
         f'Mean Perturbation AUC: {auc_perturbation_opt}; Mean Deletion-Insertion AUC: {auc_deletion_insertion_opt} for {perturbation_config["perturbation_type"]}. data: {PKL_PATH}')
 
 
-    print('************************************************************************************')
-    PKL_PATH = OPTIMIZATION_PKL_PATH_BASE
-    images_and_masks_base = read_image_and_mask_from_pickls_by_path(image_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                                                    mask_path=PKL_PATH, device=device)
+    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+        vit_for_image_classification, _ = load_vit_pretrained(
+            model_name=vit_config["model_name"])
+    else:
+        vit_for_image_classification = ViTForImageClassification.from_pretrained(vit_config["model_name"])
 
     auc_perturbation_base, auc_deletion_insertion_base = infer_perturbation_tests(images_and_masks=images_and_masks_base,
                                                                         vit_for_image_classification=vit_for_image_classification,

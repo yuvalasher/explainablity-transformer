@@ -6,6 +6,9 @@ import cv2
 import pandas as pd
 from matplotlib import pyplot as plt
 import os
+
+from transformers import ViTForImageClassification
+
 from config import config
 import torch
 
@@ -29,6 +32,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturb
 from vit_loader.load_vit import load_vit_pretrained
 from tabulate import tabulate
 
+vit_config = config["vit"]
 BEST_AUC_VALUE = 6
 
 
@@ -259,10 +263,14 @@ if __name__ == '__main__':
     images_idx_by_auc_diff_base_opt_model = load_obj(path=IMAGES_IDX_BY_AUC_DIFF_BASE_OPT_MODEL_PATH)
     hila_auc_by_img_idx = load_obj(path=HILA_AUC_BY_IMG_IDX_PATH)
 
-    MODEL_NAME = "google/vit-base-patch16-224"
-    vit_for_image_classification, _ = load_vit_pretrained(model_name=MODEL_NAME)
+    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+        vit_for_image_classification, _ = load_vit_pretrained(
+            model_name=vit_config["model_name"])
+    else:
+        vit_for_image_classification = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+
     vit_for_image_classification = vit_for_image_classification.to(device)
-    feature_extractor = ViTFeatureExtractor.from_pretrained(MODEL_NAME)
 
     # find_perturbation_interesting_images(base_model_pickles_path=OPTIMIZATION_PKL_PATH_BASE, opt_model_pickles_path=OPTIMIZATION_PKL_PATH_OPT)
     # interesting_indices_to_look = find_perturbation_interesting_images_models_a_b_hila(
