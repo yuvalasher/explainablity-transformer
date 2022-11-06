@@ -23,9 +23,6 @@ vit:
   is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
   train_model_by_target_gt_class: True # TODO - Pay Attention - Important!
   model_name: google/vit-base-patch16-224
-#  model_name: google/vit-base-patch16-384
-#  model_name: facebook/deit-base-patch16-224
-#  model_name: google/vit-large-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
   is_wolf_transforms: False
   img_size: 224 #384
@@ -48,7 +45,7 @@ vit:
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
-  n_batches_to_visualize: 2
+  n_batches_to_visualize: 3
   n_epochs: 20
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
@@ -61,7 +58,7 @@ vit:
   temperature: 1
   objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
   seg_cls:
-    train_n_label_sample: 6
+    train_n_label_sample: 1
     val_n_label_sample: 1
     loss:
       normalize: False

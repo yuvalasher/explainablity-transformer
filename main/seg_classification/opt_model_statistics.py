@@ -6,11 +6,15 @@ import cv2
 import pandas as pd
 from matplotlib import pyplot as plt
 import os
+
+from transformers import ViTForImageClassification
+
 from config import config
 import torch
 
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.evaluation_functions import get_image
+from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from utils import save_obj_to_disk
 from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH
 from utils.transformation import resize
@@ -29,6 +33,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturb
 from vit_loader.load_vit import load_vit_pretrained
 from tabulate import tabulate
 
+vit_config = config["vit"]
 BEST_AUC_VALUE = 6
 
 
@@ -60,9 +65,11 @@ def calculate_mean_auc(n_samples: int, path):
     # print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     print(f"Mean AUC: {np.mean(aucs)}")
-    df, df_stats = calculate_count__and_prec_auc(aucs)
-    print(tabulate(df_stats, headers='keys'))
-    plot_perturbations_vs_num_of_images(df)
+    # df, df_stats = calculate_count__and_prec_auc(aucs)
+    # print(tabulate(df_stats, headers='keys'))
+    # plot_perturbations_vs_num_of_images(df)
+
+
     # counter = Counter(aucs)
     # print(sorted(counter.items()))
     # print(get_precentage_counter(counter))
@@ -251,18 +258,39 @@ if __name__ == '__main__':
     IMAGES_IDX_BY_AUC_DIFF_BASE_OPT_MODEL_PATH = "/home/yuvalas/explainability/pickles/images_idx_by_auc_diff_base_opt_model.pkl"
     HILA_AUC_BY_IMG_IDX_PATH = "/home/yuvalas/explainability/pickles/hila_auc_by_img_idx.pkl"
 
-    HOME_BASE_PATH = "/home/yuvalas/explainability/research/experiments/seg_cls"
-    EXP_NAME = "direct_opt_ckpt_27_model_google_vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32"
-    OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH, EXP_NAME)
-    OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
-    OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
-    images_idx_by_auc_diff_base_opt_model = load_obj(path=IMAGES_IDX_BY_AUC_DIFF_BASE_OPT_MODEL_PATH)
-    hila_auc_by_img_idx = load_obj(path=HILA_AUC_BY_IMG_IDX_PATH)
+    for backbone_type in VIT_BACKBONE_DETAILS.keys():
+        for target_or_predicted_model in ["predicted", "target"]:
+            HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_type]["experiment_base_path"][target_or_predicted_model]
+            OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
+            OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+            OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+            ic(OPTIMIZATION_PKL_PATH_BASE)
+            calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)), path=OPTIMIZATION_PKL_PATH_BASE)
 
-    MODEL_NAME = "google/vit-base-patch16-224"
-    vit_for_image_classification, _ = load_vit_pretrained(model_name=MODEL_NAME)
-    vit_for_image_classification = vit_for_image_classification.to(device)
-    feature_extractor = ViTFeatureExtractor.from_pretrained(MODEL_NAME)
+            ic(OPTIMIZATION_PKL_PATH_OPT)
+            calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)), path=OPTIMIZATION_PKL_PATH_OPT)
+            """
+            for idx in range(10):
+                loaded_obj = load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))
+                image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                      f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
+                image = image if image.mode == "RGB" else image.convert("RGB")
+                image_resized = resize(image).unsqueeze(0)
+                plot_image(image_resized, idx, loaded_obj['auc'])
+                show_mask(loaded_obj["vis"], idx, loaded_obj['auc'])
+            """
+
+    # images_idx_by_auc_diff_base_opt_model = load_obj(path=IMAGES_IDX_BY_AUC_DIFF_BASE_OPT_MODEL_PATH)
+    # hila_auc_by_img_idx = load_obj(path=HILA_AUC_BY_IMG_IDX_PATH)
+
+    # feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    # if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+    #     vit_for_image_classification, _ = load_vit_pretrained(
+    #         model_name=vit_config["model_name"])
+    # else:
+    #     vit_for_image_classification = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+    #
+    # vit_for_image_classification = vit_for_image_classification.to(device)
 
     # find_perturbation_interesting_images(base_model_pickles_path=OPTIMIZATION_PKL_PATH_BASE, opt_model_pickles_path=OPTIMIZATION_PKL_PATH_OPT)
     # interesting_indices_to_look = find_perturbation_interesting_images_models_a_b_hila(
@@ -418,7 +446,7 @@ if __name__ == '__main__':
                                    32347, 32386, 32427, 32491,
                                    32496, 32500, 32509, 32515, 32562, 32590, 32614, 32655, 32710, 32729, 32748, 32757,
                                    32804, 32807, 32833, 32882,
-                                     32890, 32901, 32941, 32943, 32944, 32974, 32975, 32980, 32999, 33028, 33036, 33089,
+                                   32890, 32901, 32941, 32943, 32944, 32974, 32975, 32980, 32999, 33028, 33036, 33089,
                                    33111, 33191, 33206, 33209,
                                    33266, 33313, 33386, 33405, 33433, 33439, 33457, 33515, 33519, 33522, 33528, 33531,
                                    33536, 33541, 33568, 33570,
@@ -550,35 +578,10 @@ if __name__ == '__main__':
                                    21113, 21373, 21576, 22046,
                                    24599, 26207, 29377, 31488, 38928]
 
-    plot_image_and_masks(images_indices=interesting_indices_to_look,
-                         images_idx_by_auc_diff_base_opt_model=images_idx_by_auc_diff_base_opt_model,
-                         base_model_pickles_path=OPTIMIZATION_PKL_PATH_BASE,
-                         opt_model_pickles_path=OPTIMIZATION_PKL_PATH_OPT,
-                         vit_for_image_classification=vit_for_image_classification,
-                         feature_extractor=feature_extractor)
-
-    # START_RUN_TIME = dt(2022, 10, 31, 13, 19)
+    # plot_image_and_masks(images_indices=interesting_indices_to_look,
+    #                      images_idx_by_auc_diff_base_opt_model=images_idx_by_auc_diff_base_opt_model,
+    #                      base_model_pickles_path=OPTIMIZATION_PKL_PATH_BASE,
+    #                      opt_model_pickles_path=OPTIMIZATION_PKL_PATH_OPT,
+    #                      vit_for_image_classification=vit_for_image_classification,
+    #                      feature_extractor=feature_extractor)
     # """
-    # ic(OPTIMIZATION_PKL_PATH_BASE)
-    # calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)), path=OPTIMIZATION_PKL_PATH_BASE)
-    # statistics_expected_run_time(path=OPTIMIZATION_PKL_PATH_BASE, start_time=START_RUN_TIME)
-    #
-    # """
-    # ic(OPTIMIZATION_PKL_PATH_OPT)
-    # calculate_mean_auc(n_samples=len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)), path=OPTIMIZATION_PKL_PATH_OPT)
-    # statistics_expected_run_time(path=OPTIMIZATION_PKL_PATH_OPT, start_time=START_RUN_TIME)
-
-    # plotting visualizations with images by saved pickles
-
-    # OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
-    # OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
-    """
-    for idx in range(10):
-        loaded_obj = load_obj(Path(OPTIMIZATION_PKL_PATH_OPT, f'{str(idx)}.pkl'))
-        image = get_image(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                               f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
-        image = image if image.mode == "RGB" else image.convert("RGB")
-        image_resized = resize(image).unsqueeze(0)
-        plot_image(image_resized, idx, loaded_obj['auc'])
-        show_mask(loaded_obj["vis"], idx, loaded_obj['auc'])
-    """

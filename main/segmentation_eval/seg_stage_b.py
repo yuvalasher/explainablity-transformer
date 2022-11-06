@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
+
+from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils.saver import Saver
 from icecream import ic
 from main.segmentation_eval.ViT_explanation_generator import LRP
@@ -16,6 +18,7 @@ from numpy import *
 import argparse
 from PIL import Image
 import imageio
+from transformers import ViTForImageClassification
 
 from tqdm import tqdm
 
@@ -38,7 +41,9 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
+    IMAGENET_SEG_PATH,
 )
+
 from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
@@ -60,15 +65,20 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
-IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
 
-CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
-                                  VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+target_or_predicted_model = "predicted"
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                                     target_or_predicted_model], \
+                                                 VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "mask_loss"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 vit_config["img_size"] = IMG_SIZE
+loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["patch_size"] = PATCH_SIZE
-
+ic(CKPT_PATH)
+ic(loss_config["mask_loss_mul"], IMG_SIZE)
 RUN_BASE_MODEL = vit_config[
     'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
@@ -279,7 +289,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-img', action='store_true',
                         default=False,
                         help='')
-    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEGMENTATION_DATASET_PATH)
+    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEG_PATH)
     args = parser.parse_args()
     args.checkname = args.method + '_' + args.arc
 
@@ -293,9 +303,9 @@ if __name__ == '__main__':
     ic(vit_config["n_epochs_to_optimize_stage_b"])
     ic(loss_config["use_logits_only"])
     ic(vit_config['run_base_model'])
-    ic(vit_config["seg_cls"]["loss"]['regularization_loss_mul'])
-    ic(vit_config['kl_on_heatmaps'])
-    ic(vit_config['l2_on_weights'])
+    # ic(vit_config["seg_cls"]["loss"]['regularization_loss_mul'])
+    # ic(vit_config['kl_on_heatmaps'])
+    # ic(vit_config['l2_on_weights'])
     ic(args.save_img)
     print(f'Debuggingggggggggg - args.save_img: {args.save_img}\n')
     batch_size = 1
@@ -322,8 +332,13 @@ if __name__ == '__main__':
         is_wolf_transforms=vit_config["is_wolf_transforms"],
     )
 
-    vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
-        model_name=vit_config["model_name"])
+    ic(vit_config["model_name"])
+    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
+        vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
+            model_name=vit_config["model_name"])
+    else:
+        vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+        vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs_to_optimize_stage_b"],

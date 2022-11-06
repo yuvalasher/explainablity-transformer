@@ -4,6 +4,7 @@ import os
 import random
 from typing import Union, List, Dict, Tuple
 import pandas as pd
+from pytorch_lightning import seed_everything
 from torch.utils.data import Dataset
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath, Path
@@ -20,6 +21,7 @@ IMAGENET_TEST_GT_BY_VIT_FILE_PATH = "/home/amiteshel1/Projects/explainablity-tra
 IMAGENET_VAL_GT_CSV_FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/val_ground_truth_2012.csv"
 # GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 N_IMAGES_PER_LABEL = 1000
+seed_everything(config["general"]["seed"])
 
 
 class ImagesDataset(Dataset):

@@ -91,6 +91,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
 
+        vit_cls_output = self.vit_for_classification_image(inputs)
         output = self.forward(inputs, image_resized=image_resized)
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
 
@@ -102,6 +103,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "original_image": original_image,
             "image_mask": images_mask,
+            "target_class": torch.argmax(vit_cls_output.logits, dim=1),
+            # in segmentation we don't have target_class, so the perturbation test will be by the predicted argmax output of ViT
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
         }

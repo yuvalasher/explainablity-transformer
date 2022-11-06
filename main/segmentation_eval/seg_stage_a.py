@@ -17,10 +17,6 @@ from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
 
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
-
 import torch
 import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
@@ -40,16 +36,13 @@ from utils import render
 from utils.iou import IoU
 
 from data.imagenet import Imagenet_Segmentation
-
 import matplotlib.pyplot as plt
-
 import torch.nn.functional as F
-
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
-from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH
+from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH
 
 import pytorch_lightning as pl
 import gc
@@ -85,7 +78,6 @@ def init_get_normalize_and_trns():
 if __name__ == '__main__':
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
-    IMAGENET_SEG_PATH = '/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat'
     # Data
     batch_size = 32
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
@@ -108,17 +100,25 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"], \
-                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["img_size"], \
-                                      VIT_BACKBONE_DETAILS[vit_config["model_name"]]["patch_size"]
+    # vit_config["train_model_by_target_gt_class"]
+    target_or_predicted_model = "predicted"
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+                                                         target_or_predicted_model], \
+                                                     VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "mask_loss"]
     ic(CKPT_PATH)
     vit_config["img_size"] = IMG_SIZE
     vit_config["patch_size"] = PATCH_SIZE
+    loss_config["mask_loss_mul"] = MASK_LOSS_MUL
+    ic(loss_config["mask_loss_mul"])
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
+    ic(vit_config["model_name"])
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
             model_name=vit_config["model_name"])
@@ -172,6 +172,7 @@ if __name__ == '__main__':
         default_root_dir=vit_config["default_root_dir"],
         weights_summary=None
     )
+
     trainer.fit(model=model, datamodule=data_module)
     trainer.test(model=model, datamodule=data_module)
 
