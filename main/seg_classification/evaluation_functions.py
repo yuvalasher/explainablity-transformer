@@ -306,7 +306,8 @@ if __name__ == '__main__':
                 else:
                     vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
                 vit_for_image_classification = vit_for_image_classification.to(device)
-            except:
+            except Exception as e:
+                print(e)
                 sleep(60)
                 feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
                 if backbone_name in ["google/vit-base-patch16-224"]:
@@ -314,7 +315,7 @@ if __name__ == '__main__':
                         model_name=backbone_name)
                 else:
                     vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-                vit_for_image_classification = vit_for_image_classification.to(device)
+            vit_for_image_classification = vit_for_image_classification.to(device)
 
             if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
