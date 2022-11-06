@@ -1,3 +1,5 @@
+from time import sleep
+
 import pandas as pd
 from icecream import ic
 from datetime import datetime as dt
@@ -125,7 +127,7 @@ def calculate_percentage_increase_in_confidence(full_image_confidence: float, sa
 
 def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
     masks_listdir = os.listdir(mask_path)
-    print(f"Total images: {len(masks_listdir)}")
+    # print(f"Total images: {len(masks_listdir)}")
     for idx in range(len(masks_listdir)):
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
         loaded_obj = load_obj(pkl_path)
@@ -244,6 +246,8 @@ def run_evaluations(pkl_path,
                     backbone_name: str,
                     imagenet_val_images_folder_path,
                     device):
+    ic(backbone_name)
+    ic(is_base_model)
     ic(pkl_path)
     NAME = f'{"Base" if is_base_model else "Opt"} Model + {target_or_predicted_model} - {backbone_name}'
     print(NAME)
@@ -286,37 +290,50 @@ def run_evaluations(pkl_path,
 
 if __name__ == '__main__':
     PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+
     for target_or_predicted_model in ["predicted", "target"]:
         for backbone_name in VIT_BACKBONE_DETAILS.keys():
             HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
             OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+            try:
+                feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
+                if backbone_name in ["google/vit-base-patch16-224"]:
+                    vit_for_image_classification, _ = load_vit_pretrained(
+                        model_name=backbone_name)
+                else:
+                    vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
+                vit_for_image_classification = vit_for_image_classification.to(device)
+            except:
+                sleep(60)
+                feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
+                if backbone_name in ["google/vit-base-patch16-224"]:
+                    vit_for_image_classification, _ = load_vit_pretrained(
+                        model_name=backbone_name)
+                else:
+                    vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
+                vit_for_image_classification = vit_for_image_classification.to(device)
 
-            feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
-            if backbone_name in ["google/vit-base-patch16-224"]:
-                vit_for_image_classification, _ = load_vit_pretrained(
-                    model_name=backbone_name)
-            else:
-                vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-            vit_for_image_classification = vit_for_image_classification.to(device)
-
-            gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
-                            exp_name=HOME_BASE_PATH,
-                            is_base_model=False,
-                            target_or_predicted_model=target_or_predicted_model,
-                            backbone_name=backbone_name,
-                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                            device=device)
-
-            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
+            if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
+                run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
                             exp_name=HOME_BASE_PATH,
                             is_base_model=True,
                             target_or_predicted_model=target_or_predicted_model,
                             backbone_name=backbone_name,
                             imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                             device=device)
+
+            if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
+                run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
+                                exp_name=HOME_BASE_PATH,
+                                is_base_model=False,
+                                target_or_predicted_model=target_or_predicted_model,
+                                backbone_name=backbone_name,
+                                imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                device=device)
+
 
     """
      images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
