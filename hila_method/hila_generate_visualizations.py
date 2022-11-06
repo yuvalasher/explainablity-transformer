@@ -1,3 +1,4 @@
+import os
 from itertools import chain
 import pickle
 from datetime import datetime as dt
@@ -157,19 +158,13 @@ def visualize_outputs(outputs):
 
 def run_adp_pic_tests_hila(vit_for_image_classification, images_and_masks):
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
-    start_time = dt.now()
     evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
                                            images_and_masks=images_and_masks,
                                            gt_classes_list=gt_classes_list)
 
-    ic(evaluation_metrics)
     print(
-        f'Predicted - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_predicted"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_predicted"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_predicted"], 4)}%;')
+        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
 
-    print(
-        f'Target - PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence_target"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage_target"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage_target"], 4)}%;')
-
-    print(f"timing: {(dt.now() - start_time).total_seconds()}")
 
 
 if __name__ == '__main__':
@@ -221,7 +216,6 @@ if __name__ == '__main__':
         num_workers=4
     )
     hila_auc_by_img_idx = {}
-    # Perturbations
     outputs = compute_saliency_and_save(dataloader=sample_loader)
     for idx, output in enumerate(outputs):
         auc = eval_perturbation_test(experiment_dir=Path(""), model=vit_for_classification_image, outputs=[output])
@@ -236,7 +230,7 @@ if __name__ == '__main__':
     #     if image_idx in images_idx_by_auc_diff_base_opt_model[key]:
     #         plot_subfolder_name = f"auc_diff_{key}"
     # load_obj(HILA_AUC_BY_IMG_IDX_PATH)
-    visualize_outputs(outputs=outputs)
+    # visualize_outputs(outputs=outputs)
 
     # ADP & PIC
     # images_and_masks_generator = compute_saliency_generator(dataloader=sample_loader)
