@@ -2,7 +2,7 @@ import os
 from icecream import ic
 from transformers import ViTForImageClassification
 
-
+from data.coco_dataset import Coco_Segmentation
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
@@ -95,10 +95,10 @@ if __name__ == '__main__':
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
     COCO_SEG_PATH = Path("/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/coco/")
 
-    # ds = Coco_Segmentation(IMAGENET_SEG_PATH,
-    #                            batch_size=batch_size,
-    #                            transform=test_img_trans,
-    #                            transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+    ds = Coco_Segmentation(IMAGENET_SEG_PATH,
+                               batch_size=batch_size,
+                               transform=test_img_trans,
+                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
