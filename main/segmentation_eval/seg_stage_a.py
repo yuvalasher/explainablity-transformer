@@ -35,11 +35,8 @@ from utils import render
 from utils.iou import IoU
 
 from data.imagenet import Imagenet_Segmentation
-
 import matplotlib.pyplot as plt
-
 import torch.nn.functional as F
-
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
@@ -97,11 +94,13 @@ if __name__ == '__main__':
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     # vit_config["train_model_by_target_gt_class"]
+    target_or_predicted_model = "predicted"
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                                     'predicted'], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "mask_loss"]
+                                                         target_or_predicted_model], \
+                                                     VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "mask_loss"]
     ic(CKPT_PATH)
     vit_config["img_size"] = IMG_SIZE
     vit_config["patch_size"] = PATCH_SIZE
