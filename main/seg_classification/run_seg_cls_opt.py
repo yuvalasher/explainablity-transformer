@@ -178,10 +178,10 @@ if __name__ == '__main__':
             weights_summary=None
         )
         trainer.fit(model=model, datamodule=data_module)
-        if (idx % 1000 == 0 and idx > 0):
-            mean_auc = load_pickles_and_calculate_auc(
-                path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
-            print(f"Epoch: {idx}  ---> Mean AUC: {mean_auc}")
+        # if (idx % 1000 == 0 and idx > 0):
+        #     mean_auc = load_pickles_and_calculate_auc(
+        #         path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
+        #     print(f"Epoch: {idx}  ---> Mean AUC: {mean_auc}")
     # print(f"Time diff: {dt.now() - start_time}")
     mean_auc = load_pickles_and_calculate_auc(
         path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
