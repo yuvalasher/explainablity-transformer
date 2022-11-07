@@ -32,6 +32,14 @@ IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 HILA_VISUAILZATION_PATH = "/home/yuvalas/explainability/research/plots/hila"
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+
 
 def load_obj(path: str):
     with open(Path(path), 'rb') as f:
@@ -173,10 +181,6 @@ if __name__ == '__main__':
     model_LRP = vit_LRP(pretrained=True).to(device)
     model_LRP.eval()
     lrp = LRP(model_LRP)
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
 
     vit_for_classification_image, _ = load_vit_pretrained(model_name=MODEL_NAME)
     vit_for_classification_image = vit_for_classification_image.to(device)
