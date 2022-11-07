@@ -293,8 +293,8 @@ if __name__ == '__main__':
     PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
 
-    for target_or_predicted_model in ["predicted", "target"]:
-        for backbone_name in VIT_BACKBONE_DETAILS.keys():
+    for backbone_name in VIT_BACKBONE_DETAILS.keys():
+        for target_or_predicted_model in ["predicted", "target"]:
             HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
@@ -306,7 +306,6 @@ if __name__ == '__main__':
                         model_name=backbone_name)
                 else:
                     vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-                vit_for_image_classification = vit_for_image_classification.to(device)
             except Exception as e:
                 print(e)
                 sleep(60)
@@ -320,12 +319,12 @@ if __name__ == '__main__':
 
             if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
-                            exp_name=HOME_BASE_PATH,
-                            is_base_model=True,
-                            target_or_predicted_model=target_or_predicted_model,
-                            backbone_name=backbone_name,
-                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                            device=device)
+                                exp_name=HOME_BASE_PATH,
+                                is_base_model=True,
+                                target_or_predicted_model=target_or_predicted_model,
+                                backbone_name=backbone_name,
+                                imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                device=device)
 
             if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
