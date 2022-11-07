@@ -2,15 +2,15 @@ import os
 from icecream import ic
 from transformers import ViTForImageClassification
 
-
+from data.coco_dataset import Coco_Segmentation
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
 
@@ -81,16 +81,14 @@ if __name__ == '__main__':
     # Data
     batch_size = 32
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
-    ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
-                               batch_size=batch_size,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
-    COCO_SEG_PATH = Path("/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/coco/")
-
-    # ds = Coco_Segmentation(IMAGENET_SEG_PATH,
-    #                            batch_size=batch_size,
+    # ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
     #                            transform=test_img_trans,
     #                            transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+    COCO_SEG_PATH = Path("/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/coco/")
+
+    ds = Coco_Segmentation(COCO_SEG_PATH,
+                           transform=test_img_trans,
+                           transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
     vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]

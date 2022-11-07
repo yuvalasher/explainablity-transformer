@@ -125,9 +125,9 @@ def eval_perturbation_test(experiment_dir: Path,
                 target_probs = torch.gather(perturbation_probabilities, 1, target[:, None])[:, 0]
                 prob_pertub[perturbation_step, perturb_index:perturb_index + len(target_probs)] = target_probs.item()
 
-                if vit_config['verbose']:
-                    print(
-                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs_pertub[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(probs_pertub[0][target].item(), 5)}')
+                # if vit_config['verbose']:
+                #     print(
+                #         f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs_pertub[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(probs_pertub[0][target].item(), 5)}')
 
 
             model_index += len(target)

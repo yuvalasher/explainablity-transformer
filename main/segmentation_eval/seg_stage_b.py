@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 # sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
+from data.coco_dataset import Coco_Segmentation
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils.saver import Saver
 from icecream import ic
@@ -311,10 +311,16 @@ if __name__ == '__main__':
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
-    ds = Imagenet_Segmentation(args.imagenet_seg_path,
-                               batch_size=batch_size,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+
+    COCO_SEG_PATH = Path("/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/coco/")
+
+    ds = Coco_Segmentation(COCO_SEG_PATH,
+                           transform=test_img_trans,
+                           transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+
+    # ds = Imagenet_Segmentation(args.imagenet_seg_path,
+    #                            transform=test_img_trans,
+    #                            transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True

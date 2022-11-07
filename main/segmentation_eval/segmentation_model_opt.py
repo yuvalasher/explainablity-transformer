@@ -140,6 +140,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
 
     def test_step(self, batch, batch_idx):
         inputs, target, image_resized = batch
+
         self.target = target
         self.image_resized = image_resized
         output = self.forward(inputs, image_resized)
