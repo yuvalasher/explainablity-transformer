@@ -283,7 +283,7 @@ def run_evaluations(pkl_path,
         # save_obj_to_disk(path=Path(PICKLES_PATH, f"{exp_name}_{perturbation_type}.pkl"), obj=auc_perturbation)
 
         print(
-            f'{"Base" if is_base_model else "Opt"} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
+            f'{"Base" if is_base_model else "Opt"} + {target_or_predicted_model} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
         print(
             f'Mean {perturbation_type} Perturbation AUC: {auc_perturbation}; Mean {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} AUC: {auc_deletion_insertion}')
         print('************************************************************************************')
