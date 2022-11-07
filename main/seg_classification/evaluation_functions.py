@@ -246,9 +246,10 @@ def run_evaluations(pkl_path,
                     backbone_name: str,
                     imagenet_val_images_folder_path,
                     device):
-    ic(backbone_name)
-    ic(is_base_model)
-    ic(pkl_path)
+    print(f"backbone_name: {backbone_name}")
+    print(f"is_base_model: {is_base_model}")
+    print(f"pkl_path: {pkl_path}")
+
     NAME = f'{"Base" if is_base_model else "Opt"} Model + {target_or_predicted_model} - {backbone_name}'
     print(NAME)
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=imagenet_val_images_folder_path,
@@ -282,7 +283,7 @@ def run_evaluations(pkl_path,
         # save_obj_to_disk(path=Path(PICKLES_PATH, f"{exp_name}_{perturbation_type}.pkl"), obj=auc_perturbation)
 
         print(
-            f'{"Base" if is_base_model else "Opt"} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test')
+            f'{"Base" if is_base_model else "Opt"} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
         print(
             f'Mean {perturbation_type} Perturbation AUC: {auc_perturbation}; Mean {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} AUC: {auc_deletion_insertion}')
         print('************************************************************************************')
@@ -334,7 +335,6 @@ if __name__ == '__main__':
                                 backbone_name=backbone_name,
                                 imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                 device=device)
-
 
     """
      images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
