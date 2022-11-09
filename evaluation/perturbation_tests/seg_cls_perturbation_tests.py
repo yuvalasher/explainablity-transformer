@@ -31,6 +31,22 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
+def save_image(image, image_idx: int,is_hila:bool,is_base_model:bool, pertub_step: int) -> None:  # [1,3,224,224] or [3,224,224]
+    image = image if len(image.shape) == 3 else image.squeeze(0)
+    image = transforms.ToPILImage()(image)
+    image = image.resize((224, 224))
+    plt.imshow(transforms.ToTensor()(image).permute(1, 2, 0))
+    plt.axis('off');
+    # plt.show();
+    if is_hila:
+        path = f"/home/yuvalas/explainability/research/plots/perturbation_steps_demo/{image_idx}_hila_pertub_step_{pertub_step}.png"
+    else:
+        path = f"/home/yuvalas/explainability/research/plots/perturbation_steps_demo/{image_idx}_{'base' if is_base_model else 'opt'}_pertub_step_{pertub_step}.png"
+    plt.margins(x=0, y=0)
+    plt.savefig(path, dpi=900,
+                bbox_inches='tight', pad_inches=0, transparent=True)
+
+
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
     mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
@@ -127,8 +143,7 @@ def eval_perturbation_test(experiment_dir: Path,
 
                 if vit_config['verbose']:
                     print(
-                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs_pertub[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(probs_pertub[0][target].item(), 5)}')
-
+                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(perturbation_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(perturbation_probabilities[0][target].item(), 5)}')
 
             model_index += len(target)
             perturb_index += len(target)
