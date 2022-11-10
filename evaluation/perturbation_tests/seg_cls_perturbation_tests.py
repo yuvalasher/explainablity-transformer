@@ -31,7 +31,8 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def save_image(image, image_idx: int,is_hila:bool,is_base_model:bool, pertub_step: int) -> None:  # [1,3,224,224] or [3,224,224]
+def save_image(image, image_idx: int, is_hila: bool, is_base_model: bool,
+               pertub_step: Union[int, str]) -> None:  # [1,3,224,224] or [3,224,224]
     image = image if len(image.shape) == 3 else image.squeeze(0)
     image = transforms.ToPILImage()(image)
     image = image.resize((224, 224))
