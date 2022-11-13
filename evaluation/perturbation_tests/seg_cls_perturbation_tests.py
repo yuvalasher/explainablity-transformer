@@ -56,6 +56,14 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     return tensor
 
 
+# def eval_perturbation_test(experiment_dir: Path,
+#                            model,
+#                            outputs,
+#                            image_idx: int,
+#                            is_base_model: bool,
+#                            is_hila: bool,
+#                            perturbation_type: str = "POS",
+#                            is_calculate_deletion_insertion: bool = False) -> Union[float, Tuple[float, float]]:
 def eval_perturbation_test(experiment_dir: Path,
                            model,
                            outputs,
@@ -84,7 +92,8 @@ def eval_perturbation_test(experiment_dir: Path,
 
             if vit_config['verbose']:
                 plot_image(data)
-
+            # save_image(image=data, image_idx=image_idx, is_hila=is_hila, is_base_model=is_base_model,
+            #            pertub_step='origianl')
             norm_data = normalize(data.clone())
             inputs = {'pixel_values': norm_data}
             pred = model(**inputs)
@@ -125,8 +134,9 @@ def eval_perturbation_test(experiment_dir: Path,
                                              perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
 
-                if vit_config['verbose']:
-                    plot_image(_data)
+                # save_image(image=_data, image_idx=image_idx, is_hila=is_hila,is_base_model=is_base_model, pertub_step=perturbation_step)
+                # if vit_config['verbose']:
+                #     plot_image(_data)
                 _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
