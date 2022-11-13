@@ -11,6 +11,7 @@ from hila_method.utils.ViT_explanation_generator import LRP
 from hila_method.utils.imagenet_dataset import ImageNetDataset
 import torch
 from main.seg_classification.evaluation_functions import read_image_and_mask_from_pickls_by_path, infer_adp_pic_acp
+from main.seg_classification.images_with_pic import infer_pic
 from vit_loader.load_vit import load_vit_pretrained
 from config import config
 
@@ -148,7 +149,7 @@ def compute_saliency_generator(dataloader: DataLoader):
         # ic(data.device, Res.device, Res_patches.device)
         # target = target.cpu()
         # ic(target.device)
-        yield dict(image_resized=resized_image.to(device), image_mask=Res.to(device))
+        yield dict(image_resized=resized_image.to(device), image_mask=Res.to(device), target=target.to(device))
         # outputs.append({'image_resized': resized_image, 'image_mask': Res, 'patches_mask': Res_patches})
 
 
@@ -173,6 +174,14 @@ def run_adp_pic_tests_hila(vit_for_image_classification, images_and_masks):
     print(
         f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
 
+
+def run_pic_hila(vit_for_image_classification, images_and_masks):
+    gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
+    evaluation_metrics = infer_pic(vit_for_image_classification=vit_for_image_classification,
+                                   images_and_masks=images_and_masks,
+                                   gt_classes_list=gt_classes_list,
+                                   is_hila=True
+                                   )
 
 
 if __name__ == '__main__':
