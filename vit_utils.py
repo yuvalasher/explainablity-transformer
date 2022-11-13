@@ -348,7 +348,7 @@ def visu(original_image, transformer_attribution, file_name: str):
     vis = show_cam_on_image(image_transformer_attribution, transformer_attribution)
     vis = np.uint8(255 * vis)
     vis = cv2.cvtColor(np.array(vis), cv2.COLOR_RGB2BGR)
-    plt.imsave(fname=Path(f"{file_name}.png"), arr=vis, format="png")
+    plt.imsave(fname=Path(f"{file_name}.png"), dpi=600, arr=vis, format="png")
 
 
 def freeze_all_model_params(model: VitModelForClassification) -> VitModelForClassification:
