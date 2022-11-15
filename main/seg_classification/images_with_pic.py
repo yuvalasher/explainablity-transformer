@@ -117,14 +117,15 @@ def save_image(image, image_idx: int, is_hila: bool) -> None:  # [1,3,224,224] o
 def save_image_try(image, image_idx: int, is_hila: bool) -> None:  # [1,3,224,224] or [3,224,224]
     image = image if len(image.shape) == 3 else image.squeeze(0)
     image = transforms.ToPILImage()(image)
-    image = image.resize((224,224))
+    image = image.resize((224, 224))
     plt.imshow(transforms.ToTensor()(image).permute(1, 2, 0))
     plt.axis('off');
     # plt.show();
     path = f"/home/yuvalas/explainability/research/plots/our_pic_1_images/{image_idx}_hila.png" if is_hila else f"/home/yuvalas/explainability/research/plots/our_pic_1_images/{image_idx}.png"
     plt.margins(x=0, y=0)
-    plt.savefig(path, dpi=300,
+    plt.savefig(path, dpi=1500,
                 bbox_inches='tight', pad_inches=0, transparent=True)
+
 
 
 def show_mask(mask, model_type='N/A', auc='N/A'):  # [1, 1, 224, 224]
@@ -188,7 +189,7 @@ def infer_pic(vit_for_image_classification: ViTForImageClassification,
     pic_1_images = []
 
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
-        if image_idx in [17721, 16167, 7436, 11616] or is_hila:
+        if image_idx in [7436, 11616, 17721, 16167] or is_hila:
             image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
             norm_original_image = normalize(image.clone())
             scattered_image = scatter_image_by_mask(image=image, mask=mask)
@@ -207,7 +208,8 @@ def infer_pic(vit_for_image_classification: ViTForImageClassification,
                         f"image_idx: {image_idx}, gt_class: {gt_class}, full_image_probability_by_index: {full_image_probability_by_index}, saliency_map_probability_by_index: {saliency_map_probability_by_index}, pic_value: {pic_value}")
 
                     pic_1_images.append(image_idx)
-                    save_image_try(image=scattered_image_to_plot, image_idx=image_idx, is_hila=is_hila)
+                    save_image_try(image=image_and_mask["image_resized"], image_idx=image_idx, is_hila=is_hila)
+                    # save_image_try(image=scattered_image_to_plot, image_idx=image_idx, is_hila=is_hila)
                     # plot_image(image)
                     # plot_image(scattered_image_to_plot)
                     # show_mask(mask)
