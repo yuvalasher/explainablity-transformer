@@ -43,7 +43,7 @@ class DetectionImageNetDataset(Dataset):
         x_y_width_height_dict = get_x_min_y_min_x_max_y_max_width_height_parse_xml_gt_file(path=image_xml_gt_path)
         if self.transform:
             image = self.transform(image)  # TODO - maybe not to resize!
-        return image, image_mask.squeeze(0).squeeze(0), x_y_width_height_dict
+        return image_mask.squeeze(0).squeeze(0), x_y_width_height_dict
 
 
 def get_size_from_gt_root(root):

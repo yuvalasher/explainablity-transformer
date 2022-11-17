@@ -104,7 +104,7 @@ if __name__ == '__main__':
                     num_workers=1
                 )
                 for datum_idx, datum in enumerate(tqdm(sample_loader)):
-                    image, mask, x_y_gt_dict = datum
+                    mask, x_y_gt_dict = datum
                     gt_x_min, gt_y_min, gt_x_max, gt_y_max = x_y_gt_dict["x_min"].item(), x_y_gt_dict["y_min"].item(), \
                                                              x_y_gt_dict["x_max"].item(), x_y_gt_dict["y_max"].item()
 
