@@ -18,7 +18,10 @@ import os
 from podm.box import Box, intersection_over_union
 
 IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
-IOU_PICKLE_PATH = "/home/yuvalas/explainability/pickles/detection/vit_small/ours_stage_a"
+IOU_PICKLE_PATH = "/home/yuvalas/explainability/pickles/detection"
+
+METHOD = "ours_stage_b"
+VIT_TYPE = "vit_small"
 
 transform = transforms.Compose([
     # transforms.Resize((224, 224)),
@@ -87,6 +90,8 @@ if __name__ == '__main__':
         for target_or_predicted_model in ["predicted"]:
             # if backbone_name == "google/vit-base-patch16-224":
             if backbone_name == "WinKawaks/vit-small-patch16-224":
+                gt_bboxs = []  # [xmin, ymin, xmax, ymax, class_id, difficult, crowd]
+                preds_bbox = []  # [xmin, ymin, xmax, ymax, class_id, confidence]
                 HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
                 OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
                 OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
@@ -118,8 +123,14 @@ if __name__ == '__main__':
                     x_min, y_min, x_max, y_max = get_xmin_xmax_y_min_y_max(mask=mask)
                     our_box = Box.of_box(xtl=x_min, ytl=y_min, xbr=x_max, ybr=y_max)
                     gt_box = Box.of_box(xtl=gt_x_min, ytl=gt_y_min, xbr=gt_x_max, ybr=gt_y_max)
-                    ious.append(intersection_over_union(our_box, gt_box))
-                    # if datum_idx % 10000 == 0 and datum_idx > 0:
-                    #     save_obj_to_disk(path=Path(IOU_PICKLE_PATH, f"iou_list_{datum_idx + 1}.pkl"), obj=ious)
-                save_obj_to_disk(path=Path(IOU_PICKLE_PATH, f"iou_list_end.pkl"), obj=ious)
-                print(ious)
+                    iou = intersection_over_union(our_box, gt_box)
+                    ious.append(iou)
+                    gt_bboxs.append([gt_x_min, gt_y_min, gt_x_max, gt_y_max, 0, 0, 0])
+                    preds_bbox.append([x_min, y_min, x_max, y_max, 0, iou])
+
+                OUTPUT_PATH = Path(IOU_PICKLE_PATH, VIT_TYPE, METHOD)
+                print(OUTPUT_PATH)
+                save_obj_to_disk(path=Path(OUTPUT_PATH, f"gt_preds_bboxs.pkl"),
+                                 obj={"gt_boxes": gt_bboxs, "preds_bbox": preds_bbox})
+                # save_obj_to_disk(path=Path(OUTPUT_PATH, f"iou_list_end.pkl"), obj=ious)
+                # print(ious)
