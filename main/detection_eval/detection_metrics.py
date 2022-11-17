@@ -14,7 +14,7 @@ def calculate_AP(IOUs: List[float], iou_threshold: float) -> float:
     FN = len(eval_table['TP/FP'] == 'TP')
     for index, row in eval_table.iterrows():
 
-        if row.IOU > iou_threshold:
+        if row.IOU >= iou_threshold:
             TP = TP + 1
         else:
             FP = FP + 1
@@ -37,7 +37,7 @@ def calculate_AP(IOUs: List[float], iou_threshold: float) -> float:
 
     for recall_level in np.linspace(0.0, 1.0, 11):
         try:
-            x = eval_table[eval_table['Recall'] >= recall_level]['Precision']
+            x = eval_table[eval_table['Recall'] >= recall_level]['Precision'] # TODO - is the has blog typo from from precision
             prec = max(x)
         except:
             prec = 0.0
