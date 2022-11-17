@@ -16,12 +16,16 @@ from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 import pickle
 import os
 from podm.box import Box, intersection_over_union
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 IMAGENET_VALIDATION_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
 IOU_PICKLE_PATH = "/home/yuvalas/explainability/pickles/detection"
 
 METHOD = "ours_stage_b"
 VIT_TYPE = "vit_small"
+
+IS_VERBOSE = False
 
 transform = transforms.Compose([
     # transforms.Resize((224, 224)),
@@ -42,7 +46,6 @@ def load_obj(path: str):
         return pickle.load(f)
 
 
-IS_VERBOSE = False
 
 
 def get_xmin_xmax_y_min_y_max(mask) -> Tuple[int, int, int, int]:
