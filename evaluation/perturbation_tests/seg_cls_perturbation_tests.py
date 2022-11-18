@@ -1,33 +1,21 @@
-from icecream import ic
-import glob
-from typing import Union, Any, Tuple, Optional
+from typing import Union, Tuple
 import pandas as pd
-from torch.utils.data import DataLoader
-from torchvision import transforms
-
-from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
-
-# from utils.consts import EXPERIMENTS_FOLDER_PATH
-from pathlib import Path
-
-EXPERIMENTS_FOLDER_PATH = Path('/home/yuvalas/explainability/research/experiments')
-
+from evaluation.evaluation_utils import normalize, calculate_auc
 from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
 import os
 
 from torch import Tensor
-from tqdm import tqdm
 import numpy as np
 from config import config
 
 vit_config = config['vit']
 evaluation_config = vit_config['evaluation']
+EXPERIMENTS_FOLDER_PATH = vit_config["experiments_path"]
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
-
 
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
@@ -36,6 +24,7 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     std = torch.as_tensor(std, dtype=dtype, device=tensor.device)
     tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
     return tensor
+
 
 def eval_perturbation_test(experiment_dir: Path,
                            model,
@@ -144,6 +133,7 @@ def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[fl
     _data = _data.scatter_(-1, idx.reshape(1, org_shape[1], -1), 0)
     _data = _data.reshape(*org_shape)
     return _data
+
 
 def move_to_device_data_vis_and_target(data, target=None, vis=None):
     data = data.to(device)
