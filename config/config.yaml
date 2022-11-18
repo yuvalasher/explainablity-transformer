@@ -9,8 +9,8 @@ general:
   wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
   wandb_entity: yuvalasher
 vit:
-  train_images_path: train_data #train_data_exp
-  val_images_path: val_data #val_data_exp
+  train_images_path: train_data
+  val_images_path: val_data
   gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
