@@ -75,7 +75,7 @@ plot_path = Path(vit_config["plot_path"], exp_name)
 RUN_BASE_MODEL = vit_config["run_base_model"]
 
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config[
-    "train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
+    "train_model_by_target_gt_class"] else 'predicted')
 
 ic(vit_config["model_name"])
 ic(vit_config["train_model_by_target_gt_class"])
