@@ -19,17 +19,11 @@ import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
 from numpy import *
-import argparse
 from PIL import Image
-import imageio
-
-from tqdm import tqdm
-
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from utils.metrices import *
 
 from config import config
-from utils import render
 from utils.iou import IoU
 
 from data.imagenet import Imagenet_Segmentation

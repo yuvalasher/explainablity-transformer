@@ -33,7 +33,7 @@ vit:
   num_labels: 1000
   save_every: 5
   batch_size: 32
-  default_root_dir: /raid/yuvalas/checkpoints #/home/yuvalas/explainability/research/checkpoints/token_classification
+  default_root_dir: /raid/yuvalas/checkpoints
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
