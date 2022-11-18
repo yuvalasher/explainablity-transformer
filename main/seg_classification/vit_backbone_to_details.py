@@ -2,17 +2,15 @@ from pathlib import Path
 
 from utils.consts import PLTE_CHECKPOINTS_PATH
 
-# VIT_BASE_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base", "pLTE_vit_base_224_predicted_best_auc.ckpt")
-# VIT_BASE_224_TARGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base", "pLTE_vit_base_224_target_best_auc_auc.ckpt")
-# VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
-#                                          "pLTE_vit_small_224_predicted_best_auc.ckpt")
-# VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small", "pLTE_vit_small_target_best_auc.ckpt")
+VIT_BASE_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base",
+                                        "pLTE_vit_base_224_predicted_best_auc__epoch=27_val_epoch_auc=0.ckpt")
+VIT_BASE_224_TARGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base",
+                                     "pLTE_vit_base_224_target_best_auc__epoch=55_val_epoch_auc=0.ckpt")
 
-VIT_BASE_224_PREDICTED_CKPT_PATH = "/raid/yuvalas/checkpoints/predicted/train_1000/vit-base-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=27_val/epoch_auc=18.545.ckpt"
-VIT_BASE_224_TARGET_CKPT_PATH = "/raid/yuvalas/checkpoints/target/lightning_logs/600_samples/checkpoints/epoch=55_val/epoch_auc=15.925.ckpt"
-
-VIT_SMALL_224_PREDICTED_CKPT_PATH = "/raid/yuvalas/checkpoints/predicted/train_1000/vit-small-patch16-224_train_uni_True_val_unif_True_activation_sigmoid__norm_by_max_p_False_pred_1_mask_l_bce_30__train_n_samples_6000_lr_0.002_mlp_classifier_True__bs_32/None/checkpoints/epoch=3_val/epoch_auc=16.950.ckpt"
-VIT_SMALL_224_TRAGET_CKPT_PATH = "/raid/yuvalas/checkpoints/target/lightning_logs/version_16/checkpoints/epoch=11_val/epoch_auc=14.855.ckpt"
+VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
+                                         "pLTE_vit_small_224_predicted_best_auc__epoch=3_val_epoch_auc=0.ckpt")
+VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
+                                      "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 
 VIT_BACKBONE_DETAILS = {
     "google/vit-base-patch16-224": {
