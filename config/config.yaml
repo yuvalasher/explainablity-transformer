@@ -25,7 +25,7 @@ vit:
   model_name: google/vit-base-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
   is_competitive_method_transforms: False
-  img_size: 224 #384
+  img_size: 224
   patch_size: 16
   n_heads: 12
   freezing_classification_transformer: True
