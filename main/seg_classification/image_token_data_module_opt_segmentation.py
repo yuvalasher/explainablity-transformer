@@ -2,8 +2,6 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 
 
-
-
 class ImageSegOptDataModuleSegmentation(pl.LightningDataModule):
     def __init__(
             self,
