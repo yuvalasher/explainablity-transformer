@@ -1,5 +1,6 @@
 import wandb
 from typing import Dict
+from config import config
 
 
 def configure_log(vit_config: Dict, experiment_name: str, image_name: str):
@@ -10,7 +11,7 @@ def configure_log(vit_config: Dict, experiment_name: str, image_name: str):
             "experiment_name": experiment_name,
             "image_name": image_name,
         }
-        run = wandb.init(project="vit-sigmoid-1", entity="yuvalasher", config=wandb.config)
+        run = wandb.init(project="vit-sigmoid-1", entity=config["general"]["wandb_entity"], config=wandb.config)
         return run
     return None
 

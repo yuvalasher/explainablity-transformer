@@ -21,7 +21,6 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
     run_perturbation_test,
 )
 from feature_extractor import ViTFeatureExtractor
-from loss_utils import entropy
 from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
