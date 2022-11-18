@@ -12,7 +12,6 @@ from pathlib import Path
 
 EXPERIMENTS_FOLDER_PATH = Path('/home/yuvalas/explainability/research/experiments')
 
-# from vit_utils import *
 from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
@@ -30,22 +29,6 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 
-def save_image(image, image_idx: int, is_hila: bool, is_base_model: bool,
-               pertub_step: Union[int, str]) -> None:  # [1,3,224,224] or [3,224,224]
-    image = image if len(image.shape) == 3 else image.squeeze(0)
-    image = transforms.ToPILImage()(image)
-    image = image.resize((224, 224))
-    plt.imshow(transforms.ToTensor()(image).permute(1, 2, 0))
-    plt.axis('off');
-    # plt.show();
-    if is_hila:
-        path = f"/home/yuvalas/explainability/research/plots/perturbation_steps_demo/{image_idx}_hila_pertub_step_{pertub_step}.png"
-    else:
-        path = f"/home/yuvalas/explainability/research/plots/perturbation_steps_demo/{image_idx}_{'base' if is_base_model else 'opt'}_pertub_step_{pertub_step}.png"
-    plt.margins(x=0, y=0)
-    plt.savefig(path, dpi=900,
-                bbox_inches='tight', pad_inches=0, transparent=True)
-
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
@@ -54,22 +37,11 @@ def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     tensor.sub_(mean[None, :, None, None]).div_(std[None, :, None, None])
     return tensor
 
-
-# def eval_perturbation_test(experiment_dir: Path,
-#                            model,
-#                            outputs,
-#                            image_idx: int,
-#                            is_base_model: bool,
-#                            is_hila: bool,
-#                            perturbation_type: str = "POS",
-#                            is_calculate_deletion_insertion: bool = False) -> Union[float, Tuple[float, float]]:
 def eval_perturbation_test(experiment_dir: Path,
                            model,
                            outputs,
                            perturbation_type: str = "POS",
                            is_calculate_deletion_insertion: bool = False) -> Union[float, Tuple[float, float]]:
-    # ic(perturbation_type, target_class)
-    # print(f"Target class:{model.config.id2label[target_class] if target_class is not None else None}")
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
     prob_correct_model = np.zeros((n_samples))
@@ -91,8 +63,6 @@ def eval_perturbation_test(experiment_dir: Path,
 
             if vit_config['verbose']:
                 plot_image(data)
-            # save_image(image=data, image_idx=image_idx, is_hila=is_hila, is_base_model=is_base_model,
-            #            pertub_step='origianl')
             norm_data = normalize(data.clone())
             inputs = {'pixel_values': norm_data}
             pred = model(**inputs)
@@ -118,13 +88,6 @@ def eval_perturbation_test(experiment_dir: Path,
                 raise (NotImplementedError(f'perturbation_type config {perturbation_type} not exists'))
 
             vis = vis.reshape(org_shape[0], -1)
-            # org_img_class = pred.logits[0].argmax(dim=0).item()
-            # print(
-            #     f'\nOriginal Image. Top Class: {org_img_class}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(probs[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(probs[0][target].item(), 5)}')
-            # image = data if len(data.shape) == 3 else data.squeeze(0)
-            # plt.imshow(image.cpu().detach().permute(1, 2, 0))
-            # plt.title(f'original_image  Top Class: {org_img_class}')
-            # plt.show();
 
             for perturbation_step in range(len(perturbation_steps)):
                 _data = data.clone()
@@ -133,9 +96,6 @@ def eval_perturbation_test(experiment_dir: Path,
                                              perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
 
-                # save_image(image=_data, image_idx=image_idx, is_hila=is_hila,is_base_model=is_base_model, pertub_step=perturbation_step)
-                # if vit_config['verbose']:
-                #     plot_image(_data)
                 _norm_data = normalize(_data.clone())
                 inputs = {'pixel_values': _norm_data}
                 out = model(**inputs)
@@ -165,32 +125,10 @@ def eval_perturbation_test(experiment_dir: Path,
 
 
 def get_auc(num_correct_pertub, num_correct_model):
-    """
-    num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
-    Each cell represents if the prediction at that step is the right prediction (0 / 1) and average of the images axis to
-    get the number of average correct prediction at each perturbation step and then trapz integral (auc) to get final val
-    """
     mean_accuracy_by_step = np.mean(num_correct_pertub, axis=1)
     mean_accuracy_by_step = np.insert(mean_accuracy_by_step, 0, np.mean(num_correct_model))
     auc = calculate_auc(mean_accuracy_by_step=mean_accuracy_by_step) * 100
-    # print(f'AUC: {round(auc, 4)}% for {num_correct_pertub.shape[1]} records')
     return auc
-
-
-def save_objects(experiment_dir: Path, num_correct_model, dissimilarity_model, num_correct_pertub, dissimilarity_pertub,
-                 logit_diff_pertub, prob_diff_pertub, perturb_index, perturbation_steps):
-    np.save(Path(experiment_dir, 'model_hits.npy'), num_correct_model)
-    np.save(Path(experiment_dir, 'model_dissimilarities.npy'), dissimilarity_model)
-    np.save(Path(experiment_dir, 'perturbations_hits.npy'), num_correct_pertub[:, :perturb_index])
-    np.save(Path(experiment_dir, 'perturbations_dissimilarities.npy'), dissimilarity_pertub[:, :perturb_index])
-    np.save(Path(experiment_dir, 'perturbations_logit_diff.npy'), logit_diff_pertub[:, :perturb_index])
-    np.save(Path(experiment_dir, 'perturbations_prob_diff.npy'), prob_diff_pertub[:, :perturb_index])
-    # print(f'Mean num correct: {np.mean(num_correct_model)}, std num correct {np.std(num_correct_model)}')
-    # print(f'Mean dissimilarity : {np.mean(dissimilarity_model)}, std dissimilarity {np.std(dissimilarity_model)}')
-    # print(f'Perturbation Steps: {perturbation_steps}')
-    # print(f'Mean num_correct_perturbation: {np.mean(num_correct_pertub, axis=1)}')  # , std num_correct_pertub {np.std(num_correct_pertub, axis=1)}')
-    # print(
-    #     f'Mean dissimilarity_pertub : {np.mean(dissimilarity_pertub, axis=1)}, std dissimilarity_pertub {np.std(dissimilarity_pertub, axis=1)}')
 
 
 def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[float, int], base_size: int):
@@ -206,17 +144,6 @@ def get_perturbated_data(vis: Tensor, image: Tensor, perturbation_step: Union[fl
     _data = _data.scatter_(-1, idx.reshape(1, org_shape[1], -1), 0)
     _data = _data.reshape(*org_shape)
     return _data
-
-
-# def get_model_infer_metrics(model_index, num_correct_model, pred, target):
-#     pred_probabilities = torch.softmax(pred, dim=1)
-#     pred_org_logit = pred.data.max(1, keepdim=True)[0].squeeze(1)
-#     pred_org_prob = pred_probabilities.data.max(1, keepdim=True)[0].squeeze(1)
-#     pred_class = pred.data.max(1, keepdim=True)[1].squeeze(1)
-#     tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
-#     num_correct_model[model_index:model_index + len(tgt_pred)] = tgt_pred
-#     return pred_probabilities, pred_org_logit, pred_org_prob, pred_class, tgt_pred, num_correct_model
-
 
 def move_to_device_data_vis_and_target(data, target=None, vis=None):
     data = data.to(device)
@@ -255,10 +182,8 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experi
     if not os.path.exists(experiment_path):
         os.makedirs(experiment_path, exist_ok=True)
 
-    # model.to(device)
     model.eval()
     for vis_type in VIS_TYPES:
-        # print(vis_type)
         vit_type_experiment_path = Path(experiment_path, vis_type)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
                                      outputs=outputs)
@@ -286,7 +211,6 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment
     for vis_type in VIS_TYPES:
         print(vis_type)
         vit_type_experiment_path = Path(experiment_path, vis_type)
-        # vit_type_experiment_path = create_folder(vit_type_experiment_path)
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model, outputs=outputs)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
