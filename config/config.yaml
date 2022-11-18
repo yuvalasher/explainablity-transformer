@@ -7,7 +7,7 @@ general:
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
   wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
-  wandb_entity: yuvalasher #amit_eshel
+  wandb_entity: yuvalasher
 vit:
   train_images_path: train_data #train_data_exp
   val_images_path: val_data #val_data_exp
@@ -24,22 +24,14 @@ vit:
   train_model_by_target_gt_class: True # TODO - Pay Attention - Important!
   model_name: google/vit-base-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
-  is_wolf_transforms: False
+  is_competitive_method_transforms: False
   img_size: 224 #384
   patch_size: 16
   n_heads: 12
-  gumble_objectives:
-    - objective_gumble_softmax
-    - objective_gumble_minimize_softmax
-    - objective_opposite_gumble_softmax
   freezing_classification_transformer: True
   freeze_classification_head: False
   num_labels: 1000
   save_every: 5
-  images:
-    - image_name: 00000118.JPEG # Black & White
-      correct_class: 3
-      contrastive_class:
   batch_size: 32
   default_root_dir: /raid/yuvalas/checkpoints #/home/yuvalas/explainability/research/checkpoints/token_classification
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
@@ -55,8 +47,7 @@ vit:
   log: False
   verbose: False
   plot_visualizations: False
-  temperature: 1
-  objective: temp_softmax # bias_temp_softmax #temp_softmax #bias_temp_softmax #temp_softmax # objective_gumble_softmax #objective_gumble_minimize_softmax # objective_gumble_softmax # objective_gumble_minimize_softmax # objective_opposite_gumble_softmax, objective_gumble_softmax
+  objective: temp_softmax
   seg_cls:
     train_n_label_sample: 1
     val_n_label_sample: 1
@@ -67,17 +58,7 @@ vit:
       mask_loss_mul: 50
       is_ce_neg: False
       use_logits_only: False
-    earlystopping:
-      min_delta: 0.0001
-      patience: 3
-  loss: # not relevant
-    kl_loss_multiplier: 0
-    pred_loss_multiplier: 10
-    entropy_loss_multiplier: 100
-    l1_loss_multiplier: 0
-    other_loss_multiplier: 0
   evaluation:
     original_image_name: 224x224.JPEG
     batch_size: 1
     experiment_folder_name: seg_cls
-#    perturbation_type: pos

@@ -5,7 +5,6 @@ import pandas as pd
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from datasets.imagenet_results_dataset import ImagenetResults
 from evaluation.evaluation_utils import normalize, calculate_auc, load_obj_from_path
 
 # from utils.consts import EXPERIMENTS_FOLDER_PATH
