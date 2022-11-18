@@ -238,8 +238,8 @@ def get_loss_multipliers(loss_config) -> Dict[str, float]:
 
 
 def get_checkpoint_idx(ckpt_path: str) -> int:
-    return int(ckpt_path.split("epoch=")[-1].split("_val")[0]) + 1
+    return int(str(ckpt_path).split("epoch=")[-1].split("_val")[0]) + 1
 
 
 def get_ckpt_model_auc(ckpt_path: str) -> float:
-    return float(ckpt_path.split("epoch_auc=")[-1].split(".ckpt")[0])
+    return float(str(ckpt_path).split("epoch_auc=")[-1].split(".ckpt")[0])
