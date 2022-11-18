@@ -24,7 +24,6 @@ cuda = torch.cuda.is_available()
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
 
 vit_config = config["vit"]
-loss_config = vit_config["loss"]
 
 VitModelForClassification = NewType("VitModelForClassification", ViTForImageClassification)
 
