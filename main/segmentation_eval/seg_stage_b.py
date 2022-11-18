@@ -319,9 +319,9 @@ if __name__ == '__main__':
 
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-        'experiment_folder_name'])  # /home/yuvalas/explainability/research/experiments/seg_cls/
+        'experiment_folder_name'])
 
-    EXP_NAME = ''  # TODO - pay attention !!!
+    EXP_NAME = ''  # TODO
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
