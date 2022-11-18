@@ -114,7 +114,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     pred = Res.clamp(min=0.0) / Res.max()
     pred = pred.view(-1).data.cpu().numpy()
     target = labels.view(-1).data.cpu().numpy()
-    # print("target", target.shape)
 
     output = torch.cat((Res_0, Res_1), 1)
     output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
