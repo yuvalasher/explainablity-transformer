@@ -37,10 +37,6 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 
 
-# cuda = torch.cuda.is_available()
-# device = torch.device("cuda" if cuda and vit_config["gpus"] > 0 else "cpu")
-# device = torch.device(type='cuda', index=config["general"]["gpu_index"])
-
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
@@ -94,13 +90,11 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
                                                                       is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
 
-        # interpolated_mask_normalized = interpolated_mask_normalized ** self.p
         masked_image = image_resized * interpolated_mask_normalized
         masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
         vit_masked_output_logits = vit_masked_output.logits
 
-        ### NEGATIVE MASK
         if loss_config['is_ce_neg']:
             masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
             masked_neg_image_inputs = self.normalize_image(masked_neg_image)
@@ -178,13 +172,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self._visualize_outputs(
             outputs, stage="train", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
         )
-        # if self.current_epoch >= vit_config["start_epoch_to_evaluate"] and self.current_epoch % 4 == 0:
-        #     run_perturbation_test(
-        #         model=self.vit_for_classification_image,
-        #         outputs=outputs,
-        #         stage="train",
-        #         epoch_idx=self.current_epoch,
-        #     )
 
     def validation_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))

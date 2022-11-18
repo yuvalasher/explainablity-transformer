@@ -1,8 +1,6 @@
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
-
-from main.seg_classification.image_token_dataset import ImageSegDataset
 from main.seg_classification.image_token_opt_dataset import ImageSegOptDataset
 
 

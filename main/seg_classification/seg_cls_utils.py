@@ -17,7 +17,6 @@ ce_loss = nn.CrossEntropyLoss(reduction="mean")
 
 
 def l1_loss(tokens_mask) -> Tensor:
-    # return torch.abs(tokens_mask).sum() # should be limited by batch_size * num_tokens
     return torch.abs(tokens_mask).mean()
 
 
@@ -27,7 +26,6 @@ def prediction_loss(output, target, target_class):
     else:
         target_class_to_compare = torch.argmax(target, dim=1)
     if loss_config["use_logits_only"]:
-        # return -torch.gather(output, 1, argmax_target.unsqueeze(1)).squeeze(1).sum()
         return -torch.gather(output, 1, target_class_to_compare.unsqueeze(1)).squeeze(1).mean()
     return ce_loss(output, target_class_to_compare)  # maximize the pred to original model
 
@@ -41,7 +39,7 @@ def encourage_token_mask_to_prior_loss(tokens_mask: Tensor, prior: int = 0):
         raise NotImplementedError
     bce_encourage_prior_patches_loss = bce_with_logits_loss(
         tokens_mask, target_encourage_patches
-    )  # turn off token masks
+    )
     return bce_encourage_prior_patches_loss
 
 
@@ -54,11 +52,9 @@ def load_pickles_and_calculate_auc(path):
     aucs = []
     listdir = sorted(list(Path(path).iterdir()))
     for pkl_path in listdir:
-        # print(pkl_path)
         loaded_obj = load_obj(pkl_path)
         auc = loaded_obj['auc']
         aucs.append(auc)
-    # print(f'AUCS: {aucs}')
     print(f"{len(aucs)} samples")
     return np.mean(aucs)
 

@@ -1,13 +1,8 @@
 import os
 import sys
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
-#
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from tqdm import tqdm
@@ -35,7 +30,6 @@ from utils.consts import (
     GT_VALIDATION_PATH_LABELS,
 )
 from vit_utils import (
-    load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,

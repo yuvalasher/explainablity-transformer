@@ -105,25 +105,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
 
     def validation_step(self, batch, batch_idx):
         pass
-        # inputs = batch["pixel_values"].squeeze(1)
-        # resized_and_normalized_image = batch["resized_and_normalized_image"]
-        # image_resized = batch["image"]
-        # target_class = batch["target_class"]
-        # output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
-        #
-        # images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        # return {
-        #     "loss": output.lossloss_output.loss,
-        #     "pred_loss": output.lossloss_output.pred_loss,
-        #     "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
-        #     "mask_loss": output.lossloss_output.mask_loss,
-        #     "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
-        #     "resized_and_normalized_image": resized_and_normalized_image,
-        #     "target_class": target_class,
-        #     "image_mask": images_mask,
-        #     "image_resized": image_resized,
-        #     "patches_mask": output.tokens_mask,
-        # }
 
     def training_epoch_end(self, outputs):
         auc = run_perturbation_test_opt(
@@ -132,10 +113,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             stage="train",
             epoch_idx=self.current_epoch,
         )
-        # self.auc_by_epoch.append(auc)
-        # ic(self.current_epoch, round(self.best_auc, 0), round(auc,0))
         if self.best_auc is None or auc < self.best_auc:
-            # print(f'New Best AUC: {round(auc, 3)} !')
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
@@ -149,13 +127,9 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 outputs[0]['auc'] = auc
-                # self.visualize_images_by_outputs(outputs=outputs)
                 self.trainer.should_stop = True
 
         if self.current_epoch == vit_config['n_epochs'] - 1:
-            # print(f"AUC by Epoch: {self.auc_by_epoch}")
-            # print(f"Best auc: {self.best_auc} by epoch {self.best_auc_epoch}")
-            # self.visualize_images_by_outputs(outputs=outputs)
             self.trainer.should_stop = True
 
 
