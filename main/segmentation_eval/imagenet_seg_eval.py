@@ -7,9 +7,6 @@ from icecream import ic
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.ViT_explanation_generator import LRP
 
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-
 import numpy as np
 import torch
 import torchvision.transforms as transforms

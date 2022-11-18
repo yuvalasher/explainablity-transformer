@@ -3,7 +3,6 @@ import os
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils.saver import Saver

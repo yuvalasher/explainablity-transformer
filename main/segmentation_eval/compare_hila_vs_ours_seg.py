@@ -4,7 +4,6 @@ from main.segmentation_eval.segmentation_model_opt import \
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 IMAGENET_SEGMENTATION_DATASET_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat"
-# TH_PLOTS_BASE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/"
 TH_PLOTS_BASE_PATH = "/home/yuvalas/explainability/main/segmentation_eval/segmenation_plots"
 
 import os
@@ -13,9 +12,6 @@ from pathlib import Path
 
 import yaml
 from icecream import ic
-
-# os.chdir('/home/amiteshel1/Projects/explainablity-transformer-cv/')
-# sys.path.append('/home/amiteshel1/Projects/explainablity-transformer-cv/')
 
 from main.segmentation_eval.ViT_explanation_generator import LRP
 import numpy as np
@@ -397,11 +393,6 @@ if __name__ == '__main__':
     if not os.path.exists(args.exp_np_path):
         os.makedirs(args.exp_np_path)
 
-    # with open(os.path.join('/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots', 'config.yaml'),
-    #           'w') as f:
-    #     yaml.dump(config, f)
-
-    # Data
     normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     test_img_trans = transforms.Compose([
         transforms.Resize((224, 224)),
