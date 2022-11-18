@@ -127,7 +127,6 @@ def calculate_percentage_increase_in_confidence(full_image_confidence: float, sa
 
 def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
     masks_listdir = os.listdir(mask_path)
-    # print(f"Total images: {len(masks_listdir)}")
     for idx in range(len(masks_listdir)):
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
         loaded_obj = load_obj(pkl_path)
@@ -138,47 +137,6 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
                    image_mask=loaded_obj["vis"].to(device),
                    auc=loaded_obj["auc"])
 
-
-# def infer_perturbation_tests_for_specific_indices(images_and_masks,
-#                                                   vit_for_image_classification,
-#                                                   is_base: bool,
-#                                                   image_indices: List[int],
-#                                                   perturbation_config: Dict[str, Union[PerturbationType, bool]],
-#                                                   gt_classes_list: List[int],
-#                                                   ) -> Tuple[List[float], List[float]]:
-#     """
-#     :param config: contains the configuration of the perturbation test:
-#         * neg: True / False
-#     """
-#     aucs_perturbation = []
-#     aucs_auc_deletion_insertion = []
-#     perturbation_type = perturbation_config["perturbation_type"].name
-#     is_calculate_deletion_insertion = perturbation_config["is_calculate_deletion_insertion"]
-#     s = 0
-#     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
-#         if image_idx in image_indices:
-#             s += 1
-#             image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-#             outputs = [
-#                 {'image_resized': image, 'image_mask': mask,
-#                  'target_class': torch.tensor([gt_classes_list[image_idx]])}]
-#             auc_perturbation, auc_deletion_insertion = eval_perturbation_test(experiment_dir=Path(""),
-#                                                                               model=vit_for_image_classification,
-#                                                                               outputs=outputs,
-#                                                                               image_idx=image_idx,
-#                                                                               is_base_model=is_base,
-#                                                                               is_hila=False,
-#                                                                               perturbation_type=perturbation_type,
-#                                                                               is_calculate_deletion_insertion=is_calculate_deletion_insertion)
-#             aucs_perturbation.append(auc_perturbation)
-#             aucs_auc_deletion_insertion.append(auc_deletion_insertion)
-#             print(
-#                 f"is_base: {is_base}, image:{image_idx}, auc_perturbation:{auc_perturbation}, gt_class: {gt_classes_list[image_idx]}")
-#             if s == len(images_indices):
-#                 break
-#     # print(aucs_perturbation, aucs_auc_deletion_insertion)
-#     return aucs_perturbation, aucs_auc_deletion_insertion
-#     # return np.mean(aucs_perturbation), np.mean(aucs_auc_deletion_insertion)
 
 
 def infer_perturbation_tests(images_and_masks,
@@ -206,9 +164,7 @@ def infer_perturbation_tests(images_and_masks,
                                                                           is_calculate_deletion_insertion=is_calculate_deletion_insertion)
         aucs_perturbation.append(auc_perturbation)
         aucs_auc_deletion_insertion.append(auc_deletion_insertion)
-    # print(aucs_perturbation, aucs_auc_deletion_insertion)
     return aucs_perturbation, aucs_auc_deletion_insertion
-    # return np.mean(aucs_perturbation), np.mean(aucs_auc_deletion_insertion)
 
 
 def get_probability_and_class_idx_by_index(logits, index: int) -> float:
@@ -254,15 +210,9 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
 
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-        # plot_image(image)
-        # show_mask(mask)
         norm_original_image = normalize(image.clone())
-        # plot_image(norm_original_image)
-        # show_mask(norm_mask)
         scattered_image = scatter_image_by_mask(image=image, mask=mask)
-        # plot_image(scattered_image)
         norm_scattered_image = normalize(scattered_image)
-        # plot_image(norm_scattered_image)
         metrics = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
                                          inputs=norm_original_image,
                                          inputs_scatter=norm_scattered_image,
@@ -323,8 +273,6 @@ def run_evaluations(pkl_path,
             gt_classes_list=gt_classes_list)
         auc_perturbation, auc_deletion_insertion = np.mean(auc_perturbation_list), np.mean(auc_deletion_insertion_list)
 
-        # save_obj_to_disk(path=Path(PICKLES_PATH, f"{exp_name}_{perturbation_type}.pkl"), obj=auc_perturbation)
-
         print(
             f'{"Base" if is_base_model else "Opt"} + {target_or_predicted_model} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
         print(
@@ -338,7 +286,6 @@ if __name__ == '__main__':
 
     for backbone_name in VIT_BACKBONE_DETAILS.keys():
         for target_or_predicted_model in ["predicted", "target"]:
-        # if target_or_predicted_model == "predicted" and backbone_name == "google/vit-base-patch16-224":
             HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
@@ -378,14 +325,3 @@ if __name__ == '__main__':
                                 backbone_name=backbone_name,
                                 imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                 device=device)
-    #
-    """
-     images_and_masks = [images_and_masks[i] for i in [1, 2, 4, 7, 10, 12, 13, 15, 18, 19, 20, 22, 24, 27]]
-    for i in range(len(images_and_masks)):
-        plot_image(images_and_masks[i]["image_resized"])
-        show_mask(images_and_masks[i]["image_mask"])
-    print(1)
-    auc = infer_perturbation_tests(images_and_masks=images_and_masks,
-                                   vit_for_image_classification=vit_for_image_classification,
-                                   perturbation_config=perturbation_config, gt_classes_list=gt_classes_list)
-    """
