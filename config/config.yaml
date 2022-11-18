@@ -20,8 +20,8 @@ vit:
   is_sampled_val_data_uniformly: True
   normalize_by_max_patch: False
   is_mlp_on_segmentation: True
-  is_clamp_between_0_to_1: True # otherwise it's mix-max-norm
-  train_model_by_target_gt_class: True # TODO - Pay Attention - Important!
+  is_clamp_between_0_to_1: True
+  train_model_by_target_gt_class: False
   model_name: google/vit-base-patch16-224
 #  model_name: WinKawaks/vit-small-patch16-224
   is_competitive_method_transforms: False

@@ -151,3 +151,4 @@ main/seg_classification/lightning_logs/*
 data/ILSVRC2012_val - Updated-DGX
 data/ILSVRC2012_test
 research
+checkpoints

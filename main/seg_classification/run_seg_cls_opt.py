@@ -3,8 +3,6 @@ import sys
 from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
-import wandb
-from pytorch_lightning.loggers import WandbLogger
 from tqdm import tqdm
 
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
@@ -14,7 +12,6 @@ import torch
 
 from config import config
 from icecream import ic
-from datetime import datetime as dt
 
 from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy, \
     get_gt_classes
@@ -73,8 +70,7 @@ ic(loss_config["mask_loss_mul"])
 exp_name = f'TESTTEST_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}__layers_freezed_{vit_config["segmentation_transformer_n_first_layers_to_freeze"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
 
 plot_path = Path(vit_config["plot_path"], exp_name)
-RUN_BASE_MODEL = vit_config[
-    "run_base_model"]  # TODO - Need to pay attention! If True, Running only forward of the image to create visualization of the base model
+RUN_BASE_MODEL = vit_config["run_base_model"]
 
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if vit_config[
     "train_model_by_target_gt_class"] else 'predicted')  # /raid/yuvalas/experiments/<target/predicted>
@@ -133,18 +129,12 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
-WANDB_PROJECT = config["general"]["wandb_project"]
-
-# run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
-# wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
-
 
 if __name__ == '__main__':
     IMAGES_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
     ic(exp_name)
     print(f"Total Images in path: {len(os.listdir(IMAGES_PATH))}")
     ic(vit_config['lr'], loss_multipliers["mask_loss_mul"], loss_multipliers["prediction_loss_mul"])
-    start_time = dt.now()
     listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
     targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
     for idx, (image_path, target) in tqdm(enumerate(zip(listdir, targets)), position=0, leave=True, total=len(listdir)):
@@ -156,8 +146,6 @@ if __name__ == '__main__':
             target=target,
         )
         trainer = pl.Trainer(
-            # callbacks=[early_stop_callback],
-            # logger=[wandb_logger],
             logger=[],
             accelerator='gpu',
             gpus=1,
@@ -172,13 +160,7 @@ if __name__ == '__main__':
             weights_summary=None
         )
         trainer.fit(model=model, datamodule=data_module)
-        # if (idx % 1000 == 0 and idx > 0):
-        #     mean_auc = load_pickles_and_calculate_auc(
-        #         path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
-        #     print(f"Epoch: {idx}  ---> Mean AUC: {mean_auc}")
-    # print(f"Time diff: {dt.now() - start_time}")
     mean_auc = load_pickles_and_calculate_auc(
         path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH)
     print(f"Mean AUC: {mean_auc}")
-    print("FINISH!!!")
     ic(exp_name)

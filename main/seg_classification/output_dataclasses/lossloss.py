@@ -28,13 +28,6 @@ class LossLoss:
 
     def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor, target_class: Tensor,
                  neg_output: Tensor = None) -> LossLossOutput:
-        """
-        Objective 1 - Keep the classification as original with as much as dark tokens
-        This will be applied on the token classification by encourage the sigmoid to go to zero & CE with the original
-
-        Loss between the original prediction's distribution of the model and the prediction's distribution of the new model
-        + average of the BCE of the x * self-attention
-        """
         if self.mask_loss == "bce":
             mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
         elif self.mask_loss == "l1":
@@ -55,8 +48,6 @@ class LossLoss:
         prediction_loss_multiplied = self.prediction_loss_mul * pred_loss
         mask_loss_multiplied = self.mask_loss_mul * mask_loss
         loss = prediction_loss_multiplied + mask_loss_multiplied
-        # print(
-        #     f'prediction_loss: {pred_loss} * {self.prediction_loss_mul}, mask_loss: {mask_loss} * {self.mask_loss_mul}')
         return LossLossOutput(
             loss=loss,
             prediction_loss_multiplied=prediction_loss_multiplied,
@@ -66,8 +57,7 @@ class LossLoss:
         )
 
     def entropy_loss(self, tokens_mask: Tensor):
-        tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0],
-                                                  -1)  # From (32,1,14,14) --> (32,196) - easy for compute entropy.
+        tokens_mask_reshape = tokens_mask.reshape(tokens_mask.shape[0], -1)
         d = torch.distributions.Categorical(tokens_mask_reshape + 10e-8)
         normalized_entropy = d.entropy() / np.log(d.param_shape[-1])
         mask_loss = normalized_entropy.mean()
