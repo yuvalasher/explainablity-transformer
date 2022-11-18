@@ -129,9 +129,9 @@ def print_number_of_trainable_and_not_trainable_params(model) -> None:
     )
 
 
-def load_feature_extractor(vit_config: Dict, is_wolf_transforms) -> ViTFeatureExtractor:
+def load_feature_extractor(vit_config: Dict, is_competitive_method_transforms: bool) -> ViTFeatureExtractor:
     feature_extractor = ViTFeatureExtractor.from_pretrained(
-        vit_config["model_name"], is_wolf_transforms=is_wolf_transforms
+        vit_config["model_name"], is_competitive_method_transforms=is_competitive_method_transforms
     )
     return feature_extractor
 
@@ -144,10 +144,10 @@ def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassificatio
 
 
 def load_feature_extractor_and_vit_model(
-        vit_config: Dict, model_type: str, is_wolf_transforms: bool = False
+        vit_config: Dict, model_type: str, is_competitive_method_transforms: bool = False
 ) -> Tuple[ViTFeatureExtractor, ViTForImageClassification]:
     feature_extractor = load_feature_extractor(
-        vit_config=vit_config, is_wolf_transforms=is_wolf_transforms
+        vit_config=vit_config, is_competitive_method_transforms=is_competitive_method_transforms
     )
     vit_model = load_vit_model_by_type(vit_config=vit_config, model_type=model_type)
     return feature_extractor, vit_model

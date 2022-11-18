@@ -57,7 +57,7 @@ exp_name = f'model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_c
 
 ic(vit_config["train_model_by_target_gt_class"])
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
-ic(vit_config["is_wolf_transforms"])
+ic(vit_config["is_competitive_method_transforms"])
 ic(vit_config["model_name"])
 
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])

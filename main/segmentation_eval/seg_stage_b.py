@@ -329,7 +329,7 @@ if __name__ == '__main__':
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
         model_type="vit-basic",
-        is_wolf_transforms=vit_config["is_wolf_transforms"],
+        is_competitive_method_transforms=vit_config["is_competitive_method_transforms"],
     )
 
     ic(vit_config["model_name"])

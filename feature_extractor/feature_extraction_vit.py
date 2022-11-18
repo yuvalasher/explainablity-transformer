@@ -71,7 +71,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
             do_normalize=True,
             image_mean=None,
             image_std=None,
-            is_wolf_transforms: bool = False,
+            is_competitive_method_transforms: bool = False,
             **kwargs
     ):
         super().__init__(**kwargs)
@@ -81,7 +81,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
         self.do_normalize = do_normalize
         self.image_mean = image_mean if image_mean is not None else IMAGENET_STANDARD_MEAN
         self.image_std = image_std if image_std is not None else IMAGENET_STANDARD_STD
-        self.is_wolf_transforms = is_wolf_transforms
+        self.is_competitive_method_transforms = is_competitive_method_transforms
 
     def __call__(
             self, images: ImageInput, return_tensors: Optional[Union[str, TensorType]] = None, **kwargs
@@ -141,7 +141,7 @@ class ViTFeatureExtractor(FeatureExtractionMixin, ImageFeatureExtractionMixin):
             images = [images]
 
         # transformations (resizing + normalization)
-        if self.is_wolf_transforms:
+        if self.is_competitive_method_transforms:
             images = [self.resize(image=image, size=get_transforms_size(image), resample=self.resample) for image in
                       images]
             images = [self.center_crop(image=image, size=(vit_config["img_size"], vit_config["img_size"])) for image in images]

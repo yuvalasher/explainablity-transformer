@@ -349,6 +349,7 @@ def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
     plt.savefig(Path(TH_PLOTS_BASE_PATH, f'{metrics_title}__{n_samples}.png'))
     plt.close()
 
+
 if __name__ == '__main__':
     # Args
     parser = argparse.ArgumentParser(description='Training multi-class classifier')
@@ -469,8 +470,8 @@ if __name__ == '__main__':
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
         model_type="vit-basic",
-        is_wolf_transforms=vit_config["is_wolf_transforms"],
-    )  # TODO if vit-for-dino is relevant
+        is_competitive_method_transforms=vit_config["is_competitive_method_transforms"],
+    )
 
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])

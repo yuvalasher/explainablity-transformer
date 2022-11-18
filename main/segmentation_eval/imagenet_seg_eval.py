@@ -394,8 +394,8 @@ if __name__ == '__main__':
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
         model_type="vit-basic",
-        is_wolf_transforms=vit_config["is_wolf_transforms"],
-    )  # TODO if vit-for-dino is relevant
+        is_competitive_method_transforms=vit_config["is_competitive_method_transforms"],
+    )
 
     vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
