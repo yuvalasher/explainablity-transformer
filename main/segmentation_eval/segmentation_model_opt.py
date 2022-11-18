@@ -5,9 +5,7 @@ import pytorch_lightning as pl
 import torch
 from tqdm import tqdm
 from config import config
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
-    save_best_auc_objects_to_disk, run_perturbation_test_opt
-)
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import run_perturbation_test_opt
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
@@ -104,7 +102,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             "original_image": original_image,
             "image_mask": images_mask,
             "target_class": torch.argmax(vit_cls_output.logits, dim=1),
-            # in segmentation we don't have target_class, so the perturbation test will be by the predicted argmax output of ViT
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
         }
@@ -126,12 +123,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             self.best_auc_vis = outputs[0]["image_mask"]
             self.best_auc_image = outputs[0]["image_resized"]
 
-            # save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-            #                               auc=auc,
-            #                               vis=self.best_auc_vis,
-            #                               original_image=self.best_auc_image,
-            #                               epoch_idx=self.current_epoch,
-            #                               )
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 self.trainer.should_stop = True
 
@@ -144,12 +135,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         self.image_resized = image_resized
         output = self.forward(inputs, image_resized)
         images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        # plt.imshow(images_mask.squeeze(0).squeeze(0).cpu().detach())
-        # plt.title('TEST')
-        # plt.show()
-        # plt.imshow(image_resized.squeeze(0).cpu().detach().permute(1, 2, 0))
-        # plt.title('TEST')
-        # plt.show()
 
         outputs = {'images_mask': images_mask,
                    'target': target,
@@ -188,86 +173,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         self.seg_results = {"mIoU": mIoU, 'pixAcc': pixAcc, 'mAp': mAp, 'mF1': mF1}
         return
 
-    def eval_results_per_res(self, Res, image, labels, q=-1):
-        Res = (Res - Res.min()) / (Res.max() - Res.min())
-        if q == -1:
-            ret = Res.mean()
-        else:
-            ret = torch.quantile(Res, q=q)
-
-        Res_1 = Res.gt(ret).type(Res.type())
-        Res_0 = Res.le(ret).type(Res.type())
-
-        Res_1_AP = Res
-        Res_0_AP = 1 - Res
-
-        Res_1[Res_1 != Res_1] = 0
-        Res_0[Res_0 != Res_0] = 0
-        Res_1_AP[Res_1_AP != Res_1_AP] = 0
-        Res_0_AP[Res_0_AP != Res_0_AP] = 0
-
-        # TEST
-        pred = Res.clamp(min=0.0) / Res.max()  # args.thr instead of 0.0
-        pred = pred.view(-1).data.cpu().numpy()
-        target = labels.view(-1).data.cpu().numpy()
-        # print("target", target.shape)
-
-        output = torch.cat((Res_0, Res_1), 1)
-        output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
-
-        # Evaluate Segmentation
-        batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
-        batch_ap, batch_f1 = 0, 0
-
-        # Segmentation resutls
-        correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels)  # labels should be [224,224]
-        inter, union = batch_intersection_union(output[0].data.cpu(), labels, 2)
-        batch_correct += correct
-        batch_label += labeled
-        batch_inter += inter
-        batch_union += union
-        # print("output", output.shape)
-        # print("ap labels", labels.shape)
-        # ap = np.nan_to_num(get_ap_scores(output, labels))
-        ap = np.nan_to_num(get_ap_scores(output_AP, labels))
-        f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
-        batch_ap += ap
-        batch_f1 += f1
-
-        return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
     def eval_results_per_bacth(self, Res, image, labels, q=-1):
-        # vit_output: SequenceClassifierOutput = self.vit_for_classification_image(self.normalize_image(image))
-        # gt_idx = vit_output.logits.argmax(dim=1)
-        # q_arr = np.arange(0, 1, 0.05)
-        # th_torch = torch.zeros_like(gt_idx)
-        # for idx in range(self.batch_size):
-        #     Res_flat = torch.flatten(Res[idx]).sort().values
-        #     for q in q_arr:
-        #
-        #         th = torch.quantile(Res_flat, q=q)
-        #         th_mask = Res[idx] > th
-        #         new_mask = Res[idx] * th_mask
-        #         # new_mask = Res[idx].clamp(min=th)
-        #         # plt.imshow(new_mask.squeeze().data.cpu().numpy())
-        #         # plt.title(f'th = {th} and q= {q}')
-        #         # plt.show()
-        #         masked_image = image[idx] * new_mask
-        #         masked_image_norm = (masked_image - masked_image.min()) / (masked_image.max() - masked_image.min())
-        #         # plt.imshow(masked_image_norm.permute(1, 2, 0).cpu().detach())
-        #         # plt.title(f'image with mask = {q}')
-        #         # plt.show()
-        #
-        #         masked_image = masked_image.unsqueeze(0)
-        #         ####### CHECK WHAT IS GT _ AND IF NORMALIZE CHANGED THE INPUT!
-        #         masked_image_inputs = self.normalize_image(masked_image)
-        #         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
-        #         pred_class = torch.softmax(vit_masked_output.logits, dim=1).argmax().item()
-        #         if pred_class != gt_idx[idx]:
-        #             th_torch[idx] = th
-        #             # TODO - check taking the prev th (before breaking the class).
-        #             break
-
         Res = (Res - Res.min()) / (Res.max() - Res.min())
 
         # ret = th_torch
@@ -293,16 +200,13 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         # Evaluate Segmentation
         batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
         batch_ap, batch_f1 = 0, 0
-        # Segmentation resutls
+        # Segmentation results
         correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels[0])
         inter, union = batch_intersection_union(output[0].data.cpu(), labels[0], 2)
         batch_correct += correct
         batch_label += labeled
         batch_inter += inter
         batch_union += union
-        # print("output", output.shape)
-        # print("ap labels", labels.shape)
-        # ap = np.nan_to_num(get_ap_scores(output, labels))
         ap = np.nan_to_num(get_ap_scores(output_AP, labels))
         f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
         batch_ap += ap

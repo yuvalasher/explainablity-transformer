@@ -28,7 +28,7 @@ from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
-from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH
+from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
 
 import pytorch_lightning as pl
 import gc
@@ -64,7 +64,6 @@ def init_get_normalize_and_trns():
 if __name__ == '__main__':
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
-    # Data
     batch_size = 32
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
     ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
@@ -80,7 +79,6 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    # vit_config["train_model_by_target_gt_class"]
     target_or_predicted_model = "predicted"
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
                                                          target_or_predicted_model], \
@@ -93,12 +91,13 @@ if __name__ == '__main__':
     vit_config["patch_size"] = PATCH_SIZE
     loss_config["mask_loss_mul"] = MASK_LOSS_MUL
     ic(loss_config["mask_loss_mul"])
+    ic(vit_config["model_name"])
+
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     RUN_BASE_MODEL = vit_config[
         'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
 
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-    ic(vit_config["model_name"])
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
             model_name=vit_config["model_name"])
@@ -108,7 +107,7 @@ if __name__ == '__main__':
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs"],
-        train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
+        train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
         batch_size=vit_config["batch_size"],
     )
 
@@ -127,7 +126,7 @@ if __name__ == '__main__':
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='test',
-        experiment_path='exp_name_amitt'
+        experiment_path='exp_name'
     )
     model = freeze_multitask_model(
         model=model,
