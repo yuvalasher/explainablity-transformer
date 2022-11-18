@@ -1,13 +1,10 @@
 general:
   gpu_index: 0
   seed: 42
-  images_folder_test_DGX: ILSVRC2012_test_sampled
-  images_folder_test_ES_DGX: ILSVRC2012_test_earlystopping
-  images_folder_name_DGX: ILSVRC2012_val_Updated_DGX
   images_folder_name: ILSVRC2012_val - Updated
   images_gt_filename: ILSVRC2012_validation_ground_truth.txt
-  wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
-  wandb_entity: yuvalasher
+  wandb_project: "" # TODO - insert a wandb project name
+  wandb_entity: "" # TODO - insert a wandb entity
 vit:
   train_images_path: train_data
   val_images_path: val_data
@@ -33,9 +30,9 @@ vit:
   num_labels: 1000
   save_every: 5
   batch_size: 32
-  default_root_dir: /raid/yuvalas/checkpoints
-  plot_path: /home/yuvalas/explainability/research/plots/token_classification/
-  experiments_path: /home/yuvalas/explainability/research/experiments
+  default_root_dir: "" # TODO - insert a path to local checkpoints save path
+  plot_path: "" # TODO - insert a path to local plots_path
+  experiments_path: "" # TODO - insert a path to local experiments_path for save data
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 3
@@ -53,7 +50,7 @@ vit:
     val_n_label_sample: 1
     loss:
       normalize: False
-      mask_loss: bce #choose l1, bce, entropy_softmax
+      mask_loss: bce
       prediction_loss_mul: 1
       mask_loss_mul: 50
       is_ce_neg: False
