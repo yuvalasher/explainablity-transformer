@@ -41,7 +41,6 @@ vit:
   n_epochs: 52
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
-  num_steps: 180
   print_every: 1
   discard_ratio: 0.6
   log: False

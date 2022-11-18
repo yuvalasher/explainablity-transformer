@@ -14,7 +14,6 @@ from icecream import ic
 from utils import remove_old_results_dfs
 from vit_loader.load_vit import load_vit_pretrained
 from pathlib import Path
-import wandb
 from main.seg_classification.image_classification_with_token_classification_model import (
     ImageClassificationWithTokenClassificationModel,
 )
@@ -31,8 +30,6 @@ from vit_utils import (
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
 )
 from pytorch_lightning import seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
 import torch
 
 vit_config = config["vit"]
@@ -114,14 +111,7 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
-WANDB_PROJECT = config["general"]["wandb_project"]
-run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
-wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
-
 trainer = pl.Trainer(
-    # callbacks=[
-    #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
-    logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
