@@ -1,5 +1,4 @@
 import torch
-from icecream import ic
 import os
 import random
 from typing import Union, List, Dict, Tuple
@@ -17,7 +16,6 @@ vit_config = config["vit"]
 print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
 print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
-IMAGENET_TEST_GT_BY_VIT_FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/imagenet_test_gt_by_vit.csv"
 IMAGENET_VAL_GT_CSV_FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/val_ground_truth_2012.csv"
 N_IMAGES_PER_LABEL = 1000
 seed_everything(config["general"]["seed"])
