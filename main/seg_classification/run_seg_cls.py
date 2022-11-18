@@ -6,8 +6,6 @@ from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 import torch
 from config import config
 from icecream import ic
