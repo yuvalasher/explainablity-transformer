@@ -7,7 +7,8 @@ from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
-
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 import sys
 from pathlib import Path
 
