@@ -1,8 +1,4 @@
 from time import sleep
-
-import pandas as pd
-from icecream import ic
-from datetime import datetime as dt
 import os
 from matplotlib import pyplot as plt
 from PIL import Image
@@ -16,23 +12,17 @@ from config import config
 from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
-import seaborn as sns
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
-# from utils.utils_functions import get_gt_classes
-# from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
-# from main.seg_classification.image_classification_with_token_classification_model import prediction_loss
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
-from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from vit_loader.load_vit import load_vit_pretrained
 import torch
 from enum import Enum
 import pickle
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, GT_VALIDATION_PATH_LABELS
 
 vit_config = config["vit"]
 
-IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amiteshel1/Projects/explainablity-transformer/vit_data/"
-GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 seed_everything(config['general']['seed'])
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
@@ -136,7 +126,6 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
         yield dict(image_resized=image_resized.to(device),
                    image_mask=loaded_obj["vis"].to(device),
                    auc=loaded_obj["auc"])
-
 
 
 def infer_perturbation_tests(images_and_masks,

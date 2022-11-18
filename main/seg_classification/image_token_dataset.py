@@ -11,14 +11,15 @@ from utils import get_image_from_path
 from utils.transformation import resize
 from vit_utils import get_image_and_inputs_and_transformed_image
 from config import config
+from utils.consts import IMAGENET_VAL_GT_CSV_FILE_PATH
 
+seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
+
 print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
 print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
-IMAGENET_VAL_GT_CSV_FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/val_ground_truth_2012.csv"
 N_IMAGES_PER_LABEL = 1000
-seed_everything(config["general"]["seed"])
 
 
 class ImagesDataset(Dataset):

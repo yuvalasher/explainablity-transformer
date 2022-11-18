@@ -1,17 +1,13 @@
 import os
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from icecream import ic
 from transformers import ViTForImageClassification
-
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
-
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-import sys
 from pathlib import Path
-
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
 
@@ -23,15 +19,13 @@ from numpy import *
 from PIL import Image
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from utils.metrices import *
-
 from config import config
 from utils.iou import IoU
 
 from data.imagenet import Imagenet_Segmentation
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from vit_loader.load_vit import load_vit_pretrained
-from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
+from vit_utils import get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
 from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH

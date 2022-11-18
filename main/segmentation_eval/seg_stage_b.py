@@ -7,7 +7,6 @@ from pathlib import Path
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from utils.saver import Saver
 from icecream import ic
-from main.segmentation_eval.ViT_explanation_generator import LRP
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -28,7 +27,6 @@ from config import config
 from utils import render
 from utils.iou import IoU
 from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
@@ -38,12 +36,10 @@ from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and
 
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_SEG_PATH,
 )
 
-from main.segmentation_eval.ViT_LRP import vit_base_patch16_224 as vit_LRP
 from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
@@ -128,20 +124,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
 
     if args.save_img:
         save_heatmap_and_seg_mask(Res=Res, plot_path=image_plots_path)
-        # # Save predicted mask
-        # mask = F.interpolate(Res_1, [64, 64], mode='bilinear')
-        # mask = mask[0].squeeze().data.cpu().numpy()
-        # # mask = Res_1[0].squeeze().data.cpu().numpy()
-        # mask = 255 * mask
-        # mask = mask.astype('uint8')
-        # imageio.imsave(Path(args.exp_img_path, 'mask_' + str(index) + '.jpg'), mask)
-        #
-        # relevance = F.interpolate(Res, [64, 64], mode='bilinear')
-        # relevance = relevance[0].permute(1, 2, 0).data.cpu().numpy()
-        # # relevance = Res[0].permute(1, 2, 0).data.cpu().numpy()
-        # hm = np.sum(relevance, axis=-1)
-        # maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
-        # imageio.imsave(Path(args.exp_img_path, 'heatmap_' + str(index) + '.jpg'), maps)
 
     # Evaluate Segmentation
     batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
@@ -154,9 +136,7 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     batch_label += labeled
     batch_inter += inter
     batch_union += union
-    # print("output", output.shape)
-    # print("ap labels", labels.shape)
-    # ap = np.nan_to_num(get_ap_scores(output, labels))
+
     ap = np.nan_to_num(get_ap_scores(output_AP, labels))
     f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
     batch_ap += ap
@@ -198,18 +178,6 @@ def save_heatmap_and_seg_mask(Res, plot_path):
     maps = (render.hm_to_rgb(hm, scaling=3, sigma=1, cmap='seismic') * 255).astype(np.uint8)
     imageio.imsave(os.path.join(plot_path, 'heatmap.jpg'), maps)
     return
-
-
-
-def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
-    plt.plot(q_arr, metric_a, label='ours')
-    plt.plot(q_arr, metric_b, label='hila')
-    plt.legend()
-    plt.grid()
-    plt.title(f'{metrics_title} - num_samples = {n_samples}')
-    plt.savefig(
-        f'/home/amiteshel1/Projects/explainablity-transformer-cv/amit_th_plots/{metrics_title}__{n_samples}.png')
-    plt.close()
 
 
 def init_get_normalize_and_trns():
@@ -255,9 +223,8 @@ if __name__ == '__main__':
     args.checkname = args.method + '_' + args.arc
 
     saver = Saver(args)
-    saver.experiment_dir = "/home/yuvalas/explainability/main/segmentation_eval/"
-    saver.results_dir = "/home/yuvalas/explainability/main/segmentation_eval/l2_heatmaps"
-
+    saver.experiment_dir = "" # TODO - need to be filled in order to plot visualizations
+    saver.results_dir = "" # TODO - need to be filled in order to plot visualizations
     args.save_img = False  # TODO - Pay Attention - Important
 
     ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
@@ -299,7 +266,7 @@ if __name__ == '__main__':
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
-        train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
+        train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
         batch_size=vit_config["batch_size"],
     )
 
@@ -382,5 +349,4 @@ if __name__ == '__main__':
         if (batch_idx % 100 == 0) or (batch_idx == n_batches[-1]):
             print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)
 
-    print("FINISH !!!!!")
     print_segmentation_results(pixAcc=pixAcc, mAp=mAp, mIoU=mIoU, mF1=mF1)

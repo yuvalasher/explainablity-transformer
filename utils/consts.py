@@ -22,4 +22,5 @@ RESULTS_PICKLES_FOLDER_PATH = "/raid/yuvalas/experiments"
 EVALUATION_FOLDER_PATH: Path = Path(ROOT_DIR, 'evaluation').resolve()
 GT_VALIDATION_PATH_LABELS = "/home/yuvalas/explainability/data/val ground truth 2012.txt"
 IMAGENET_SEG_PATH = '/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/gtsegs_ijcv.mat'
+IMAGENET_VAL_GT_CSV_FILE_PATH = "/home/amiteshel1/Projects/explainablity-transformer-cv/val_ground_truth_2012.csv"
 PLTE_CHECKPOINTS_PATH = Path(ROOT_DIR, 'checkpoints').resolve()

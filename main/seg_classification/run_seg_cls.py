@@ -26,7 +26,6 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH,
 )
 from vit_utils import (
-    load_feature_extractor_and_vit_model,
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
