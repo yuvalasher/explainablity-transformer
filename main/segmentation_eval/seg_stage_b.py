@@ -165,7 +165,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
 
-# hyperparameters
 num_workers = 0
 
 
@@ -200,43 +199,6 @@ def save_heatmap_and_seg_mask(Res, plot_path):
     imageio.imsave(os.path.join(plot_path, 'heatmap.jpg'), maps)
     return
 
-
-# def calculate_metrics_segmentations(epochs, ds, q: int):
-#     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
-#     total_ap, total_f1 = [], []
-#     predictions, targets = [], []
-#
-#     for batch_idx in tqdm(epochs, position=0, leave=True, total=len(epochs)):
-#         img, labels, image_resized = ds[batch_idx]
-#
-#         Res = lrp.generate_LRP(image_resized.unsqueeze(0).cuda(), start_layer=1,
-#                                method="transformer_attribution").reshape(
-#             1, 1, 14, 14)
-#
-#         Res = torch.nn.functional.interpolate(Res, scale_factor=16, mode='bilinear').cuda()
-#
-#         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res,
-#                                                                                     index=batch_idx,
-#                                                                                     q=q,
-#                                                                                     labels=labels,
-#                                                                                     image=image_resized)
-#
-#         predictions.append(pred)
-#         targets.append(target)
-#
-#         total_correct += correct.astype('int64')
-#         total_label += labeled.astype('int64')
-#         total_inter += inter.astype('int64')
-#         total_union += union.astype('int64')
-#         total_ap += [ap]
-#         total_f1 += [f1]
-#         pixAcc = np.float64(1.0) * total_correct / (np.spacing(1, dtype=np.float64) + total_label)
-#         IoU = np.float64(1.0) * total_inter / (np.spacing(1, dtype=np.float64) + total_union)
-#         mIoU = IoU.mean()
-#         mAp = np.mean(total_ap)
-#         mF1 = np.mean(total_f1)
-#
-#     return mIoU, pixAcc, mAp, mF1
 
 
 def plot_metric(q_arr, metric_a, metric_b, metrics_title, n_samples):
@@ -302,11 +264,7 @@ if __name__ == '__main__':
     ic(vit_config["n_epochs_to_optimize_stage_b"])
     ic(loss_config["use_logits_only"])
     ic(vit_config['run_base_model'])
-    # ic(vit_config["seg_cls"]["loss"]['regularization_loss_mul'])
-    # ic(vit_config['kl_on_heatmaps'])
-    # ic(vit_config['l2_on_weights'])
     ic(args.save_img)
-    print(f'Debuggingggggggggg - args.save_img: {args.save_img}\n')
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
