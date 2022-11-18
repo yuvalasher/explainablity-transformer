@@ -21,7 +21,6 @@ from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
 )
 from vit_utils import (
@@ -66,7 +65,6 @@ else:
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
 ic(
-    str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
 
@@ -81,7 +79,7 @@ data_module = ImageSegDataModule(
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     n_epochs=vit_config["n_epochs"],
-    train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
+    train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
     batch_size=vit_config["batch_size"],
 )
 plot_path = Path(vit_config["plot_path"], exp_name)

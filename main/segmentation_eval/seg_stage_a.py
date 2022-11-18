@@ -28,7 +28,7 @@ from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
 
-from utils.consts import IMAGENET_TEST_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, IMAGENET_SEG_PATH
 
 import pytorch_lightning as pl
 import gc

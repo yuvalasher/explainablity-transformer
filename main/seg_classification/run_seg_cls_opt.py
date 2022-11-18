@@ -24,7 +24,6 @@ from pathlib import Path
 import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    IMAGENET_TEST_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
     GT_VALIDATION_PATH_LABELS,
 )
@@ -96,13 +95,12 @@ else:
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
 ic(
-    str(IMAGENET_TEST_IMAGES_FOLDER_PATH),
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
-    train_samples_length=len(list(Path(IMAGENET_TEST_IMAGES_FOLDER_PATH).iterdir())),
+    train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
     batch_size=vit_config["batch_size"],
 )
 
