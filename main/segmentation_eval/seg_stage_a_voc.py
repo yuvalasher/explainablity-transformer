@@ -92,9 +92,9 @@ if __name__ == '__main__':
 
 
 
-    ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+    # ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
+    #                            transform=test_img_trans,
+    #                            transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
     # COCO_SEG_PATH = Path("/home/amiteshel1/Projects/explainablity-transformer-cv/datasets/coco/")
     #
     # ds = Coco_Segmentation(COCO_SEG_PATH,

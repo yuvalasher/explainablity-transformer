@@ -6,15 +6,13 @@ from torch.utils.data.dataset import Dataset
 
 
 class ImagenetResults(Dataset):
-    def __init__(self, path, vis_type):
+    def __init__(self, path):
         """
         :param vis_type: Indicate which iteration's mask should be considered
         """
         super(ImagenetResults, self).__init__()
 
-        self.path: Path = Path(path, 'results.hdf5')
-        # self.path: Path = Path(path, 'results_100.hdf5')
-        self.vis_type: str = vis_type
+        self.path: Path = Path(path)
         self.data = None
 
         print('Reading dataset length...')
@@ -28,9 +26,5 @@ class ImagenetResults(Dataset):
     def __getitem__(self, item):
         if self.data is None:
             self.data = h5py.File(self.path, 'r')
-
-        image = torch.tensor(self.data['image'][item])
-        vis = torch.tensor(self.data[self.vis_type][item])
-        target = torch.tensor(self.data['target'][item]).long()
-
-        return image, vis, target
+        vis = torch.tensor(self.data['vis'][item])
+        return vis

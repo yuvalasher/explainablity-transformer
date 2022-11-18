@@ -166,9 +166,9 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         for idx, val in tqdm(enumerate(outputs), position=0, leave=True, total=len(outputs)):
             Res_batch, target_batch, image_resized_batch = val['images_mask'], val['target'], val['image_resized']
 
-            correct, labeled, inter, union, ap, f1, pred, target = self.eval_results_per_bacth(Res_batch,
+            correct, labeled, inter, union, ap, f1, pred, target = self.eval_results_per_bacth(Res_batch, #32,1,224,224
                                                                                                q=-1,
-                                                                                               labels=target_batch,
+                                                                                               labels=target_batch, #32,224,224
                                                                                                image=image_resized_batch)
             predictions.append(pred)
             targets.append(target)
