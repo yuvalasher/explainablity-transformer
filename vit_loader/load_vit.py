@@ -6,22 +6,16 @@ from models.modeling_vit_patch_classification import ViTForMaskGeneration
 
 from vit_loader.ViT_new import vit_base_patch16_224
 
-AUGREG_BASE_PATH_MODEL = '/home/yuvalas/explainability/models/ar_base.tar'
 DEFAULT_MODEL_NAME = 'google/vit-base-patch16-224'
 
 
 def load_hila_model(model_name: str):
     model = vit_base_patch16_224(pretrained=True).cuda()
-    if 'augreg' in model_name.lower():
-        checkpoint = torch.load(AUGREG_BASE_PATH_MODEL)
-        model.load_state_dict(checkpoint['state_dict'])
     return model
 
 
 def load_vit_pretrained(model_name: str) -> Tuple[ViTForImageClassification, ViTForMaskGeneration]:
     hila_model = load_hila_model(model_name=model_name)
-    if 'augreg' in model_name.lower():
-        model_name = DEFAULT_MODEL_NAME
     vit_for_image_classification = ViTForImageClassification.from_pretrained(model_name)
     vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(model_name)
     vit_for_image_classification = load_state_of_two_src_models(src_model=hila_model,
