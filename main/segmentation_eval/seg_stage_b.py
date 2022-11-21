@@ -1,7 +1,6 @@
 import os
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
-import sys
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from pathlib import Path
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
@@ -26,7 +25,7 @@ from utils.metrices import *
 from config import config
 from utils import render
 from utils.iou import IoU
-from data.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
+from main.segmentation_eval.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
 import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
@@ -60,6 +59,7 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
+num_workers = 0
 
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
@@ -91,10 +91,6 @@ def compute_pred(output):
 
 
 def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
-    if args.save_img:
-        os.makedirs(image_plots_path, exist_ok=True)
-        save_original_image_and_gt_mask(image=image_resized, labels=labels, plot_path=image_plots_path)
-
     Res = (Res - Res.min()) / (Res.max() - Res.min())
 
     if q == -1:
@@ -114,22 +110,18 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     Res_0_AP[Res_0_AP != Res_0_AP] = 0
 
     # TEST
-    pred = Res.clamp(min=args.thr) / Res.max()
+    pred = Res.clamp(min=0.0) / Res.max()
     pred = pred.view(-1).data.cpu().numpy()
     target = labels.view(-1).data.cpu().numpy()
-    # print("target", target.shape)
 
     output = torch.cat((Res_0, Res_1), 1)
     output_AP = torch.cat((Res_0_AP, Res_1_AP), 1)
-
-    if args.save_img:
-        save_heatmap_and_seg_mask(Res=Res, plot_path=image_plots_path)
 
     # Evaluate Segmentation
     batch_inter, batch_union, batch_correct, batch_label = 0, 0, 0, 0
     batch_ap, batch_f1 = 0, 0
 
-    # Segmentation resutls
+    # Segmentation results
     correct, labeled = batch_pix_accuracy(output[0].data.cpu(), labels[0])  # labels should be [224,224]
     inter, union = batch_intersection_union(output[0].data.cpu(), labels[0], 2)
     batch_correct += correct
@@ -145,7 +137,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
 
-num_workers = 0
 
 
 def save_original_image_and_gt_mask(image, labels, plot_path):
@@ -199,43 +190,14 @@ def init_get_normalize_and_trns():
 
 
 if __name__ == '__main__':
-    # Args
-    ic(vit_config["n_epochs"])
-    parser = argparse.ArgumentParser(description='Training multi-class classifier')
-    parser.add_argument('--arc', type=str, default='vgg', metavar='N',
-                        help='Model architecture')
-    parser.add_argument('--train_dataset', type=str, default='imagenet', metavar='N',
-                        help='Testing Dataset')
-    parser.add_argument('--method', type=str,
-                        default='grad_rollout',
-                        choices=['token_to_learn', 'rollout', 'lrp', 'transformer_attribution', 'full_lrp',
-                                 'lrp_last_layer',
-                                 'attn_last_layer', 'attn_gradcam'],
-                        help='')
-    parser.add_argument('--thr', type=float, default=0.,
-                        help='threshold')
-
-    parser.add_argument('--save-img', action='store_true',
-                        default=False,
-                        help='')
-    parser.add_argument('--imagenet-seg-path', type=str, required=False, default=IMAGENET_SEG_PATH)
-    args = parser.parse_args()
-    args.checkname = args.method + '_' + args.arc
-
-    saver = Saver(args)
-    saver.experiment_dir = "" # TODO - need to be filled in order to plot visualizations
-    saver.results_dir = "" # TODO - need to be filled in order to plot visualizations
-    args.save_img = False  # TODO - Pay Attention - Important
-
     ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
     ic(vit_config["n_epochs_to_optimize_stage_b"])
     ic(loss_config["use_logits_only"])
     ic(vit_config['run_base_model'])
-    ic(args.save_img)
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
-    ds = Imagenet_Segmentation(args.imagenet_seg_path,
+    ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
                                batch_size=batch_size,
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
@@ -285,7 +247,7 @@ if __name__ == '__main__':
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='train',
-        experiment_path='exp_name_amitt'  # choose 'train' or 'test'
+        experiment_path='exp_name'  # choose 'train' or 'test'
     )
 
     model = freeze_multitask_model(
@@ -323,10 +285,8 @@ if __name__ == '__main__':
         trainer.fit(model=model, datamodule=data_module)
 
         image_resized = model.image_resized
-        # ic(batch_idx, model.first_auc, model.best_auc)
         Res = model.best_auc_vis
         labels = model.target
-        image_plots_path = Path(saver.results_dir, f'{batch_idx}')
         correct, labeled, inter, union, ap, f1, pred, target = eval_results_per_res(Res=Res,
                                                                                     labels=labels,
                                                                                     index=batch_idx,
