@@ -1,5 +1,8 @@
 import os
 
+import wandb
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 from transformers import ViTForImageClassification
 
 from feature_extractor import ViTFeatureExtractor
@@ -109,15 +112,26 @@ model = freeze_multitask_model(
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
 
+checkpoints_default_root_dir = str(Path(vit_config["default_root_dir"],
+                            'target' if vit_config["train_model_by_target_gt_class"] else 'predicted', exp_name))
+
+ic(checkpoints_default_root_dir)
+# WANDB_PROJECT = config["general"]["wandb_project"]
+# run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+# wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
+
 trainer = pl.Trainer(
+    # callbacks=[
+        # ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
+        #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
+    # logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
     gpus=vit_config["gpus"],
     progress_bar_refresh_rate=30,
     num_sanity_val_steps=0,
-    default_root_dir=Path(vit_config["default_root_dir"],
-                          'target' if vit_config["train_model_by_target_gt_class"] else 'predicted'),
+    default_root_dir=checkpoints_default_root_dir,
     enable_checkpointing=vit_config["enable_checkpointing"],
 )
 
