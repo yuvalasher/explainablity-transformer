@@ -116,15 +116,15 @@ checkpoints_default_root_dir = str(Path(vit_config["default_root_dir"],
                             'target' if vit_config["train_model_by_target_gt_class"] else 'predicted', exp_name))
 
 ic(checkpoints_default_root_dir)
-# WANDB_PROJECT = config["general"]["wandb_project"]
-# run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
-# wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
+WANDB_PROJECT = config["general"]["wandb_project"]
+run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
     # callbacks=[
         # ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
         #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
-    # logger=[wandb_logger],
+    logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=vit_config["n_epochs"],
