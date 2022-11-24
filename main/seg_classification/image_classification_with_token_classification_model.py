@@ -20,7 +20,6 @@ from evaluation.evaluation_utils import patch_score_to_image
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
     run_perturbation_test,
 )
-from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.cnns.cnn_utils import RESNET_NORMALIZATION_STD, RESNET_NORMALIZATION_MEAN
 from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
     ImageClassificationWithTokenClassificationModelOutput
@@ -43,7 +42,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             model_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
-            feature_extractor: Union[ViTFeatureExtractor, None],
             plot_path,
             experiment_path,
             is_clamp_between_0_to_1: bool = True,

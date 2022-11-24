@@ -227,13 +227,13 @@ def normalize_losses(mask_loss_mul: float, prediction_loss_mul: float) -> Tuple[
     return mask_loss_mul_norm, pred_loss_mul_norm
 
 
-def get_loss_multipliers(loss_config) -> Dict[str, float]:
-    if loss_config["normalize"]:
-        mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=loss_config["mask_loss_mul"],
-                                                              prediction_loss_mul=loss_config["prediction_loss_mul"])
+def get_loss_multipliers(normalize: bool, mask_loss_mul: int, prediction_loss_mul: int) -> Dict[str, float]:
+    if normalize:
+        mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=mask_loss_mul,
+                                                              prediction_loss_mul=prediction_loss_mul)
     else:
-        prediction_loss_mul = loss_config["prediction_loss_mul"]
-        mask_loss_mul = loss_config["mask_loss_mul"]
+        prediction_loss_mul = prediction_loss_mul
+        mask_loss_mul = mask_loss_mul
     return dict(prediction_loss_mul=prediction_loss_mul, mask_loss_mul=mask_loss_mul)
 
 

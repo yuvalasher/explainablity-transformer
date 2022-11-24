@@ -8,7 +8,6 @@ from config import config
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
     save_best_auc_objects_to_disk, run_perturbation_test_opt
 )
-from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
@@ -32,7 +31,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             model_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
-            feature_extractor: ViTFeatureExtractor,
             plot_path,
             best_auc_objects_path: str,
             best_auc_plot_path: str,
@@ -50,7 +48,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          model_for_patch_classification=model_for_patch_classification,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
-                         feature_extractor=feature_extractor,
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,

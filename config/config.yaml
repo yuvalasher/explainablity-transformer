@@ -22,8 +22,11 @@ vit:
   is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True
   train_model_by_target_gt_class: False
-  model_name: google/vit-base-patch16-224
-#  model_name: WinKawaks/vit-small-patch16-224
+#  model_name: google/vit-base-patch16-224
+  explainer_model_name: google/vit-base-patch16-224
+#  explainer_model_name: WinKawaks/vit-small-patch16-224
+  #  explainee_model_name: google/vit-base-patch16-224
+  explainee_model_name: resnet # densenet
   is_competitive_method_transforms: False
   img_size: 224
   patch_size: 16
