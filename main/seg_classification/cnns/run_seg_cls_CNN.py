@@ -70,7 +70,8 @@ else:
 ic(
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
-resnet_for_image_classification = models.resnet50(pretrained=True)
+model_for_image_classification = models.resnet101(pretrained=True)
+# model_for_image_classification = models.densenet201(pretrained=True)
 data_module = ImageSegDataModule(
     feature_extractor=None,
     batch_size=vit_config["batch_size"],
@@ -92,7 +93,7 @@ experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
-    model_for_classification_image=resnet_for_image_classification,
+    model_for_classification_image=model_for_image_classification,
     model_for_patch_classification=model_for_patch_classification,
     feature_extractor=None,
     is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
