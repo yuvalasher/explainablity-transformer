@@ -16,7 +16,7 @@ torchmetrics==0.6.2
 torchtext==0.6.0
 torchvision==0.10.0
 tqdm==4.62.3
-transformers==4.15.0
+transformers==4.24.0
 huggingface-hub==0.2.1
 luigi==3.0.1
 pydantic==1.9.0

@@ -5,7 +5,7 @@ import numpy as np
 from icecream import ic
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Union
 
 import pytorch_lightning as pl
 import torch
@@ -21,16 +21,15 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
     run_perturbation_test,
 )
 from feature_extractor import ViTFeatureExtractor
+from main.seg_classification.cnns.cnn_utils import RESNET_NORMALIZATION_STD, RESNET_NORMALIZATION_MEAN
 from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
-from main.seg_classification.output_dataclasses.lossloss_output import LossLossOutput
-from main.seg_classification.seg_cls_utils import prediction_loss, l1_loss, encourage_token_mask_to_prior_loss
-from utils import save_obj_to_disk
 from vit_utils import visu, get_loss_multipliers
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 from transformers.modeling_outputs import SequenceClassifierOutput
+from transformers.modeling_outputs import ImageClassifierOutput
 
 pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
@@ -40,11 +39,11 @@ loss_config = vit_config["seg_cls"]["loss"]
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
-            vit_for_classification_image: ViTForImageClassification,
+            vit_for_classification_image,
             vit_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
-            feature_extractor: ViTFeatureExtractor,
+            feature_extractor: Union[ViTFeatureExtractor, None],
             plot_path,
             experiment_path,
             is_clamp_between_0_to_1: bool = True,
@@ -61,7 +60,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.batch_size = batch_size
-        self.feature_extractor = feature_extractor
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
         self.plot_path = plot_path
         self.p = p
@@ -83,6 +81,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def forward(self, inputs, image_resized, target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
+        vit_cls_output_logits = vit_cls_output.logits if type(vit_cls_output) is ImageClassifierOutput else vit_cls_output
+
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
@@ -91,19 +91,21 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                                                       is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
 
         masked_image = image_resized * interpolated_mask_normalized
-        masked_image_inputs = self.normalize_image(masked_image)
-        vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
-        vit_masked_output_logits = vit_masked_output.logits
+        masked_image_inputs = self.normalize_image(masked_image, mean=RESNET_NORMALIZATION_MEAN, std=RESNET_NORMALIZATION_STD)
+        vit_masked_output = self.vit_for_classification_image(masked_image_inputs)
+        vit_masked_output_logits = vit_masked_output.logits if type(vit_masked_output) is ImageClassifierOutput else vit_masked_output
 
         if loss_config['is_ce_neg']:
             masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
             masked_neg_image_inputs = self.normalize_image(masked_neg_image)
-            vit_masked_neg_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_neg_image_inputs)
+            vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
+            vit_masked_output_logits = vit_masked_neg_output.logits if type(
+                vit_masked_neg_output) is ImageClassifierOutput else vit_masked_neg_output
 
-        vit_masked_neg_output_logits = None if not loss_config['is_ce_neg'] else vit_masked_neg_output.logits
+        vit_masked_neg_output_logits = None if not loss_config['is_ce_neg'] else vit_masked_neg_output
 
         lossloss_output = self.criterion(
-            output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output.logits,
+            output=vit_masked_output_logits, neg_output=vit_masked_neg_output_logits, target=vit_cls_output_logits,
             tokens_mask=tokens_mask, target_class=target_class
         )
 

@@ -7,6 +7,7 @@ from pytorch_lightning import seed_everything
 from torch.utils.data import Dataset
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath, Path
+from main.seg_classification.cnns.cnn_utils import resnet_preprocess, resnet_resize_center_crop_transform
 from utils import get_image_from_path
 from utils.transformation import resize
 from vit_utils import get_image_and_inputs_and_transformed_image
@@ -26,9 +27,9 @@ class ImagesDataset(Dataset):
     def __init__(
             self,
             images_path: Union[str, WindowsPath],
-            feature_extractor: ViTFeatureExtractor,
             images_name: List[str],
-            targets: List[int]
+            targets: List[int],
+            feature_extractor: ViTFeatureExtractor = None,
     ):
         self.feature_extractor = feature_extractor
         self.images_name = images_name
@@ -42,16 +43,22 @@ class ImagesDataset(Dataset):
         image_name = os.path.basename(self.images_name[index])
         image = get_image_from_path(path=Path(self.images_path, image_name))
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
-            image=image, feature_extractor=self.feature_extractor,
-            is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]
-        )
-        image_resized = resize(image)
+        if self.feature_extractor is not None:
+            inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
+                image=image, feature_extractor=self.feature_extractor,
+                is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]
+            )
+            image_resized = resize(image)
+            inputs = inputs["pixel_values"]
+        else:
+            inputs = resnet_preprocess(image)
+            resized_and_normalized_image = resnet_preprocess(image)
+            image_resized = resnet_resize_center_crop_transform(image)
         target_class = torch.tensor(self.targets[index])
 
         return dict(
             image_name=image_name,
-            pixel_values=inputs["pixel_values"],
+            pixel_values=inputs,
             resized_and_normalized_image=resized_and_normalized_image,
             image=image_resized,
             target_class=target_class,

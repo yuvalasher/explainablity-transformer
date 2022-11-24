@@ -5,7 +5,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
 import os
-
+from transformers.modeling_outputs import ImageClassifierOutput
 from torch import Tensor
 import numpy as np
 from config import config
@@ -53,19 +53,19 @@ def eval_perturbation_test(experiment_dir: Path,
             if vit_config['verbose']:
                 plot_image(data)
             norm_data = normalize(data.clone())
-            inputs = {'pixel_values': norm_data}
-            pred = model(**inputs)
-            pred_probabilities = torch.softmax(pred.logits, dim=1)
+            pred = model(norm_data)
+            pred_logits = pred.logits if type(pred) is ImageClassifierOutput else pred
+            pred_probabilities = torch.softmax(pred_logits, dim=1)
 
             target_probs = torch.gather(pred_probabilities, 1, target[:, None])[:, 0]
             pred_class = pred_probabilities.max(1, keepdim=True)[1].squeeze(1)
-            tgt_pred = (target == pred_class).type(target.type()).data.cpu().numpy()
+            tgt_pred = (target == pred_class).type(target.type()).cpu().numpy()
             num_correct_model[model_index:model_index + len(tgt_pred)] = tgt_pred
             prob_correct_model[model_index:model_index + len(target_probs)] = target_probs.item()
 
             if vit_config['verbose']:
                 print(
-                    f'\nOriginal Image. Top Class: {pred.logits[0].argmax(dim=0).item()}, Max logits: {round(pred.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred.logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
+                    f'\nOriginal Image. Top Class: {pred_logits[0].argmax(dim=0).item()}, Max logits: {round(pred_logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred_logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
             org_shape = data.shape  # Save original shape
 
@@ -86,23 +86,23 @@ def eval_perturbation_test(experiment_dir: Path,
                                              base_size=base_size)
 
                 _norm_data = normalize(_data.clone())
-                inputs = {'pixel_values': _norm_data}
-                out = model(**inputs)
+                out = model(_norm_data)
+                out_logits = out.logits if type(out) is ImageClassifierOutput else out
 
                 # Target-Class Comparison Accuracy AUC
-                target_class_pertub = out.logits.data.max(1, keepdim=True)[1].squeeze(1)
-                temp = (target == target_class_pertub).type(target.type()).data.cpu().numpy()
+                target_class_pertub = out_logits.max(1, keepdim=True)[1].squeeze(1)
+                temp = (target == target_class_pertub).type(target.type()).cpu().numpy()
                 num_correct_pertub[perturbation_step, perturb_index:perturb_index + len(
                     temp)] = temp  # num_correct_pertub is matrix of each row represents perurbation step. Each column represents masked image
 
-                # Targer-Class Probability AUC
-                perturbation_probabilities = torch.softmax(out.logits, dim=1)
+                # Target-Class Probability AUC
+                perturbation_probabilities = torch.softmax(out_logits, dim=1)
                 target_probs = torch.gather(perturbation_probabilities, 1, target[:, None])[:, 0]
                 prob_pertub[perturbation_step, perturb_index:perturb_index + len(target_probs)] = target_probs.item()
 
                 if vit_config['verbose']:
                     print(
-                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out.logits[0].argmax(dim=0).item()}, Max logits: {round(out.logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(perturbation_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out.logits[0][target].item(), 2)} Correct class prob: {round(perturbation_probabilities[0][target].item(), 5)}')
+                        f'{100 * perturbation_steps[perturbation_step]}% pixels blacked. Top Class: {out_logits[0].argmax(dim=0).item()}, Max logits: {round(out_logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(perturbation_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(out_logits[0][target].item(), 2)} Correct class prob: {round(perturbation_probabilities[0][target].item(), 5)}')
 
             model_index += len(target)
             perturb_index += len(target)
