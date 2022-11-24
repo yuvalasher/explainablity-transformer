@@ -51,7 +51,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-exp_name = f'model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
+exp_name = f'TEEEEST_model_{vit_config["model_name"].replace("/", "_")}_train_uni_{vit_config["is_sampled_train_data_uniformly"]}_val_unif_{vit_config["is_sampled_val_data_uniformly"]}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{vit_config["seg_cls"]["train_n_label_sample"] * 1000}_lr_{vit_config["lr"]}__bs_{vit_config["batch_size"]}_by_target_gt__{vit_config["train_model_by_target_gt_class"]}'
 
 ic(vit_config["train_model_by_target_gt_class"])
 ic(vit_config["is_sampled_train_data_uniformly"], vit_config["is_sampled_val_data_uniformly"])
@@ -61,11 +61,11 @@ ic(vit_config["model_name"])
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 
 if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-    vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
+    model_for_classification_image, model_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
 else:
-    vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-    vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+    model_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
+    model_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
 ic(
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
@@ -92,8 +92,8 @@ experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
-    vit_for_classification_image=vit_for_classification_image,
-    vit_for_patch_classification=vit_for_patch_classification,
+    model_for_classification_image=model_for_classification_image,
+    model_for_patch_classification=model_for_patch_classification,
     feature_extractor=feature_extractor,
     is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,

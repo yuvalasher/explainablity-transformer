@@ -129,7 +129,7 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
 
 
 def infer_perturbation_tests(images_and_masks,
-                             vit_for_image_classification,
+                             model_for_image_classification,
                              perturbation_config: Dict[str, Union[PerturbationType, bool]],
                              gt_classes_list: List[int],
                              ) -> Tuple[List[float], List[float]]:
@@ -147,7 +147,7 @@ def infer_perturbation_tests(images_and_masks,
             {'image_resized': image, 'image_mask': mask,
              'target_class': torch.tensor([gt_classes_list[image_idx]])}]
         auc_perturbation, auc_deletion_insertion = eval_perturbation_test(experiment_dir=Path(""),
-                                                                          model=vit_for_image_classification,
+                                                                          model=model_for_image_classification,
                                                                           outputs=outputs,
                                                                           perturbation_type=perturbation_type,
                                                                           is_calculate_deletion_insertion=is_calculate_deletion_insertion)
@@ -162,7 +162,7 @@ def get_probability_and_class_idx_by_index(logits, index: int) -> float:
     return predicted_probability_by_idx
 
 
-def run_evaluation_metrics(vit_for_image_classification: ViTForImageClassification,
+def run_evaluation_metrics(vit_for_image_classification,
                            inputs,
                            inputs_scatter,
                            gt_class: int,
@@ -257,7 +257,7 @@ def run_evaluations(pkl_path,
 
         auc_perturbation_list, auc_deletion_insertion_list = infer_perturbation_tests(
             images_and_masks=images_and_masks,
-            vit_for_image_classification=vit_for_image_classification,
+            model_for_image_classification=vit_for_image_classification,
             perturbation_config=perturbation_config,
             gt_classes_list=gt_classes_list)
         auc_perturbation, auc_deletion_insertion = np.mean(auc_perturbation_list), np.mean(auc_deletion_insertion_list)

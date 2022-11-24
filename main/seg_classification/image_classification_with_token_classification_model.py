@@ -39,8 +39,8 @@ loss_config = vit_config["seg_cls"]["loss"]
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
-            vit_for_classification_image,
-            vit_for_patch_classification: ViTForMaskGeneration,
+            model_for_classification_image,
+            model_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
             feature_extractor: Union[ViTFeatureExtractor, None],
@@ -53,8 +53,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             p: int = 1
     ):
         super().__init__()
-        self.vit_for_classification_image = vit_for_classification_image
-        self.vit_for_patch_classification = vit_for_patch_classification
+        self.model_for_classification_image = model_for_classification_image
+        self.model_for_patch_classification = model_for_patch_classification
         self.criterion = criterion
         self.n_classes = n_classes
         self.n_warmup_steps = warmup_steps
@@ -80,10 +80,10 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         return tensor
 
     def forward(self, inputs, image_resized, target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
-        vit_cls_output = self.vit_for_classification_image(inputs)
+        vit_cls_output = self.model_for_classification_image(inputs)
         vit_cls_output_logits = vit_cls_output.logits if type(vit_cls_output) is ImageClassifierOutput else vit_cls_output
 
-        interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
+        interpolated_mask, tokens_mask = self.model_for_patch_classification(inputs)
         if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
         else:
@@ -92,13 +92,13 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
         masked_image = image_resized * interpolated_mask_normalized
         masked_image_inputs = self.normalize_image(masked_image, mean=RESNET_NORMALIZATION_MEAN, std=RESNET_NORMALIZATION_STD)
-        vit_masked_output = self.vit_for_classification_image(masked_image_inputs)
+        vit_masked_output = self.model_for_classification_image(masked_image_inputs)
         vit_masked_output_logits = vit_masked_output.logits if type(vit_masked_output) is ImageClassifierOutput else vit_masked_output
 
         if loss_config['is_ce_neg']:
             masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
             masked_neg_image_inputs = self.normalize_image(masked_neg_image)
-            vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
+            vit_masked_neg_output = self.model_for_classification_image(masked_neg_image_inputs)
             vit_masked_output_logits = vit_masked_neg_output.logits if type(
                 vit_masked_neg_output) is ImageClassifierOutput else vit_masked_neg_output
 
@@ -194,7 +194,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         epoch_auc = -1
         if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
             epoch_auc = run_perturbation_test(
-                model=self.vit_for_classification_image,
+                model=self.model_for_classification_image,
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,

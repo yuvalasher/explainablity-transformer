@@ -62,10 +62,10 @@ ic(vit_config["model_name"])
 feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
 
 if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-    _, vit_for_patch_classification = load_vit_pretrained(
+    _, model_for_patch_classification = load_vit_pretrained(
         model_name=vit_config["model_name"])
 else:
-    vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+    model_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
 ic(
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
@@ -92,8 +92,8 @@ experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df
 ic(experiment_perturbation_results_path)
 
 model = ImageClassificationWithTokenClassificationModel(
-    vit_for_classification_image=resnet_for_image_classification,
-    vit_for_patch_classification=vit_for_patch_classification,
+    model_for_classification_image=resnet_for_image_classification,
+    model_for_patch_classification=model_for_patch_classification,
     feature_extractor=None,
     is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
     plot_path=plot_path,

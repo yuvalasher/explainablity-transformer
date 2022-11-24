@@ -35,8 +35,8 @@ loss_config = vit_config["seg_cls"]["loss"]
 class OptImageClassificationWithTokenClassificationModel(ImageClassificationWithTokenClassificationModel):
     def __init__(
             self,
-            vit_for_classification_image: ViTForImageClassification,
-            vit_for_patch_classification: ViTForMaskGeneration,
+            model_for_classification_image,
+            model_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
             feature_extractor: ViTFeatureExtractor,
@@ -50,8 +50,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             n_classes: int = 1000,
             batch_size: int = 8,
     ):
-        super().__init__(vit_for_classification_image=vit_for_classification_image,
-                         vit_for_patch_classification=vit_for_patch_classification,
+        super().__init__(model_for_classification_image=model_for_classification_image,
+                         model_for_patch_classification=model_for_patch_classification,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
                          feature_extractor=feature_extractor,
@@ -108,7 +108,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
 
     def training_epoch_end(self, outputs):
         auc = run_perturbation_test_opt(
-            model=self.vit_for_classification_image,
+            model=self.model_for_classification_image,
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
