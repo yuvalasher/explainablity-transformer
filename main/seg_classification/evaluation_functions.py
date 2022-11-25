@@ -14,7 +14,7 @@ from torch.nn import functional as F
 import numpy as np
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
 from feature_extractor import ViTFeatureExtractor
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from vit_loader.load_vit import load_vit_pretrained
 import torch
 from enum import Enum
@@ -273,9 +273,9 @@ if __name__ == '__main__':
     PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
 
-    for backbone_name in VIT_BACKBONE_DETAILS.keys():
+    for backbone_name in BACKBONE_DETAILS.keys():
         for target_or_predicted_model in ["predicted", "target"]:
-            HOME_BASE_PATH = VIT_BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
+            HOME_BASE_PATH = BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
             OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")

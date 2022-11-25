@@ -64,18 +64,18 @@ seed_everything(config["general"]["seed"])
 vit_config["enable_checkpointing"] = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 
 get_loss_multipliers(normalize=False,
                      mask_loss_mul=mask_loss_mul,
                      prediction_loss_mul=prediction_loss_mul)
 target_or_predicted_model = "target" if train_model_by_target_gt_class else "predicted"
 
-CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
                                                      target_or_predicted_model], \
-                                                 VIT_BACKBONE_DETAILS[explainee_model_name]["img_size"], \
-                                                 VIT_BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
-                                                 VIT_BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
+                                                 BACKBONE_DETAILS[explainee_model_name]["img_size"], \
+                                                 BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
+                                                 BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
 mask_loss_mul = MASK_LOSS_MUL

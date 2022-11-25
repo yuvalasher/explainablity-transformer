@@ -39,7 +39,7 @@ from utils.consts import (
     IMAGENET_SEG_PATH,
 )
 
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 
 import pytorch_lightning as pl
@@ -62,11 +62,11 @@ vit_config["train_model_by_target_gt_class"] = False
 num_workers = 0
 
 target_or_predicted_model = "predicted"
-CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
                                                      target_or_predicted_model], \
-                                                 VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                 BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "img_size"], BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     "patch_size"], BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "mask_loss"]
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 vit_config["img_size"] = IMG_SIZE

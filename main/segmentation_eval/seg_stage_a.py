@@ -4,7 +4,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from icecream import ic
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from pathlib import Path
@@ -78,11 +78,11 @@ if __name__ == '__main__':
     loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     ic(vit_config["model_name"])
     target_or_predicted_model = "predicted"
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
                                                          target_or_predicted_model], \
-                                                     VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                         "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                         "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
+                                                     BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "img_size"], BACKBONE_DETAILS[vit_config["model_name"]][
+                                                         "patch_size"], BACKBONE_DETAILS[vit_config["model_name"]][
                                                          "mask_loss"]
     ic(CKPT_PATH)
     vit_config["img_size"] = IMG_SIZE

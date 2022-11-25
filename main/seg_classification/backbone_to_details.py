@@ -15,7 +15,7 @@ VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
 DENSENET_EXPLANIEE_TARGET_cKPT_PATH = Path(
     "/raid/yuvalas/checkpoints/target/explanier_google_vit-base-patch16-224__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_90__train_n_samples_1000_lr_0.002__bs_64_by_target_gt__True/epoch=99_val/epoch_auc=7.110.ckpt")
 
-VIT_BACKBONE_DETAILS = {
+BACKBONE_DETAILS = {
     "google/vit-base-patch16-224": {
         "ckpt_path": {"target": VIT_BASE_224_TARGET_CKPT_PATH, "predicted": VIT_BASE_224_PREDICTED_CKPT_PATH},
         "img_size": 224,
