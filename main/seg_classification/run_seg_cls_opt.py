@@ -8,7 +8,6 @@ from tqdm import tqdm
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
     OptImageClassificationWithTokenClassificationModel
 from main.seg_classification.image_token_data_module_opt import ImageSegOptDataModule
-import torch
 from config import config
 from icecream import ic
 
@@ -83,8 +82,7 @@ mask_loss_mul = MASK_LOSS_MUL
 vit_config["img_size"] = IMG_SIZE
 vit_config["patch_size"] = PATCH_SIZE
 
-exp_name = f'TESTTEST_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{loss_config["mask_loss"]}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
-
+exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{loss_config["mask_loss"]}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 plot_path = Path(vit_config["plot_path"], exp_name)
 
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_model_by_target_gt_class else 'predicted')
@@ -103,20 +101,20 @@ model_for_classification_image, model_for_patch_classification, feature_extracto
     explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name)
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-    n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
+    n_epochs=n_epochs_to_optimize_stage_b,
     train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
-    batch_size=vit_config["batch_size"],
+    batch_size=batch_size,
 )
 
 model = OptImageClassificationWithTokenClassificationModel(
     model_for_classification_image=model_for_classification_image,
     model_for_patch_classification=model_for_patch_classification,
     feature_extractor=feature_extractor,
-    is_clamp_between_0_to_1=vit_config["is_clamp_between_0_to_1"],
+    is_clamp_between_0_to_1=is_clamp_between_0_to_1,
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
-    batch_size=vit_config["batch_size"],
+    batch_size=batch_size,
     best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,

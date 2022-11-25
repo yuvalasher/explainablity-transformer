@@ -1,18 +1,14 @@
 import os
 
-from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
-    CONVNET_MODELS_BY_NAME
-
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
-from typing import Dict, Union
 import wandb
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
+    CONVNET_MODELS_BY_NAME
 from main.seg_classification.seg_cls_utils import save_config_to_root_dir
-
-import torch
 from config import config
 from icecream import ic
 from utils import remove_old_results_dfs
@@ -33,20 +29,17 @@ from vit_utils import (
 )
 from pytorch_lightning import seed_everything
 import torch
-from torchvision import models
-
-vit_config = config["vit"]
-
-os.makedirs(vit_config['default_root_dir'], exist_ok=True)
-loss_config = vit_config["seg_cls"]["loss"]
+import gc
+from PIL import ImageFile
 
 if torch.cuda.is_available():
     print(torch.cuda.current_device())
     torch.cuda.empty_cache()
-
 seed_everything(config["general"]["seed"])
-import gc
-from PIL import ImageFile
+
+vit_config = config["vit"]
+os.makedirs(vit_config['default_root_dir'], exist_ok=True)
+loss_config = vit_config["seg_cls"]["loss"]
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
@@ -78,15 +71,13 @@ ic(is_sampled_val_data_uniformly)
 ic(is_competitive_method_transforms)
 ic(explainer_model_name)
 ic(explainee_model_name)
+ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 
 exp_name = f'explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 
 model_for_classification_image, model_for_patch_classification, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
     explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name)
 
-ic(
-    str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-)
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
