@@ -7,11 +7,12 @@ import torch
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath, Path
 
+from main.seg_classification.cnns.cnn_utils import resnet_resize_center_crop_transform, resnet_preprocess
 from utils import get_image_from_path
 from utils.transformation import resize
 from vit_utils import get_image_and_inputs_and_transformed_image
 from config import config
-
+vit_config = config["vit"]
 
 class ImageSegOptDataset(Dataset):
     def __init__(
@@ -30,14 +31,21 @@ class ImageSegOptDataset(Dataset):
     def __getitem__(self, index: int):
         image = get_image_from_path(path=self.image_path)
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
-            image=image, feature_extractor=self.feature_extractor
-        )
-        image_resized = resize(image)
+        if self.feature_extractor is not None:
+            inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
+                image=image, feature_extractor=self.feature_extractor,
+                is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]
+            )
+            image_resized = resize(image)
+            inputs = inputs["pixel_values"]
+        else:
+            inputs = resnet_preprocess(image)
+            resized_and_normalized_image = resnet_preprocess(image)
+            image_resized = resnet_resize_center_crop_transform(image)
 
         return dict(
             image_name=self.image_path.split('/')[-1].split('.')[0],
-            pixel_values=inputs["pixel_values"],
+            pixel_values=inputs,
             resized_and_normalized_image=resized_and_normalized_image,
             image=image_resized,
             target_class=torch.tensor(self.target),
