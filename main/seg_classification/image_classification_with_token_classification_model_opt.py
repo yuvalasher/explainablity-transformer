@@ -13,7 +13,8 @@ import pytorch_lightning as pl
 
 from config import config
 
-from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk, run_perturbation_test_opt)
+from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk,
+                                                                      run_perturbation_test_opt)
 
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
@@ -44,6 +45,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
+            is_convnet: bool,
             is_clamp_between_0_to_1: bool = True,
             run_base_model_only: bool = False,
             criterion: LossLoss = LossLoss(),
@@ -54,7 +56,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          model_for_patch_classification=model_for_patch_classification,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
-                         feature_extractor=feature_extractor,
+                         is_convnet=is_convnet,
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
@@ -112,6 +114,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
+            is_convnet=self.is_convnet
         )
         if self.best_auc is None or auc < self.best_auc:
             self.best_auc = auc
@@ -132,7 +135,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         if self.current_epoch == vit_config['n_epochs'] - 1:
             self.trainer.should_stop = True
 
-
     def validation_epoch_end(self, outputs):
         pass
 
@@ -145,5 +147,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         visu(
             original_image=image,
             transformer_attribution=mask,
-            file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__{self.current_epoch}__AUC_{round(auc,0)}").resolve(),
+            file_name=Path(self.best_auc_plot_path,
+                           f"{str(self.image_idx)}__{self.current_epoch}__AUC_{round(auc, 0)}").resolve(),
         )

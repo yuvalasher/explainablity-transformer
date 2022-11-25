@@ -17,6 +17,9 @@ EXPERIMENTS_FOLDER_PATH = vit_config["experiments_path"]
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
+CONVENT_NORMALIZATION_MEAN = [0.485, 0.456, 0.406]
+CONVNET_NORMALIZATION_STD = [0.229, 0.224, 0.225]
+
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
@@ -30,7 +33,8 @@ def eval_perturbation_test(experiment_dir: Path,
                            model,
                            outputs,
                            perturbation_type: str = "POS",
-                           is_calculate_deletion_insertion: bool = False) -> Union[float, Tuple[float, float]]:
+                           is_calculate_deletion_insertion: bool = False,
+                           is_convenet: bool = False) -> Union[float, Tuple[float, float]]:
     n_samples = sum(output["image_resized"].shape[0] for output in outputs)
     num_correct_model = np.zeros((n_samples))
     prob_correct_model = np.zeros((n_samples))
@@ -50,9 +54,12 @@ def eval_perturbation_test(experiment_dir: Path,
             vars_dict = move_to_device_data_vis_and_target(data=data, target=target, vis=vis)
             data, target, vis = vars_dict["data"], vars_dict["target"], vars_dict["vis"]
 
+            if is_convenet:
+                norm_data = normalize(data.clone(), mean=CONVENT_NORMALIZATION_MEAN, std=CONVNET_NORMALIZATION_STD)
+            else:
+                norm_data = normalize(data.clone())
             if vit_config['verbose']:
-                plot_image(data)
-            norm_data = normalize(data.clone())
+                plot_image(norm_data)
             pred = model(norm_data)
             pred_logits = pred.logits if type(pred) is ImageClassifierOutput else pred
             pred_probabilities = torch.softmax(pred_logits, dim=1)
@@ -65,7 +72,7 @@ def eval_perturbation_test(experiment_dir: Path,
 
             if vit_config['verbose']:
                 print(
-                    f'\nOriginal Image. Top Class: {pred_logits[0].argmax(dim=0).item()}, Max logits: {round(pred_logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred_logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
+                    f'\nOriginal Image. Target: {target.item()}. Top Class: {pred_logits[0].argmax(dim=0).item()}, Max logits: {round(pred_logits[0].max(dim=0)[0].item(), 2)}, Max prob: {round(pred_probabilities[0].max(dim=0)[0].item(), 5)}; Correct class logit: {round(pred_logits[0][target].item(), 2)} Correct class prob: {round(pred_probabilities[0][target].item(), 5)}')
 
             org_shape = data.shape  # Save original shape
 
@@ -85,7 +92,15 @@ def eval_perturbation_test(experiment_dir: Path,
                                              perturbation_step=perturbation_steps[perturbation_step],
                                              base_size=base_size)
 
-                _norm_data = normalize(_data.clone())
+                if is_convenet:
+                    _norm_data = normalize(_data.clone(),
+                                           mean=CONVENT_NORMALIZATION_MEAN,
+                                           std=CONVNET_NORMALIZATION_STD)
+                else:
+                    _norm_data = normalize(_data.clone())
+                if vit_config['verbose'] and perturbation_step < 4:
+                    plot_image(_norm_data)
+
                 out = model(_norm_data)
                 out_logits = out.logits if type(out) is ImageClassifierOutput else out
 
@@ -164,7 +179,7 @@ def save_best_auc_objects_to_disk(path, auc: float, vis, original_image, epoch_i
     save_obj_to_disk(path=path, obj=object)
 
 
-def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experiment_path=None):
+def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, is_convnet: bool, experiment_path=None):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
 
     if experiment_path is None:
@@ -175,8 +190,10 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, experi
     model.eval()
     for vis_type in VIS_TYPES:
         vit_type_experiment_path = Path(experiment_path, vis_type)
-        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model,
-                                     outputs=outputs)
+        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
+                                     model=model,
+                                     outputs=outputs,
+                                     is_convenet=is_convnet)
         return auc
 
 
@@ -186,7 +203,7 @@ def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
     plt.show();
 
 
-def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment_path):
+def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment_path, is_convnet: bool):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
 
     if not os.path.exists(experiment_path):
@@ -201,7 +218,10 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment
     for vis_type in VIS_TYPES:
         print(vis_type)
         vit_type_experiment_path = Path(experiment_path, vis_type)
-        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path, model=model, outputs=outputs)
+        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
+                                     model=model,
+                                     outputs=outputs,
+                                     is_convenet=is_convnet)
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
         results_df.to_csv(output_csv_path, index=False)

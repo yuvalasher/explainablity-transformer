@@ -12,6 +12,9 @@ VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
 VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
                                       "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 
+DENSENET_EXPLANIEE_TARGET_cKPT_PATH = Path(
+    "/raid/yuvalas/checkpoints/target/explanier_google_vit-base-patch16-224__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_90__train_n_samples_1000_lr_0.002__bs_64_by_target_gt__True/epoch=99_val/epoch_auc=7.110.ckpt")
+
 VIT_BACKBONE_DETAILS = {
     "google/vit-base-patch16-224": {
         "ckpt_path": {"target": VIT_BASE_224_TARGET_CKPT_PATH, "predicted": VIT_BASE_224_PREDICTED_CKPT_PATH},
@@ -33,4 +36,14 @@ VIT_BACKBONE_DETAILS = {
             "predicted": "/raid/yuvalas/experiments/predicted/direct_opt_ckpt_4_auc_16.95_model_WinKawaks_vit-small-patch16-224_train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_30__train_n_samples_1000_lr_0.002__bs_32__layers_freezed_0_by_target_gt__False",
         },
     },
+    "densenet": {
+        "ckpt_path": {"target": DENSENET_EXPLANIEE_TARGET_cKPT_PATH, "predicted": None},
+        "img_size": 224,
+        "patch_size": 16,
+        "mask_loss": 90,
+        "experiment_base_path": {
+            "target": None,
+            "predicted": None,
+        },
+    }
 }

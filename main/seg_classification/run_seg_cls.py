@@ -1,9 +1,10 @@
 import os
 
-from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor
+from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
+    CONVNET_MODELS_BY_NAME
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 from typing import Dict, Union
 import wandb
@@ -116,7 +117,8 @@ model = ImageClassificationWithTokenClassificationModel(
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
     batch_size=batch_size,
-    experiment_path=experiment_perturbation_results_path
+    experiment_path=experiment_perturbation_results_path,
+    is_convnet=True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False,
 )
 
 remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
