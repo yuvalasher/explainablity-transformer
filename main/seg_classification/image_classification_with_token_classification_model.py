@@ -38,21 +38,15 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             is_convnet: bool,
             is_clamp_between_0_to_1: bool = True,
             criterion: LossLoss = LossLoss(),
-            n_classes: int = 1000,
-            batch_size: int = 8,
-            p: int = 1
     ):
         super().__init__()
         self.vit_for_classification_image = model_for_classification_image
         self.vit_for_patch_classification = model_for_mask_generation
         self.criterion = criterion
-        self.n_classes = n_classes
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
-        self.batch_size = batch_size
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
         self.plot_path = plot_path
-        self.p = p
         self.experiment_path = experiment_path
         self.is_convnet = is_convnet
 

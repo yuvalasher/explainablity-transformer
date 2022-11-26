@@ -1,5 +1,6 @@
 import os
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from icecream import ic
@@ -120,7 +121,6 @@ if __name__ == '__main__':
         plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
-        batch_size=batch_size,
         best_auc_objects_path='',
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',

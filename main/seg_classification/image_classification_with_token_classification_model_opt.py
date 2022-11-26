@@ -36,8 +36,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             is_clamp_between_0_to_1: bool = True,
             run_base_model_only: bool = False,
             criterion: LossLoss = LossLoss(),
-            n_classes: int = 1000,
-            batch_size: int = 8,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
                          model_for_mask_generation=model_for_mask_generation,
@@ -47,8 +45,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
-                         n_classes=n_classes,
-                         batch_size=batch_size,
                          experiment_path=Path(""))
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path

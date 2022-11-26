@@ -140,8 +140,6 @@ def eval_results_per_res(Res, index, image=None, labels=None, q=-1):
     return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
 
-
-
 def save_original_image_and_gt_mask(image, labels, plot_path):
     img = image[0].permute(1, 2, 0).data.cpu().numpy()
     img = 255 * (img - img.min()) / (img.max() - img.min())
@@ -243,7 +241,6 @@ if __name__ == '__main__':
         plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
-        batch_size=batch_size,
         best_auc_objects_path=Path(""),
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',

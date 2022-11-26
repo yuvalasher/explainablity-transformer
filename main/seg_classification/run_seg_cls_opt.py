@@ -116,7 +116,6 @@ model = OptImageClassificationWithTokenClassificationModel(
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
-    batch_size=batch_size,
     best_auc_objects_path=BASE_MODEL_BEST_AUC_OBJECTS_PATH if RUN_BASE_MODEL else BEST_AUC_OBJECTS_PATH,
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,

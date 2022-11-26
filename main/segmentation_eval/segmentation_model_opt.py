@@ -41,9 +41,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
             criterion: LossLoss = LossLoss(),
-            n_classes: int = 1000,
-            batch_size: int = 8,
-
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
                          model_for_mask_generation=model_for_mask_generation,
@@ -52,8 +49,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
-                         n_classes=n_classes,
-                         batch_size=batch_size,
                          experiment_path=experiment_path,
                          is_convnet=is_convnet
                          )

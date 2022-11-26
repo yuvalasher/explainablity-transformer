@@ -110,7 +110,6 @@ model = ImageClassificationWithTokenClassificationModel(
     plot_path=plot_path,
     warmup_steps=warmup_steps,
     total_training_steps=total_training_steps,
-    batch_size=batch_size,
     experiment_path=experiment_perturbation_results_path,
     is_convnet=IS_EXPLANIEE_CONVNET,
 )
@@ -149,5 +148,4 @@ trainer = pl.Trainer(
 
 if enable_checkpointing:
     save_config_to_root_dir(exp_name=exp_name)
-model.p = 1
 trainer.fit(model=model, datamodule=data_module)
