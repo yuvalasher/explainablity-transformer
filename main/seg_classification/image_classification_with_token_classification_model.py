@@ -52,8 +52,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             p: int = 1
     ):
         super().__init__()
-        self.model_for_classification_image = model_for_classification_image
-        self.model_for_patch_classification = model_for_patch_classification
+        self.vit_for_classification_image = model_for_classification_image
+        self.vit_for_patch_classification = model_for_patch_classification
         self.criterion = criterion
         self.n_classes = n_classes
         self.n_warmup_steps = warmup_steps
@@ -83,10 +83,10 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 inputs,
                 image_resized,
                 target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
-        vit_cls_output = self.model_for_classification_image(inputs)
+        vit_cls_output = self.vit_for_classification_image(inputs)
         vit_cls_output_logits = vit_cls_output.logits if not self.is_convnet else vit_cls_output
 
-        interpolated_mask, tokens_mask = self.model_for_patch_classification(inputs)
+        interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
         if vit_config["activation_function"]:
             interpolated_mask_normalized = interpolated_mask
         else:
@@ -100,7 +100,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                                        std=CONVNET_NORMALIZATION_STD)
         else:
             masked_image_inputs = self.normalize_image(masked_image)
-        vit_masked_output = self.model_for_classification_image(masked_image_inputs)
+        vit_masked_output = self.vit_for_classification_image(masked_image_inputs)
         vit_masked_output_logits = vit_masked_output.logits if not self.is_convnet else vit_masked_output
 
         if loss_config['is_ce_neg']:
@@ -111,7 +111,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                                                                std=CONVNET_NORMALIZATION_STD)
             else:
                 masked_neg_image_inputs = self.normalize_image(masked_neg_image)
-            vit_masked_neg_output = self.model_for_classification_image(masked_neg_image_inputs)
+            vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
             vit_masked_output_logits = vit_masked_neg_output.logits if not self.is_convnet else vit_masked_neg_output
 
         vit_masked_neg_output_logits = None if not loss_config['is_ce_neg'] else vit_masked_neg_output
@@ -133,7 +133,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
-        self.model_for_classification_image.eval()
+        self.vit_for_classification_image.eval()
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
@@ -210,7 +210,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         epoch_auc = -1
         if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
             epoch_auc = run_perturbation_test(
-                model=self.model_for_classification_image,
+                model=self.vit_for_classification_image,
                 outputs=outputs,
                 stage="val",
                 epoch_idx=self.current_epoch,

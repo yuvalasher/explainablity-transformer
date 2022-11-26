@@ -71,7 +71,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         self.image_idx = None
         self.auc_by_epoch = None
         self.run_base_model_only = run_base_model_only
-        self.model_for_classification_image.eval()
+        self.vit_for_classification_image.eval()
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -111,7 +111,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
 
     def training_epoch_end(self, outputs):
         auc = run_perturbation_test_opt(
-            model=self.model_for_classification_image,
+            model=self.vit_for_classification_image,
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
