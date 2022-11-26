@@ -40,7 +40,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             model_for_patch_classification: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
-            feature_extractor: ViTFeatureExtractor,
             plot_path,
             best_auc_objects_path: str,
             best_auc_plot_path: str,
