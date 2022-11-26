@@ -38,6 +38,13 @@ explainer_model_name = vit_config["explainer_model_name"]
 loss_config = vit_config["seg_cls"]["loss"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
+is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
+batch_size = vit_config["batch_size"]
+n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
+freezing_classification_transformer = vit_config["freezing_classification_transformer"]
+segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
+n_epochs = vit_config["n_epochs"]
+
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
@@ -114,9 +121,9 @@ if __name__ == '__main__':
         model_for_mask_generation = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-        n_epochs=vit_config["n_epochs"],
+        n_epochs=n_epochs,
         train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
-        batch_size=vit_config["batch_size"],
+        batch_size=batch_size,
     )
 
     metric = IoU(2, ignore_index=-1)
@@ -135,12 +142,10 @@ if __name__ == '__main__':
         experiment_path='exp_name',
         is_convnet=IS_EXPLANIEE_CONVNET
     )
-
     model = freeze_multitask_model(
         model=model,
-        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
-        segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"],
+        freezing_classification_transformer=freezing_classification_transformer,
+        segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
     )
 
@@ -153,7 +158,7 @@ if __name__ == '__main__':
         devices=1,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=100,
-        max_epochs=vit_config["n_epochs"],
+        max_epochs=n_epochs,
         resume_from_checkpoint=CKPT_PATH,
         enable_progress_bar=True,
         enable_checkpointing=False,

@@ -60,6 +60,7 @@ loss_multipliers = get_loss_multipliers(normalize=False,
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
 
+use_logits_only = loss_config["use_logits_only"]
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
                                                      target_or_predicted_model], \
@@ -71,14 +72,21 @@ vit_config["img_size"] = IMG_SIZE
 loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["patch_size"] = PATCH_SIZE
 RUN_BASE_MODEL = vit_config['run_base_model']
+
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
+batch_size = vit_config["batch_size"]
+n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
+freezing_classification_transformer = vit_config["freezing_classification_transformer"]
+segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
 
 ic(CKPT_PATH)
-ic(loss_config["mask_loss_mul"], IMG_SIZE)
-ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
-ic(vit_config["n_epochs_to_optimize_stage_b"])
-ic(loss_config["use_logits_only"])
-ic(vit_config['run_base_model'])
+ic(IMG_SIZE)
+ic(mask_loss_mul)
+ic(segmentation_transformer_n_first_layers_to_freeze)
+ic(n_epochs_to_optimize_stage_b)
+ic(use_logits_only)
+ic(RUN_BASE_MODEL)
 ic(vit_config["model_name"])
 
 EXP_NAME = ''  # TODO
@@ -220,9 +228,8 @@ if __name__ == '__main__':
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
         model_type="vit-basic",
-        is_competitive_method_transforms=vit_config["is_competitive_method_transforms"],
+        is_competitive_method_transforms=is_competitive_method_transforms,
     )
-
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         model_for_classification_image, model_for_mask_generation = load_vit_pretrained(
             model_name=vit_config["model_name"])
@@ -231,9 +238,9 @@ if __name__ == '__main__':
         model_for_mask_generation = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-        n_epochs=vit_config["n_epochs_to_optimize_stage_b"],
+        n_epochs=n_epochs_to_optimize_stage_b,
         train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
-        batch_size=vit_config["batch_size"],
+        batch_size=batch_size,
     )
 
     metric = IoU(num_classes=2, ignore_index=-1)
@@ -255,9 +262,8 @@ if __name__ == '__main__':
 
     model = freeze_multitask_model(
         model=model,
-        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
-        segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"],
+        freezing_classification_transformer=freezing_classification_transformer,
+        segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
 
     )
@@ -279,7 +285,7 @@ if __name__ == '__main__':
             devices=[1, 2],
             num_sanity_val_steps=0,
             check_val_every_n_epoch=100,
-            max_epochs=CHECKPOINT_EPOCH_IDX + vit_config["n_epochs_to_optimize_stage_b"],
+            max_epochs=CHECKPOINT_EPOCH_IDX + n_epochs_to_optimize_stage_b,
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
