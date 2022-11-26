@@ -33,7 +33,7 @@ def load_vit_type_models(model_name: str, is_explanier_model: bool) -> Union[
 
 
 def load_convnet_type_models(model_name: str, is_explanier_model: bool):
-    return CONVNET_MODELS_BY_NAME[model_name]["explanier" if is_explanier_model else "explaniee"]
+    return CONVNET_MODELS_BY_NAME[model_name]["explanier" if is_explanier_model else "explaniee"].eval()
 
 
 def load_model_by_name(model_name: str, is_explanier_model: bool):
