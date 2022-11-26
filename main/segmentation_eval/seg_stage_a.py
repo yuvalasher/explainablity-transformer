@@ -1,4 +1,5 @@
 import os
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from icecream import ic
@@ -32,6 +33,11 @@ import gc
 from PIL import ImageFile
 import warnings
 import logging
+
+vit_config = config["vit"]
+explainee_model_name = vit_config["explainee_model_name"]
+
+IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 logging.getLogger('checkpoint').setLevel(0)
@@ -68,7 +74,6 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    vit_config = config["vit"]
     loss_config = vit_config["seg_cls"]["loss"]
     vit_config["train_model_by_target_gt_class"] = False
     vit_config["enable_checkpointing"] = False
@@ -95,11 +100,11 @@ if __name__ == '__main__':
 
     feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-        model_for_classification_image, model_for_patch_classification = load_vit_pretrained(
+        model_for_classification_image, model_for_mask_generation = load_vit_pretrained(
             model_name=vit_config["model_name"])
     else:
         model_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-        model_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+        model_for_mask_generation = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=vit_config["n_epochs"],
@@ -111,8 +116,7 @@ if __name__ == '__main__':
 
     model = OptImageClassificationWithTokenClassificationModel_Segmentation(
         model_for_classification_image=model_for_classification_image,
-        model_for_patch_classification=model_for_patch_classification,
-        feature_extractor=feature_extractor,
+        model_for_mask_generation=model_for_mask_generation,
         plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
@@ -122,8 +126,10 @@ if __name__ == '__main__':
         best_auc_plot_path='',
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='test',
-        experiment_path='exp_name'
+        experiment_path='exp_name',
+        is_convnet=IS_EXPLANIEE_CONVNET
     )
+
     model = freeze_multitask_model(
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],

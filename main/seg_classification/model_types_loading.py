@@ -26,10 +26,10 @@ def load_vit_type_models(model_name: str, is_explanier_model: bool) -> Union[
         return model_for_classification_image
     else:
         if model_name in ["google/vit-base-patch16-224"]:
-            model_for_patch_classification = load_vit_pretrained_for_explaniee(model_name=model_name)
+            model_for_mask_generation = load_vit_pretrained_for_explaniee(model_name=model_name)
         else:
-            model_for_patch_classification = ViTForMaskGeneration.from_pretrained(model_name)
-        return model_for_patch_classification
+            model_for_mask_generation = ViTForMaskGeneration.from_pretrained(model_name)
+        return model_for_mask_generation
 
 
 def load_convnet_type_models(model_name: str, is_explanier_model: bool):
@@ -59,9 +59,9 @@ def load_feature_extractor(explainee_model_name: str, explainer_model_name: str)
 def load_explainer_explaniee_models_and_feature_extractor(explainee_model_name: str, explainer_model_name: str):
     model_for_classification_image = load_model_by_name(model_name=explainee_model_name,
                                                         is_explanier_model=False)
-    model_for_patch_classification = load_model_by_name(model_name=explainer_model_name,
+    model_for_mask_generation = load_model_by_name(model_name=explainer_model_name,
                                                         is_explanier_model=True)
     feature_extractor = load_feature_extractor(explainee_model_name=explainee_model_name,
                                                explainer_model_name=explainer_model_name)
-    return model_for_classification_image, model_for_patch_classification, feature_extractor
+    return model_for_classification_image, model_for_mask_generation, feature_extractor
 

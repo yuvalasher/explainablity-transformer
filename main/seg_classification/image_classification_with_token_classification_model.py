@@ -1,17 +1,9 @@
-from matplotlib import pyplot as plt
-from torch import Tensor
-
-import numpy as np
 from icecream import ic
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Callable, Union
-
+from typing import Union
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import wandb
 from torch.optim import AdamW
 from transformers import get_linear_schedule_with_warmup
 
@@ -24,11 +16,10 @@ from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CO
 from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
-from vit_utils import visu, get_loss_multipliers
+from models.modeling_cnn_explainer_classification import CNNForMaskGeneration
+from vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
-from transformers.modeling_outputs import SequenceClassifierOutput
-from transformers.modeling_outputs import ImageClassifierOutput
 
 pl.seed_everything(config["general"]["seed"])
 vit_config = config["vit"]
@@ -39,7 +30,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
             model_for_classification_image,
-            model_for_patch_classification: ViTForMaskGeneration,
+            model_for_mask_generation: Union[ViTForMaskGeneration, CNNForMaskGeneration],
             warmup_steps: int,
             total_training_steps: int,
             plot_path,
@@ -53,7 +44,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     ):
         super().__init__()
         self.vit_for_classification_image = model_for_classification_image
-        self.vit_for_patch_classification = model_for_patch_classification
+        self.vit_for_patch_classification = model_for_mask_generation
         self.criterion = criterion
         self.n_classes = n_classes
         self.n_warmup_steps = warmup_steps

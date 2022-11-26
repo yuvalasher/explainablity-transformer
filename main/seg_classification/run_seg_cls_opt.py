@@ -100,7 +100,7 @@ ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
     base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
 
-model_for_classification_image, model_for_patch_classification, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
     explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name)
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -111,7 +111,7 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 
 model = OptImageClassificationWithTokenClassificationModel(
     model_for_classification_image=model_for_classification_image,
-    model_for_patch_classification=model_for_patch_classification,
+    model_for_mask_generation=model_for_mask_generation,
     is_clamp_between_0_to_1=is_clamp_between_0_to_1,
     plot_path=plot_path,
     warmup_steps=warmup_steps,

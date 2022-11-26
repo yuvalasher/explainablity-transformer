@@ -28,7 +28,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
     def __init__(
             self,
             model_for_classification_image,
-            model_for_patch_classification: ViTForMaskGeneration,
+            model_for_mask_generation: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
             plot_path,
@@ -36,6 +36,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             best_auc_plot_path: str,
             experiment_path: str,
             checkpoint_epoch_idx: int,
+            is_convnet: bool,
             run_base_model_only: bool = False,
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
@@ -45,7 +46,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
 
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
-                         model_for_patch_classification=model_for_patch_classification,
+                         model_for_mask_generation=model_for_mask_generation,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
                          plot_path=plot_path,
@@ -53,7 +54,9 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          criterion=criterion,
                          n_classes=n_classes,
                          batch_size=batch_size,
-                         experiment_path=experiment_path)
+                         experiment_path=experiment_path,
+                         is_convnet=is_convnet
+                         )
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None

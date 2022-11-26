@@ -1,29 +1,17 @@
 import os
-
-from matplotlib import pyplot as plt
-from torch import Tensor
-
 import numpy as np
 from icecream import ic
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple, Callable
-
+from typing import Union
 import pytorch_lightning as pl
-
 from config import config
-
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk,
                                                                       run_perturbation_test_opt)
-
-from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
-
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
-
+from models.modeling_cnn_explainer_classification import CNNForMaskGeneration
 from vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
@@ -37,7 +25,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
     def __init__(
             self,
             model_for_classification_image,
-            model_for_patch_classification: ViTForMaskGeneration,
+            model_for_mask_generation: Union[ViTForMaskGeneration, CNNForMaskGeneration],
             warmup_steps: int,
             total_training_steps: int,
             plot_path,
@@ -52,7 +40,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             batch_size: int = 8,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
-                         model_for_patch_classification=model_for_patch_classification,
+                         model_for_mask_generation=model_for_mask_generation,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
                          is_convnet=is_convnet,
