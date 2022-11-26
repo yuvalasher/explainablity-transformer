@@ -29,12 +29,14 @@ class ImagesDataset(Dataset):
             images_path: Union[str, WindowsPath],
             images_name: List[str],
             targets: List[int],
+            is_explaniee_convnet:bool,
             feature_extractor: ViTFeatureExtractor = None,
     ):
         self.feature_extractor = feature_extractor
         self.images_name = images_name
         self.images_path = images_path
         self.targets = targets
+        self.is_explaniee_convnet = is_explaniee_convnet
 
     def __len__(self):
         return len(self.images_name)
@@ -43,7 +45,7 @@ class ImagesDataset(Dataset):
         image_name = os.path.basename(self.images_name[index])
         image = get_image_from_path(path=Path(self.images_path, image_name))
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        if self.feature_extractor is not None:
+        if not self.is_explaniee_convnet:
             inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
                 image=image, feature_extractor=self.feature_extractor,
                 is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]

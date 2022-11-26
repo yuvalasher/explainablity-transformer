@@ -3,7 +3,8 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
-from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor
+from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
+    CONVNET_MODELS_BY_NAME
 from tqdm import tqdm
 from main.seg_classification.image_classification_with_token_classification_model_opt import \
     OptImageClassificationWithTokenClassificationModel
@@ -21,6 +22,7 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
     GT_VALIDATION_PATH_LABELS,
 )
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
@@ -59,12 +61,12 @@ explainee_model_name = vit_config["explainee_model_name"]
 plot_path = vit_config["plot_path"]
 train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 RUN_BASE_MODEL = vit_config["run_base_model"]
+IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 seed_everything(config["general"]["seed"])
 vit_config["enable_checkpointing"] = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 
 get_loss_multipliers(normalize=False,
                      mask_loss_mul=mask_loss_mul,
@@ -89,6 +91,7 @@ BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_mode
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)
+ic(vit_config["verbose"])
 ic(EXP_PATH, RUN_BASE_MODEL)
 ic(mask_loss_mul)
 ic(train_model_by_target_gt_class)
@@ -109,7 +112,6 @@ warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
 model = OptImageClassificationWithTokenClassificationModel(
     model_for_classification_image=model_for_classification_image,
     model_for_patch_classification=model_for_patch_classification,
-    feature_extractor=feature_extractor,
     is_clamp_between_0_to_1=is_clamp_between_0_to_1,
     plot_path=plot_path,
     warmup_steps=warmup_steps,
@@ -119,8 +121,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
     best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,
     run_base_model_only=RUN_BASE_MODEL,
-    is_convnet=True,  # TODO
-    # is_convnet=True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+    is_convnet=IS_EXPLANIEE_CONVNET,
 )
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
@@ -142,11 +143,12 @@ if __name__ == '__main__':
     targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
     for idx, (image_path, target) in tqdm(enumerate(zip(listdir, targets)), position=0, leave=True, total=len(listdir)):
         data_module = ImageSegOptDataModule(
-            feature_extractor=feature_extractor,
             batch_size=1,
             train_image_path=str(image_path),
             val_image_path=str(image_path),
             target=target,
+            feature_extractor=feature_extractor,
+            is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
         )
         trainer = pl.Trainer(
             logger=[],

@@ -61,10 +61,12 @@ default_root_dir = vit_config["default_root_dir"]
 train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
+IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
+ic(vit_config["verbose"])
 ic(train_model_by_target_gt_class)
 ic(is_sampled_train_data_uniformly)
 ic(is_sampled_val_data_uniformly)
@@ -81,6 +83,7 @@ model_for_classification_image, model_for_patch_classification, feature_extracto
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
+    is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
     batch_size=batch_size,
     train_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
     val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
@@ -109,7 +112,7 @@ model = ImageClassificationWithTokenClassificationModel(
     total_training_steps=total_training_steps,
     batch_size=batch_size,
     experiment_path=experiment_perturbation_results_path,
-    is_convnet=True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False,
+    is_convnet=IS_EXPLANIEE_CONVNET,
 )
 
 remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)

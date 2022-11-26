@@ -20,12 +20,14 @@ class ImageSegOptDataset(Dataset):
     def __init__(
             self,
             image_path: Union[str, WindowsPath],
-            feature_extractor: ViTFeatureExtractor,
-            target: int
+            target: int,
+            is_explaniee_convnet: bool,
+            feature_extractor: ViTFeatureExtractor = None,
     ):
-        self.feature_extractor = feature_extractor
         self.image_path = image_path
         self.target = target
+        self.feature_extractor = feature_extractor
+        self.is_explaniee_convnet = is_explaniee_convnet
 
     def __len__(self):
         return 1
@@ -33,7 +35,7 @@ class ImageSegOptDataset(Dataset):
     def __getitem__(self, index: int):
         image = get_image_from_path(path=self.image_path)
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        if self.feature_extractor is not None:
+        if not self.is_explaniee_convnet:
             inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
                 image=image, feature_extractor=self.feature_extractor,
                 is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]
