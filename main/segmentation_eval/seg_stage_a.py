@@ -37,6 +37,12 @@ import logging
 
 vit_config = config["vit"]
 explainee_model_name = vit_config["explainee_model_name"]
+loss_config = vit_config["seg_cls"]["loss"]
+mask_loss_mul = loss_config["mask_loss_mul"]
+prediction_loss_mul = loss_config["prediction_loss_mul"]
+loss_multipliers = get_loss_multipliers(normalize=False,
+                                        mask_loss_mul=mask_loss_mul,
+                                        prediction_loss_mul=prediction_loss_mul)
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
@@ -75,13 +81,11 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    loss_config = vit_config["seg_cls"]["loss"]
     vit_config["train_model_by_target_gt_class"] = False
     vit_config["enable_checkpointing"] = False
     seed_everything(config["general"]["seed"])
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
-    loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     ic(vit_config["model_name"])
     target_or_predicted_model = "predicted"
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][

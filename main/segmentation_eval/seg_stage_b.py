@@ -1,5 +1,7 @@
 import os
+
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from pathlib import Path
@@ -60,6 +62,11 @@ vit_config = config["vit"]
 explainee_model_name = vit_config["explainee_model_name"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 loss_config = vit_config["seg_cls"]["loss"]
+mask_loss_mul = loss_config["mask_loss_mul"]
+prediction_loss_mul = loss_config["prediction_loss_mul"]
+loss_multipliers = get_loss_multipliers(normalize=False,
+                                        mask_loss_mul=mask_loss_mul,
+                                        prediction_loss_mul=prediction_loss_mul)
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
 num_workers = 0
@@ -207,7 +214,6 @@ if __name__ == '__main__':
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     gc.collect()
 
-    loss_multipliers = get_loss_multipliers(loss_config=loss_config)
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
         'experiment_folder_name'])
 
