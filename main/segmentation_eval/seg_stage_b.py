@@ -1,5 +1,4 @@
 import os
-
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -7,7 +6,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from pathlib import Path
 
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
-from utils.saver import Saver
 from icecream import ic
 import numpy as np
 import torch
@@ -15,16 +13,12 @@ import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
 from numpy import *
-import argparse
 from PIL import Image
 import imageio
 from transformers import ViTForImageClassification
-
 from tqdm import tqdm
-
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from utils.metrices import *
-
 from config import config
 from utils import render
 from utils.iou import IoU
@@ -35,16 +29,13 @@ from main.segmentation_eval.segmentation_model_opt import \
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
-
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_SEG_PATH,
 )
-
 from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
-
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -53,11 +44,7 @@ import logging
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger('checkpoint').setLevel(0)
-logging.getLogger('lightning').setLevel(0)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
+
 vit_config = config["vit"]
 explainee_model_name = vit_config["explainee_model_name"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -69,7 +56,6 @@ loss_multipliers = get_loss_multipliers(normalize=False,
                                         prediction_loss_mul=prediction_loss_mul)
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
-num_workers = 0
 
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
@@ -78,14 +64,33 @@ CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["mo
                                                      "img_size"], BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "patch_size"], BACKBONE_DETAILS[vit_config["model_name"]][
                                                      "mask_loss"]
-CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 vit_config["img_size"] = IMG_SIZE
 loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["patch_size"] = PATCH_SIZE
+RUN_BASE_MODEL = vit_config['run_base_model']
+CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+
 ic(CKPT_PATH)
 ic(loss_config["mask_loss_mul"], IMG_SIZE)
-RUN_BASE_MODEL = vit_config[
-    'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
+ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
+ic(vit_config["n_epochs_to_optimize_stage_b"])
+ic(loss_config["use_logits_only"])
+ic(vit_config['run_base_model'])
+ic(vit_config["model_name"])
+
+EXP_NAME = ''  # TODO
+
+seed_everything(config["general"]["seed"])
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+gc.collect()
+
+num_workers = 0
+
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+logging.getLogger('checkpoint').setLevel(0)
+logging.getLogger('lightning').setLevel(0)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def compute_pred(output):
@@ -198,10 +203,6 @@ def init_get_normalize_and_trns():
 
 
 if __name__ == '__main__':
-    ic(vit_config["segmentation_transformer_n_first_layers_to_freeze"])
-    ic(vit_config["n_epochs_to_optimize_stage_b"])
-    ic(loss_config["use_logits_only"])
-    ic(vit_config['run_base_model'])
     batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
@@ -210,14 +211,8 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    seed_everything(config["general"]["seed"])
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
-    gc.collect()
-
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
         'experiment_folder_name'])
-
-    EXP_NAME = ''  # TODO
 
     feature_extractor, _ = load_feature_extractor_and_vit_model(
         vit_config=vit_config,
@@ -225,7 +220,6 @@ if __name__ == '__main__':
         is_competitive_method_transforms=vit_config["is_competitive_method_transforms"],
     )
 
-    ic(vit_config["model_name"])
     if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
         model_for_classification_image, model_for_mask_generation = load_vit_pretrained(
             model_name=vit_config["model_name"])
