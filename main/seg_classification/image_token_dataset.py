@@ -7,7 +7,7 @@ from pytorch_lightning import seed_everything
 from torch.utils.data import Dataset
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath, Path
-from main.seg_classification.cnns.cnn_utils import resnet_preprocess, resnet_resize_center_crop_transform
+from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 from utils import get_image_from_path
 from utils.transformation import resize
 from vit_utils import get_image_and_inputs_and_transformed_image
@@ -51,9 +51,9 @@ class ImagesDataset(Dataset):
             image_resized = resize(image)
             inputs = inputs["pixel_values"]
         else:
-            inputs = resnet_preprocess(image)
-            resized_and_normalized_image = resnet_preprocess(image)
-            image_resized = resnet_resize_center_crop_transform(image)
+            inputs = convnet_preprocess(image)
+            resized_and_normalized_image = convnet_preprocess(image)
+            image_resized = convnet_resize_center_crop_transform(image)
         target_class = torch.tensor(self.targets[index])
 
         return dict(
