@@ -76,8 +76,8 @@ else:
 ic(
     str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
 )
-model_for_image_classification = models.resnet101(pretrained=True)
-# model_for_image_classification = models.densenet201(pretrained=True)
+model_for_image_classification = models.resnet101(pretrained=True).eval()
+# model_for_image_classification = models.densenet201(pretrained=True).eval()
 data_module = ImageSegDataModule(
     feature_extractor=None,
     batch_size=vit_config["batch_size"],

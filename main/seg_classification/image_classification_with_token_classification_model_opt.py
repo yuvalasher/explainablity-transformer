@@ -71,6 +71,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         self.image_idx = None
         self.auc_by_epoch = None
         self.run_base_model_only = run_base_model_only
+        self.model_for_classification_image.eval()
 
     def init_auc(self) -> None:
         self.best_auc = np.inf
@@ -80,6 +81,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
 
     def training_step(self, batch, batch_idx):
+        self.model_for_classification_image.eval()
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
