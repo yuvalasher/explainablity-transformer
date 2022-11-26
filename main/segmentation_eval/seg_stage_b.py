@@ -47,7 +47,10 @@ device = torch.device("cuda" if cuda else "cpu")
 
 vit_config = config["vit"]
 explainee_model_name = vit_config["explainee_model_name"]
+explainer_model_name = vit_config["explainer_model_name"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+
 loss_config = vit_config["seg_cls"]["loss"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
@@ -254,7 +257,9 @@ if __name__ == '__main__':
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],
         segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"]
+            "segmentation_transformer_n_first_layers_to_freeze"],
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+
     )
     total_inter, total_union, total_correct, total_label = np.int64(0), np.int64(0), np.int64(0), np.int64(0)
     total_ap, total_f1 = [], []

@@ -168,18 +168,20 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(model, freezing_classification_transformer: bool = True,
-                           segmentation_transformer_n_first_layers_to_freeze: int = 0):
+def freeze_multitask_model(model,
+                           freezing_classification_transformer: bool = True,
+                           segmentation_transformer_n_first_layers_to_freeze: int = 0,
+                           is_explainer_convnet: bool = False):
     if freezing_classification_transformer:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-
-    modules = [model.vit_for_patch_classification.vit.embeddings,
-               model.vit_for_patch_classification.vit.encoder.layer[
-               :segmentation_transformer_n_first_layers_to_freeze]]
-    for module in modules:
-        for param in module.parameters():
-            param.requires_grad = False
+    if not is_explainer_convnet:
+        modules = [model.vit_for_patch_classification.vit.embeddings,
+                   model.vit_for_patch_classification.vit.encoder.layer[
+                   :segmentation_transformer_n_first_layers_to_freeze]]
+        for module in modules:
+            for param in module.parameters():
+                param.requires_grad = False
     return model
 
 

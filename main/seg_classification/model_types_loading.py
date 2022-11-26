@@ -1,18 +1,15 @@
 from typing import Union
-
+from torchvision.models.resnet import ResNet
+from torchvision.models.densenet import DenseNet
 from torchvision import models
 from transformers import ViTForImageClassification
-
 from feature_extractor import ViTFeatureExtractor
+from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from vit_loader.load_vit import load_vit_pretrained_for_explanier, load_vit_pretrained_for_explaniee
 
-CONVNET_MODELS_BY_NAME = {"resnet": {"explaniee": models.resnet101(pretrained=True),
-                                     "explanier": None
-                                     },
-                          "densenet": {"explaniee": models.densenet201(pretrained=True),
-                                       "explanier": None
-                                       }
+CONVNET_MODELS_BY_NAME = {"resnet": models.resnet101(pretrained=True),
+                          "densenet": models.densenet201(pretrained=True),
                           }
 
 
@@ -32,8 +29,14 @@ def load_vit_type_models(model_name: str, is_explanier_model: bool) -> Union[
         return model_for_mask_generation
 
 
-def load_convnet_type_models(model_name: str, is_explanier_model: bool):
-    return CONVNET_MODELS_BY_NAME[model_name]["explanier" if is_explanier_model else "explaniee"].eval()
+def load_convnet_type_models(model_name: str, is_explanier_model: bool) -> Union[
+    ResNet, DenseNet, CNNForMaskGeneration]:
+    model_for_classification_image = CONVNET_MODELS_BY_NAME[model_name].eval()
+    if not is_explanier_model:
+        return model_for_classification_image
+    model_for_mask_generation = CNNForMaskGeneration(cnn_model=model_for_classification_image)
+    del model_for_classification_image
+    return model_for_mask_generation
 
 
 def load_model_by_name(model_name: str, is_explanier_model: bool):
@@ -60,8 +63,7 @@ def load_explainer_explaniee_models_and_feature_extractor(explainee_model_name: 
     model_for_classification_image = load_model_by_name(model_name=explainee_model_name,
                                                         is_explanier_model=False)
     model_for_mask_generation = load_model_by_name(model_name=explainer_model_name,
-                                                        is_explanier_model=True)
+                                                   is_explanier_model=True)
     feature_extractor = load_feature_extractor(explainee_model_name=explainee_model_name,
                                                explainer_model_name=explainer_model_name)
     return model_for_classification_image, model_for_mask_generation, feature_extractor
-

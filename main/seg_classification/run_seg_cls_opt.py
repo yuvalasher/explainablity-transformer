@@ -62,6 +62,7 @@ plot_path = vit_config["plot_path"]
 train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 RUN_BASE_MODEL = vit_config["run_base_model"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 seed_everything(config["general"]["seed"])
 vit_config["enable_checkpointing"] = False
@@ -128,7 +129,8 @@ remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
     freezing_classification_transformer=freezing_classification_transformer,
-    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze
+    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
+    is_explainer_convnet=IS_EXPLAINER_CONVNET,
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)

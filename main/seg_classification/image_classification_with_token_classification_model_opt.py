@@ -11,7 +11,7 @@ from main.seg_classification.image_classification_with_token_classification_mode
     ImageClassificationWithTokenClassificationModel
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
-from models.modeling_cnn_explainer_classification import CNNForMaskGeneration
+from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
 from vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification

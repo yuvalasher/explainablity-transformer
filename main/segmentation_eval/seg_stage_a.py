@@ -34,6 +34,7 @@ import logging
 
 vit_config = config["vit"]
 explainee_model_name = vit_config["explainee_model_name"]
+explainer_model_name = vit_config["explainer_model_name"]
 loss_config = vit_config["seg_cls"]["loss"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
@@ -42,6 +43,7 @@ loss_multipliers = get_loss_multipliers(normalize=False,
                                         prediction_loss_mul=prediction_loss_mul)
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 seed_everything(config["general"]["seed"])
 
 vit_config["train_model_by_target_gt_class"] = False
@@ -138,7 +140,8 @@ if __name__ == '__main__':
         model=model,
         freezing_classification_transformer=vit_config["freezing_classification_transformer"],
         segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"]
+            "segmentation_transformer_n_first_layers_to_freeze"],
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
     )
 
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)

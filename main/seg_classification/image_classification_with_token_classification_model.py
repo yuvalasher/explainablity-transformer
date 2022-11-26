@@ -16,7 +16,7 @@ from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CO
 from main.seg_classification.output_dataclasses.image_classification_with_token_classification_model_output import \
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
-from models.modeling_cnn_explainer_classification import CNNForMaskGeneration
+from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
 from vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification

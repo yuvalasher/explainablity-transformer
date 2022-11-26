@@ -62,6 +62,7 @@ train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
@@ -79,7 +80,6 @@ exp_name = f'explanier_{explainer_model_name.replace("/", "_")}__explaniee_{expl
 
 model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
     explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name)
-
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
@@ -118,7 +118,8 @@ remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
 model = freeze_multitask_model(
     model=model,
     freezing_classification_transformer=freezing_classification_transformer,
-    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze
+    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
+    is_explainer_convnet=IS_EXPLAINER_CONVNET,
 )
 print(exp_name)
 print_number_of_trainable_and_not_trainable_params(model)
