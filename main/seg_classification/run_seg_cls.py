@@ -61,6 +61,12 @@ default_root_dir = vit_config["default_root_dir"]
 train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
+lr = vit_config['lr']
+start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
+n_batches_to_visualize = vit_config["n_batches_to_visualize"]
+is_ce_neg = loss_config["is_ce_neg"]
+activation_function = vit_config["activation_function"]
+
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
@@ -112,6 +118,11 @@ model = ImageClassificationWithTokenClassificationModel(
     total_training_steps=total_training_steps,
     experiment_path=experiment_perturbation_results_path,
     is_convnet=IS_EXPLANIEE_CONVNET,
+    lr=lr,
+    start_epoch_to_evaluate=start_epoch_to_evaluate,
+    n_batches_to_visualize=n_batches_to_visualize,
+    activation_function=activation_function,
+    is_ce_neg=is_ce_neg,
 )
 
 remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)

@@ -17,8 +17,6 @@ from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 
 pl.seed_everything(config["general"]["seed"])
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 
 class OptImageClassificationWithTokenClassificationModel(ImageClassificationWithTokenClassificationModel):
@@ -33,6 +31,12 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
             is_convnet: bool,
+            lr: float,
+            n_epochs: int,
+            activation_function: str,
+            is_ce_neg: bool = False,
+            n_batches_to_visualize: int = 2,
+            start_epoch_to_evaluate: int = 1,
             is_clamp_between_0_to_1: bool = True,
             run_base_model_only: bool = False,
             criterion: LossLoss = LossLoss(),
@@ -42,10 +46,16 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
                          is_convnet=is_convnet,
+                         lr=lr,
+                         start_epoch_to_evaluate=start_epoch_to_evaluate,
+                         n_batches_to_visualize=n_batches_to_visualize,
+                         activation_function=activation_function,
+                         is_ce_neg=is_ce_neg,
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
                          experiment_path=Path(""))
+        self.n_epochs = n_epochs
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
@@ -117,7 +127,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                 outputs[0]['auc'] = auc
                 self.trainer.should_stop = True
 
-        if self.current_epoch == vit_config['n_epochs'] - 1:
+        if self.current_epoch == self.n_epochs - 1:
             self.trainer.should_stop = True
 
     def validation_epoch_end(self, outputs):

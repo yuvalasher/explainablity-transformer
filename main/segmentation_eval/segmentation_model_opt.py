@@ -20,8 +20,6 @@ from torch import Tensor
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
 
 pl.seed_everything(config["general"]["seed"])
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 
 class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClassificationWithTokenClassificationModel):
@@ -37,6 +35,12 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             experiment_path: str,
             checkpoint_epoch_idx: int,
             is_convnet: bool,
+            lr: float,
+            n_epochs: int,
+            activation_function: str,
+            is_ce_neg: bool = False,
+            n_batches_to_visualize: int = 2,
+            start_epoch_to_evaluate: int = 1,
             run_base_model_only: bool = False,
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
@@ -49,9 +53,15 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
                          criterion=criterion,
+                         lr=lr,
+                         start_epoch_to_evaluate=start_epoch_to_evaluate,
+                         n_batches_to_visualize=n_batches_to_visualize,
+                         activation_function=activation_function,
+                         is_ce_neg=is_ce_neg,
                          experiment_path=experiment_path,
                          is_convnet=is_convnet
                          )
+        self.n_epochs = n_epochs
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
@@ -124,7 +134,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             if self.run_base_model_only or auc < AUC_STOP_VALUE:
                 self.trainer.should_stop = True
 
-        if self.current_epoch == vit_config['n_epochs'] - 1:
+        if self.current_epoch == self.n_epochs - 1:
             self.trainer.should_stop = True
 
     def test_step(self, batch, batch_idx):

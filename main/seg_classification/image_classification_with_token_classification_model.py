@@ -22,8 +22,6 @@ from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 
 pl.seed_everything(config["general"]["seed"])
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
@@ -36,6 +34,11 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             plot_path,
             experiment_path,
             is_convnet: bool,
+            lr: float,
+            activation_function: str,
+            is_ce_neg: bool = False,
+            n_batches_to_visualize: int = 2,
+            start_epoch_to_evaluate: int = 1,
             is_clamp_between_0_to_1: bool = True,
             criterion: LossLoss = LossLoss(),
     ):
@@ -49,6 +52,11 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.plot_path = plot_path
         self.experiment_path = experiment_path
         self.is_convnet = is_convnet
+        self.lr = lr
+        self.activation_function = activation_function
+        self.is_ce_neg = is_ce_neg
+        self.n_batches_to_visualize = n_batches_to_visualize
+        self.start_epoch_to_evaluate = start_epoch_to_evaluate
 
     def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
         if is_clamp_between_0_to_1:
@@ -72,7 +80,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         vit_cls_output_logits = vit_cls_output.logits if not self.is_convnet else vit_cls_output
 
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)
-        if vit_config["activation_function"]:
+        if self.activation_function:
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
@@ -88,7 +96,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         vit_masked_output = self.vit_for_classification_image(masked_image_inputs)
         vit_masked_output_logits = vit_masked_output.logits if not self.is_convnet else vit_masked_output
 
-        if loss_config['is_ce_neg']:
+        if self.is_ce_neg:
             masked_neg_image = image_resized * (1 - interpolated_mask_normalized)
             if self.is_convnet:
                 masked_neg_image_inputs = self.normalize_image(masked_neg_image,
@@ -99,7 +107,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
             vit_masked_output_logits = vit_masked_neg_output.logits if not self.is_convnet else vit_masked_neg_output
 
-        vit_masked_neg_output_logits = None if not loss_config['is_ce_neg'] else vit_masked_neg_output
+        vit_masked_neg_output_logits = None if not self.is_ce_neg else vit_masked_neg_output
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits,
@@ -173,7 +181,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("train/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
         self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
         self._visualize_outputs(
-            outputs, stage="train", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
+            outputs, stage="train", n_batches=self.n_batches_to_visualize, epoch_idx=self.current_epoch
         )
 
     def validation_epoch_end(self, outputs):
@@ -190,10 +198,10 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
 
         self._visualize_outputs(
-            outputs, stage="val", n_batches=vit_config["n_batches_to_visualize"], epoch_idx=self.current_epoch
+            outputs, stage="val", n_batches=self.n_batches_to_visualize, epoch_idx=self.current_epoch
         )
         epoch_auc = -1
-        if self.current_epoch >= vit_config["start_epoch_to_evaluate"]:
+        if self.current_epoch >= self.start_epoch_to_evaluate:
             epoch_auc = run_perturbation_test(
                 model=self.vit_for_classification_image,
                 outputs=outputs,
@@ -214,7 +222,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         return images_mask
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=vit_config["lr"])
+        optimizer = AdamW(self.parameters(), lr=self.lr)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.n_warmup_steps,

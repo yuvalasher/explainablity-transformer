@@ -44,7 +44,6 @@ vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
 mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
-lr = vit_config['lr']
 n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
 batch_size = vit_config["batch_size"]
 n_epochs = vit_config["n_epochs"]
@@ -61,6 +60,12 @@ explainee_model_name = vit_config["explainee_model_name"]
 plot_path = vit_config["plot_path"]
 train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
 RUN_BASE_MODEL = vit_config["run_base_model"]
+lr = vit_config['lr']
+start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
+n_batches_to_visualize = vit_config["n_batches_to_visualize"]
+is_ce_neg = loss_config["is_ce_neg"]
+activation_function = vit_config["activation_function"]
+
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
@@ -122,6 +127,12 @@ model = OptImageClassificationWithTokenClassificationModel(
     best_auc_plot_path=BASE_MODEL_BEST_AUC_PLOT_PATH if RUN_BASE_MODEL else BEST_AUC_PLOT_PATH,
     run_base_model_only=RUN_BASE_MODEL,
     is_convnet=IS_EXPLANIEE_CONVNET,
+    lr=lr,
+    n_epochs=n_epochs,
+    start_epoch_to_evaluate=start_epoch_to_evaluate,
+    n_batches_to_visualize=n_batches_to_visualize,
+    activation_function=activation_function,
+    is_ce_neg=is_ce_neg,
 )
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])

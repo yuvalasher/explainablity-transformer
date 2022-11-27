@@ -40,6 +40,11 @@ mask_loss_mul = loss_config["mask_loss_mul"]
 prediction_loss_mul = loss_config["prediction_loss_mul"]
 is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
 batch_size = vit_config["batch_size"]
+lr = vit_config['lr']
+start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
+n_batches_to_visualize = vit_config["n_batches_to_visualize"]
+is_ce_neg = loss_config["is_ce_neg"]
+activation_function = vit_config["activation_function"]
 n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
 freezing_classification_transformer = vit_config["freezing_classification_transformer"]
 segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
@@ -140,7 +145,13 @@ if __name__ == '__main__':
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='test',
         experiment_path='exp_name',
-        is_convnet=IS_EXPLANIEE_CONVNET
+        is_convnet=IS_EXPLANIEE_CONVNET,
+        lr=lr,
+        n_epochs=n_epochs,
+        start_epoch_to_evaluate=start_epoch_to_evaluate,
+        n_batches_to_visualize=n_batches_to_visualize,
+        activation_function=activation_function,
+        is_ce_neg=is_ce_neg,
     )
     model = freeze_multitask_model(
         model=model,

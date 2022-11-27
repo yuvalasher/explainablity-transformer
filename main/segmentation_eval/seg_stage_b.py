@@ -46,8 +46,15 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 vit_config = config["vit"]
+loss_config = vit_config["seg_cls"]["loss"]
 explainee_model_name = vit_config["explainee_model_name"]
 explainer_model_name = vit_config["explainer_model_name"]
+lr = vit_config["lr"]
+n_epochs = vit_config["n_epochs"]
+start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
+n_batches_to_visualize = vit_config["n_batches_to_visualize"]
+is_ce_neg = loss_config["is_ce_neg"]
+activation_function = vit_config["activation_function"]
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
@@ -258,6 +265,12 @@ if __name__ == '__main__':
         model_runtype='train',
         experiment_path='exp_name',
         is_convnet=IS_EXPLANIEE_CONVNET,
+        lr=lr,
+        n_epochs=n_epochs,
+        start_epoch_to_evaluate=start_epoch_to_evaluate,
+        n_batches_to_visualize=n_batches_to_visualize,
+        activation_function=activation_function,
+        is_ce_neg=is_ce_neg,
     )
 
     model = freeze_multitask_model(
