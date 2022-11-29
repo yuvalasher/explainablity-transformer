@@ -141,9 +141,6 @@ minimum_predictions.txt
 *.pkl
 *.npy
 *.hdf5
-research/plots/head_layer_temp_softmax_lr0_003_temp_1\+l1_0\+kl_loss_0\+entropy_loss_1000\+pred_loss_10/0000000005/dino/
-research/plots/head_layer_temp_softmax_lr0_003_temp_1\+l1_0\+kl_loss_0\+entropy_loss_1000\+pred_loss_10/0000000004/dino/
-research/plots/head_layer_temp_softmax_lr0_003_temp_1\+l1_0\+kl_loss_0\+entropy_loss_1000\+pred_loss_10/0000000005/rollout/
 
 main/seg_classification/lightning_logs/*
 **/data/*
