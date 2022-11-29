@@ -59,7 +59,7 @@ def eval_perturbation_test(experiment_dir: Path,
             else:
                 norm_data = normalize(data.clone())
             if vit_config['verbose']:
-                plot_image(norm_data)
+                plot_image(data)
             pred = model(norm_data)
             pred_logits = pred.logits if type(pred) is ImageClassifierOutput else pred
             pred_probabilities = torch.softmax(pred_logits, dim=1)
@@ -99,7 +99,7 @@ def eval_perturbation_test(experiment_dir: Path,
                 else:
                     _norm_data = normalize(_data.clone())
                 if vit_config['verbose'] and perturbation_step < 4:
-                    plot_image(_norm_data)
+                    plot_image(_data)
 
                 out = model(_norm_data)
                 out_logits = out.logits if type(out) is ImageClassifierOutput else out
