@@ -1,3 +1,4 @@
+from icecream import ic
 import torch
 from pytorch_lightning import LightningModule
 from torch import nn
