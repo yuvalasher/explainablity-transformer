@@ -295,7 +295,7 @@ def get_params_from_vit_config(vit_config: Dict):
     n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
     RUN_BASE_MODEL = vit_config["run_base_model"]
     use_logits_only = loss_config["use_logits_only"]
-    VERBOSE = loss_config["verbose"]
+    VERBOSE = vit_config["verbose"]
     return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
            train_model_by_target_gt_class, freezing_classification_transformer, \
            segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
