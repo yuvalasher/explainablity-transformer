@@ -9,24 +9,24 @@ class CNNForMaskGeneration(LightningModule):
         self.img_size = img_size
         self.activation_function = activation_function
         backbone_children = list(cnn_model.children())
-        self.cnn_model = nn.Sequential(*backbone_children[:-1])
-        backbone_pretrained_classifier = backbone_children[-1]
-        self.pooler = nn.Linear(backbone_pretrained_classifier.in_features, backbone_pretrained_classifier.in_features)
-        self.score_classifier = nn.Sequential(
-            nn.Linear(backbone_pretrained_classifier.in_features, self.img_size * self.img_size))
-        self.activation = nn.Tanh()
+        self.encoder = nn.Sequential(*backbone_children[:-2])
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels=backbone_children[-1].in_features, out_channels=1, kernel_size=1, stride=1),
+        )
 
     def forward(self, inputs):  # inputs.shape: [batch_size, 3, 224, 224]
         batch_size = inputs.shape[0]
-        self.cnn_model.eval()
-        representations = self.cnn_model(inputs).flatten(1)  # [batch_size, 2048]
-        mask = self.pooler(representations)
-        mask = self.activation(mask)
-        mask = self.score_classifier(mask)
-        if vit_config["activation_function"] == 'sigmoid':
+        # ic(inputs.shape)
+        self.encoder.eval()
+        enc_rep = self.encoder(inputs)  # [batch_size, 2048, 7, 7]
+        # ic(representations.shape)
+        mask = self.bottleneck(enc_rep)
+        # ic(mask.shape)
+
+        # ic(mask.shape)
         if self.activation_function == 'sigmoid':
             mask = torch.sigmoid(mask)
-        if vit_config["normalize_by_max_patch"]:
-            mask = mask / mask.max(dim=1, keepdim=True)[0]
-        interpolated_mask = mask.view(batch_size, self.img_size, self.img_size)
+
+        mask = torch.nn.functional.interpolate(mask, scale_factor=32, mode="bilinear")
+        interpolated_mask = mask.view(batch_size, 1, self.img_size, self.img_size)
         return interpolated_mask, mask  # [batch_size, img_size, img_size] , [batch_size, 1, n_tokens]
