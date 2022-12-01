@@ -27,6 +27,7 @@ from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
+    get_params_from_vit_config,
 )
 from pytorch_lightning import seed_everything
 import gc
@@ -41,30 +42,13 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
-mask_loss_mul = loss_config["mask_loss_mul"]
-prediction_loss_mul = loss_config["prediction_loss_mul"]
-n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
-batch_size = vit_config["batch_size"]
-n_epochs = vit_config["n_epochs"]
-is_sampled_train_data_uniformly = vit_config["is_sampled_train_data_uniformly"]
-is_sampled_val_data_uniformly = vit_config["is_sampled_val_data_uniformly"]
-train_model_by_target_gt_class = vit_config["train_model_by_target_gt_class"]
-freezing_classification_transformer = vit_config["freezing_classification_transformer"]
-segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
-is_clamp_between_0_to_1 = vit_config["is_clamp_between_0_to_1"]
-enable_checkpointing = vit_config["enable_checkpointing"]
-is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
-explainer_model_name = vit_config["explainer_model_name"]
-explainee_model_name = vit_config["explainee_model_name"]
-plot_path = vit_config["plot_path"]
-train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
-RUN_BASE_MODEL = vit_config["run_base_model"]
-lr = vit_config['lr']
-start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
-n_batches_to_visualize = vit_config["n_batches_to_visualize"]
-is_ce_neg = loss_config["is_ce_neg"]
-activation_function = vit_config["activation_function"]
+batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
+train_model_by_target_gt_class, freezing_classification_transformer, \
+segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
+is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE = get_params_from_vit_config(
+    vit_config=vit_config)
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -97,7 +81,7 @@ BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_mode
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
 os.makedirs(EXP_PATH, exist_ok=True)
-ic(vit_config["verbose"])
+ic(VERBOSE)
 ic(EXP_PATH, RUN_BASE_MODEL)
 ic(mask_loss_mul)
 ic(train_model_by_target_gt_class)

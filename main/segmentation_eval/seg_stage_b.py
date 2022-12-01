@@ -1,10 +1,10 @@
 import os
-from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-from pathlib import Path
 
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
+from pathlib import Path
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from icecream import ic
 import numpy as np
@@ -28,7 +28,7 @@ from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
 from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_vit_config
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
@@ -47,27 +47,24 @@ device = torch.device("cuda" if cuda else "cpu")
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
-explainee_model_name = vit_config["explainee_model_name"]
-explainer_model_name = vit_config["explainer_model_name"]
-lr = vit_config["lr"]
-n_epochs = vit_config["n_epochs"]
-start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
-n_batches_to_visualize = vit_config["n_batches_to_visualize"]
-is_ce_neg = loss_config["is_ce_neg"]
-activation_function = vit_config["activation_function"]
+
+batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
+train_model_by_target_gt_class, freezing_classification_transformer, \
+segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
+is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE = get_params_from_vit_config(
+    vit_config=vit_config)
+
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
-loss_config = vit_config["seg_cls"]["loss"]
-mask_loss_mul = loss_config["mask_loss_mul"]
-prediction_loss_mul = loss_config["prediction_loss_mul"]
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
 vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
 
-use_logits_only = loss_config["use_logits_only"]
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
                                                      target_or_predicted_model], \

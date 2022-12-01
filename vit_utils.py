@@ -39,6 +39,7 @@ def show_cam_on_image(img, mask):
     cam = cam / np.max(cam)
     return cam
 
+
 def plot_vis_on_image(original_image, mask, file_name: str):
     """
     :param original_image.shape: [3, 224, 224]
@@ -264,3 +265,40 @@ def get_checkpoint_idx(ckpt_path: str) -> int:
 
 def get_ckpt_model_auc(ckpt_path: str) -> float:
     return float(str(ckpt_path).split("epoch_auc=")[-1].split(".ckpt")[0])
+
+
+def get_params_from_vit_config(vit_config: Dict):
+    loss_config = vit_config["seg_cls"]["loss"]
+    batch_size = vit_config["batch_size"]
+    n_epochs = vit_config["n_epochs"]
+    is_sampled_train_data_uniformly = vit_config["is_sampled_train_data_uniformly"]
+    is_sampled_val_data_uniformly = vit_config["is_sampled_val_data_uniformly"]
+    train_model_by_target_gt_class = vit_config["train_model_by_target_gt_class"]
+    freezing_classification_transformer = vit_config["freezing_classification_transformer"]
+    segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
+    is_clamp_between_0_to_1 = vit_config["is_clamp_between_0_to_1"]
+    enable_checkpointing = vit_config["enable_checkpointing"]
+    is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
+    explainer_model_name = vit_config["explainer_model_name"]
+    explainee_model_name = vit_config["explainee_model_name"]
+    plot_path = vit_config["plot_path"]
+    default_root_dir = vit_config["default_root_dir"]
+    train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
+    mask_loss = loss_config["mask_loss"]
+    mask_loss_mul = loss_config["mask_loss_mul"]
+    prediction_loss_mul = loss_config["prediction_loss_mul"]
+    lr = vit_config['lr']
+    start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
+    n_batches_to_visualize = vit_config["n_batches_to_visualize"]
+    is_ce_neg = loss_config["is_ce_neg"]
+    activation_function = vit_config["activation_function"]
+    n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
+    RUN_BASE_MODEL = vit_config["run_base_model"]
+    use_logits_only = loss_config["use_logits_only"]
+    VERBOSE = loss_config["verbose"]
+    return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
+           train_model_by_target_gt_class, freezing_classification_transformer, \
+           segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+           is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
+           train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
+           is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE

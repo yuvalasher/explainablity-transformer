@@ -25,7 +25,7 @@ from utils.consts import (
 from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
-    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers,
+    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_vit_config,
 )
 from pytorch_lightning import seed_everything
 import torch
@@ -39,33 +39,16 @@ seed_everything(config["general"]["seed"])
 
 vit_config = config["vit"]
 os.makedirs(vit_config['default_root_dir'], exist_ok=True)
-loss_config = vit_config["seg_cls"]["loss"]
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-
-batch_size = vit_config["batch_size"]
-n_epochs = vit_config["n_epochs"]
-is_sampled_train_data_uniformly = vit_config["is_sampled_train_data_uniformly"]
-is_sampled_val_data_uniformly = vit_config["is_sampled_val_data_uniformly"]
-train_model_by_target_gt_class = vit_config["train_model_by_target_gt_class"]
-freezing_classification_transformer = vit_config["freezing_classification_transformer"]
-segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
-is_clamp_between_0_to_1 = vit_config["is_clamp_between_0_to_1"]
-enable_checkpointing = vit_config["enable_checkpointing"]
-is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
-explainer_model_name = vit_config["explainer_model_name"]
-explainee_model_name = vit_config["explainee_model_name"]
-plot_path = vit_config["plot_path"]
-default_root_dir = vit_config["default_root_dir"]
-train_n_samples = vit_config["seg_cls"]["train_n_label_sample"]
-mask_loss_mul = loss_config["mask_loss_mul"]
-prediction_loss_mul = loss_config["prediction_loss_mul"]
-lr = vit_config['lr']
-start_epoch_to_evaluate = vit_config["start_epoch_to_evaluate"]
-n_batches_to_visualize = vit_config["n_batches_to_visualize"]
-is_ce_neg = loss_config["is_ce_neg"]
-activation_function = vit_config["activation_function"]
+batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
+train_model_by_target_gt_class, freezing_classification_transformer, \
+segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
+is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE = get_params_from_vit_config(
+    vit_config=vit_config)
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -73,7 +56,8 @@ IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.ke
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
-ic(vit_config["verbose"])
+ic(VERBOSE)
+ic(batch_size)
 ic(train_model_by_target_gt_class)
 ic(is_sampled_train_data_uniformly)
 ic(is_sampled_val_data_uniformly)
@@ -82,10 +66,11 @@ ic(explainer_model_name)
 ic(explainee_model_name)
 ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 
-exp_name = f'explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
+exp_name = f'sanity_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 
 model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name, activation_function=activation_function)
+    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name,
+    activation_function=activation_function)
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,
@@ -140,14 +125,14 @@ checkpoints_default_root_dir = str(Path(default_root_dir, 'target' if train_mode
 
 ic(checkpoints_default_root_dir)
 WANDB_PROJECT = config["general"]["wandb_project"]
-# run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
-# wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
+run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
 trainer = pl.Trainer(
     # callbacks=[
-    # ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
-    #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=50)],
-    # logger=[wandb_logger],
+    #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
+    #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)],
+    logger=[wandb_logger],
     accelerator='gpu',
     auto_select_gpus=True,
     max_epochs=n_epochs,
