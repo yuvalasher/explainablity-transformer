@@ -128,6 +128,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         self.vit_for_classification_image.eval()
+        self.vit_for_patch_classification.encoder.eval()
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
         image_resized = batch["image"]
