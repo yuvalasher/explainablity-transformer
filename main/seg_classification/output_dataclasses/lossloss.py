@@ -21,29 +21,46 @@ class LossLoss:
     mask_loss_mul: Union[float, int] = loss_config["mask_loss_mul"]
 
     def __post_init__(self):
-        loss_multipliers = get_loss_multipliers(normalize=False, mask_loss_mul=self.mask_loss_mul, prediction_loss_mul=self.prediction_loss_mul)
+        loss_multipliers = get_loss_multipliers(normalize=False,
+                                                mask_loss_mul=self.mask_loss_mul,
+                                                prediction_loss_mul=self.prediction_loss_mul)
         self.mask_loss = loss_config["mask_loss"]
         self.prediction_loss_mul = loss_multipliers["prediction_loss_mul"]
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
-    def __call__(self, output: Tensor, target: Tensor, tokens_mask: Tensor, target_class: Tensor,
+    def __call__(self, output: Tensor,
+                 target: Tensor,
+                 tokens_mask: Tensor,
+                 target_class: Tensor,
+                 activation_function: str,
+                 train_model_by_target_gt_class: bool,
+                 use_logits_only: bool,
+                 is_ce_neg: bool,
                  neg_output: Tensor = None) -> LossLossOutput:
         if self.mask_loss == "bce":
             mask_loss = encourage_token_mask_to_prior_loss(tokens_mask=tokens_mask, prior=0)
         elif self.mask_loss == "l1":
             mask_loss = l1_loss(tokens_mask)
         elif self.mask_loss == "entropy_softmax":
-            assert vit_config['activation_function'] == 'softmax', \
+            assert activation_function == 'softmax', \
                 "The activation_function must be softmax!!"
             mask_loss = self.entropy_loss(tokens_mask)
         else:
             raise (f"Value of self.mask_loss is not recognized")
 
-        pred_pos_loss = prediction_loss(output=output, target=target, target_class=target_class)
+        pred_pos_loss = prediction_loss(output=output,
+                                        target=target,
+                                        target_class=target_class,
+                                        train_model_by_target_gt_class=train_model_by_target_gt_class,
+                                        use_logits_only=use_logits_only)
         pred_loss = pred_pos_loss
-        if loss_config['is_ce_neg']:
-            pred_neg_loss = -1 * prediction_loss(output=neg_output, target=target, target_class=target_class)
+        if is_ce_neg:
+            pred_neg_loss = -1 * prediction_loss(output=neg_output,
+                                                 target=target,
+                                                 target_class=target_class,
+                                                 train_model_by_target_gt_class=train_model_by_target_gt_class,
+                                                 use_logits_only=use_logits_only)
             pred_loss = (pred_pos_loss + pred_neg_loss) / 2
 
         prediction_loss_multiplied = self.prediction_loss_mul * pred_loss

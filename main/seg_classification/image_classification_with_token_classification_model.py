@@ -37,6 +37,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             is_convnet: bool,
             lr: float,
             activation_function: str,
+            train_model_by_target_gt_class: bool,
+            use_logits_only: bool,
             is_ce_neg: bool = False,
             n_batches_to_visualize: int = 2,
             start_epoch_to_evaluate: int = 1,
@@ -56,6 +58,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.is_convnet = is_convnet
         self.lr = lr
         self.activation_function = activation_function
+        self.train_model_by_target_gt_class = train_model_by_target_gt_class
+        self.use_logits_only = use_logits_only
         self.is_ce_neg = is_ce_neg
         self.n_batches_to_visualize = n_batches_to_visualize
         self.start_epoch_to_evaluate = start_epoch_to_evaluate
@@ -118,6 +122,10 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             target=vit_cls_output_logits,
             tokens_mask=tokens_mask,
             target_class=target_class,
+            train_model_by_target_gt_class=self.train_model_by_target_gt_class,
+            use_logits_only=self.use_logits_only,
+            activation_function=self.activation_function,
+            is_ce_neg=self.is_ce_neg,
         )
 
         return ImageClassificationWithTokenClassificationModelOutput(

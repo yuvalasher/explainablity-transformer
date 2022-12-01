@@ -20,12 +20,16 @@ def l1_loss(tokens_mask) -> Tensor:
     return torch.abs(tokens_mask).mean()
 
 
-def prediction_loss(output, target, target_class):
-    if vit_config["train_model_by_target_gt_class"]:
+def prediction_loss(output,
+                    target,
+                    target_class,
+                    train_model_by_target_gt_class: bool,
+                    use_logits_only: bool):
+    if train_model_by_target_gt_class:
         target_class_to_compare = target_class
     else:
         target_class_to_compare = torch.argmax(target, dim=1)
-    if loss_config["use_logits_only"]:
+    if use_logits_only:
         return -torch.gather(output, 1, target_class_to_compare.unsqueeze(1)).squeeze(1).mean()
     return ce_loss(output, target_class_to_compare)  # maximize the pred to original model
 
