@@ -39,6 +39,24 @@ def show_cam_on_image(img, mask):
     cam = cam / np.max(cam)
     return cam
 
+def plot_vis_on_image(original_image, mask, file_name: str):
+    """
+    :param original_image.shape: [3, 224, 224]
+    :param mask.shape: [1,1, 224, 224]:
+    """
+    mask = mask.data.squeeze(0).squeeze(0).cpu().numpy()  # [1,1,224,224]
+    # mask = torch.tensor(mask.data).squeeze(0).squeeze(0).numpy()  # [1,1,224,224]
+    mask = (mask - mask.min()) / (mask.max() - mask.min())
+    original_image = original_image.squeeze(0) if len(original_image.shape) == 4 else original_image
+    image_transformer_attribution = original_image.permute(1, 2, 0).data.cpu().numpy()
+    image_transformer_attribution = (image_transformer_attribution - image_transformer_attribution.min()) / (
+            image_transformer_attribution.max() - image_transformer_attribution.min())
+    vis = show_cam_on_image(img=image_transformer_attribution, mask=mask)
+    vis = np.uint8(255 * vis)
+    vis = cv2.cvtColor(np.array(vis), cv2.COLOR_RGB2BGR)
+    # plt.axis('off')
+    plt.imsave(fname=Path(f"{file_name}.png"), dpi=300, arr=vis, format="png")
+
 
 def visu(original_image, transformer_attribution, file_name: str):
     """

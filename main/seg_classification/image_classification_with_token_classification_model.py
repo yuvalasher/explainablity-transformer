@@ -18,7 +18,7 @@ from main.seg_classification.output_dataclasses.image_classification_with_token_
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
-from vit_utils import visu
+from vit_utils import visu, plot_vis_on_image
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 
@@ -135,7 +135,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         target_class = batch["target_class"]
         output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        # images_mask = self.mask_patches_to_image_scores(output.tokens_mask) # [1, 1, 224, 224]
+        images_mask = output.interpolated_mask
         return {
             "loss": output.lossloss_output.loss,
             "pred_loss": output.lossloss_output.pred_loss,
@@ -156,7 +157,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         target_class = batch["target_class"]
         output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
 
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        # images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = output.interpolated_mask
+
         return {
             "loss": output.lossloss_output.loss,
             "pred_loss": output.lossloss_output.pred_loss,
@@ -243,10 +246,10 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             epoch_path.mkdir(exist_ok=True, parents=True)
         for batch_idx, output in enumerate(outputs[:n_batches]):
             for idx, (image, mask) in enumerate(
-                    zip(output["resized_and_normalized_image"].detach().cpu(), output["patches_mask"].detach().cpu())):
-                visu(
+                    zip(output["resized_and_normalized_image"].detach().cpu(), output["image_mask"].detach().cpu())):
+                plot_vis_on_image(
                     original_image=image,
-                    transformer_attribution=mask,
+                    mask=mask,
                     file_name=Path(epoch_path, f"{str(batch_idx)}_{str(idx)}").resolve(),
                 )
 
