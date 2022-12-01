@@ -91,7 +91,8 @@ BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_M
     base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
 
 model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name, activation_function=activation_function)
+    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name,
+    activation_function=activation_function)
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
     n_epochs=n_epochs_to_optimize_stage_b,
