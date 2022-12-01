@@ -17,17 +17,12 @@ class CNNForMaskGeneration(LightningModule):
 
     def forward(self, inputs):  # inputs.shape: [batch_size, 3, 224, 224]
         batch_size = inputs.shape[0]
-        # ic(inputs.shape)
         self.encoder.eval()
         enc_rep = self.encoder(inputs)  # [batch_size, 2048, 7, 7]
-        # ic(representations.shape)
         mask = self.bottleneck(enc_rep)
-        # ic(mask.shape)
-
-        # ic(mask.shape)
         if self.activation_function == 'sigmoid':
-            mask = torch.sigmoid(mask)
+            tokens_mask = torch.sigmoid(mask)
 
-        mask = torch.nn.functional.interpolate(mask, scale_factor=32, mode="bilinear")
-        interpolated_mask = mask.view(batch_size, 1, self.img_size, self.img_size)
-        return interpolated_mask, mask  # [batch_size, img_size, img_size] , [batch_size, 1, n_tokens]
+        interpolated_mask = torch.nn.functional.interpolate(tokens_mask, scale_factor=32, mode="bilinear")
+        interpolated_mask = interpolated_mask.view(batch_size, 1, self.img_size, self.img_size)
+        return 1 - interpolated_mask, tokens_mask  # [batch_size, 1, img_size, img_size] , [batch_size, 1, n_tokens ]
