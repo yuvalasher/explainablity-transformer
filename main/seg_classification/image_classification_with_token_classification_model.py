@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 from torch.optim import AdamW
+from torchvision.models import DenseNet, ResNet
 from transformers import get_linear_schedule_with_warmup
 
 from config import config
@@ -27,7 +28,7 @@ pl.seed_everything(config["general"]["seed"])
 class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def __init__(
             self,
-            model_for_classification_image,
+            model_for_classification_image: Union[ViTForImageClassification, ResNet, DenseNet],
             model_for_mask_generation: Union[ViTForMaskGeneration, CNNForMaskGeneration],
             warmup_steps: int,
             total_training_steps: int,

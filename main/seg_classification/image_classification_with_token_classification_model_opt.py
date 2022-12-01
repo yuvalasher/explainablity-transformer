@@ -4,6 +4,8 @@ from icecream import ic
 from pathlib import Path
 from typing import Union
 import pytorch_lightning as pl
+from torchvision.models import DenseNet, ResNet
+
 from config import config
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk,
                                                                       run_perturbation_test_opt)
@@ -22,7 +24,7 @@ pl.seed_everything(config["general"]["seed"])
 class OptImageClassificationWithTokenClassificationModel(ImageClassificationWithTokenClassificationModel):
     def __init__(
             self,
-            model_for_classification_image,
+            model_for_classification_image: Union[ViTForImageClassification, ResNet, DenseNet],
             model_for_mask_generation: Union[ViTForMaskGeneration, CNNForMaskGeneration],
             warmup_steps: int,
             total_training_steps: int,
