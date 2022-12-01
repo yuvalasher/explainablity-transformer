@@ -85,7 +85,7 @@ ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 exp_name = f'explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{loss_config["mask_loss"]}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 
 model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name)
+    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name, activation_function=activation_function)
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,

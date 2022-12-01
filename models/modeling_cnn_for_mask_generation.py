@@ -1,15 +1,13 @@
 import torch
 from pytorch_lightning import LightningModule
 from torch import nn
-from config import config
-
-vit_config = config["vit"]
 
 
 class CNNForMaskGeneration(LightningModule):
-    def __init__(self, cnn_model, img_size: int = 224):
+    def __init__(self, cnn_model, activation_function: str = "sigmoid", img_size: int = 224):
         super().__init__()
         self.img_size = img_size
+        self.activation_function = activation_function
         backbone_children = list(cnn_model.children())
         self.cnn_model = nn.Sequential(*backbone_children[:-1])
         backbone_pretrained_classifier = backbone_children[-1]
@@ -26,6 +24,7 @@ class CNNForMaskGeneration(LightningModule):
         mask = self.activation(mask)
         mask = self.score_classifier(mask)
         if vit_config["activation_function"] == 'sigmoid':
+        if self.activation_function == 'sigmoid':
             mask = torch.sigmoid(mask)
         if vit_config["normalize_by_max_patch"]:
             mask = mask / mask.max(dim=1, keepdim=True)[0]
