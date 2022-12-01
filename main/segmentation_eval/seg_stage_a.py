@@ -43,7 +43,6 @@ train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_
 is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE = get_params_from_vit_config(
     vit_config=vit_config)
 
-
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
@@ -146,6 +145,7 @@ if __name__ == '__main__':
         n_batches_to_visualize=n_batches_to_visualize,
         activation_function=activation_function,
         is_ce_neg=is_ce_neg,
+        verbose=VERBOSE,
     )
     model = freeze_multitask_model(
         model=model,

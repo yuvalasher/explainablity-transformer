@@ -42,6 +42,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             start_epoch_to_evaluate: int = 1,
             is_clamp_between_0_to_1: bool = True,
             criterion: LossLoss = LossLoss(),
+            verbose: bool = False,
     ):
         super().__init__()
         self.vit_for_classification_image = model_for_classification_image
@@ -58,6 +59,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.is_ce_neg = is_ce_neg
         self.n_batches_to_visualize = n_batches_to_visualize
         self.start_epoch_to_evaluate = start_epoch_to_evaluate
+        self.verbose = verbose
 
     def normalize_mask_values(self, mask, is_clamp_between_0_to_1: bool):
         if is_clamp_between_0_to_1:
@@ -214,7 +216,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 stage="val",
                 epoch_idx=self.current_epoch,
                 experiment_path=self.experiment_path,
-                is_convnet=self.is_convnet
+                is_convnet=self.is_convnet,
+                verbose=self.verbose,
             )
 
         self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)

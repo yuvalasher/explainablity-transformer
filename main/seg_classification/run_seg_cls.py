@@ -108,6 +108,7 @@ model = ImageClassificationWithTokenClassificationModel(
     n_batches_to_visualize=n_batches_to_visualize,
     activation_function=activation_function,
     is_ce_neg=is_ce_neg,
+    verbose=VERBOSE
 )
 
 remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)

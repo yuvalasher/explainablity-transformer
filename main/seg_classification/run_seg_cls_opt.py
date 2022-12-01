@@ -117,6 +117,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     n_batches_to_visualize=n_batches_to_visualize,
     activation_function=activation_function,
     is_ce_neg=is_ce_neg,
+    verbose=VERBOSE,
 )
 
 experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])

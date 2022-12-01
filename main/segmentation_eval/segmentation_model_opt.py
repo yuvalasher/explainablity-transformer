@@ -45,6 +45,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
             criterion: LossLoss = LossLoss(),
+            verbose: bool = False,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
                          model_for_mask_generation=model_for_mask_generation,
@@ -59,7 +60,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          activation_function=activation_function,
                          is_ce_neg=is_ce_neg,
                          experiment_path=experiment_path,
-                         is_convnet=is_convnet
+                         is_convnet=is_convnet,
+                         verbose=verbose,
                          )
         self.n_epochs = n_epochs
         self.best_auc_objects_path = best_auc_objects_path
@@ -124,6 +126,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
+            is_convnet=self.is_convnet,
+            verbose=self.verbose,
         )
         if self.best_auc is None or auc < self.best_auc:
             self.best_auc = auc

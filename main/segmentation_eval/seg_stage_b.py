@@ -268,6 +268,7 @@ if __name__ == '__main__':
         n_batches_to_visualize=n_batches_to_visualize,
         activation_function=activation_function,
         is_ce_neg=is_ce_neg,
+        verbose=VERBOSE,
     )
 
     model = freeze_multitask_model(
