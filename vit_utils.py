@@ -279,10 +279,14 @@ def get_params_from_vit_config(vit_config: Dict):
     IMG_SIZE = vit_config["img_size"]
     PATCH_SIZE = vit_config["patch_size"]
     evaluation_experiment_folder_name = vit_config['evaluation']['experiment_folder_name']
+    train_n_label_sample = vit_config['seg_cls']['train_n_label_sample']
+    val_n_label_sample = vit_config['seg_cls']['val_n_label_sample']
+
+
     return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
            train_model_by_target_gt_class, is_freezing_explaniee_model, \
            explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
            is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
            train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
            n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
-           use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name
+           use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, val_n_label_sample

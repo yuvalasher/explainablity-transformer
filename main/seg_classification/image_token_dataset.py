@@ -15,10 +15,9 @@ from config import config
 from utils.consts import IMAGENET_VAL_GT_CSV_FILE_PATH
 
 seed_everything(config["general"]["seed"])
-vit_config = config["vit"]
-
-print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
-print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
+# vit_config = config["vit"]
+# print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
+# print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
 N_IMAGES_PER_LABEL = 1000
 
@@ -75,15 +74,16 @@ class ImageSegDataset(Dataset):
             self,
             images_path: Union[str, WindowsPath],
             feature_extractor: ViTFeatureExtractor,
+            train_n_label_sample: int,
+            val_n_label_sample: int,
             is_sampled_train_data_uniformly: bool = True,
             is_sampled_val_data_uniformly: bool = True,
     ):
         self.feature_extractor = feature_extractor
         self.images_path = images_path
         print(f"Total images: {len(list(Path(images_path).iterdir()))}")
-        train_n_samples = vit_config['seg_cls']['train_n_label_sample'] * 1000
-        val_n_samples = vit_config['seg_cls']['val_n_label_sample'] * 1000
-
+        train_n_samples = train_n_label_sample * 1000
+        val_n_samples = val_n_label_sample * 1000
         datasets = self.sample_train_val_data(images_csv_path=IMAGENET_VAL_GT_CSV_FILE_PATH,
                                               train_n_samples=train_n_samples,
                                               val_n_samples=val_n_samples,

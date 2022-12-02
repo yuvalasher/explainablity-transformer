@@ -8,11 +8,8 @@ vit:
   val_images_path: val_data
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
-  add_epsilon_to_patches_scores: False
   is_sampled_train_data_uniformly: True
   is_sampled_val_data_uniformly: True
-  normalize_by_max_patch: False
-  is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True
   train_model_by_target_gt_class: False
 #  model_name: google/vit-base-patch16-224
@@ -36,7 +33,6 @@ vit:
   n_epochs: 100
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
-  log: False
   verbose: False
   seg_cls:
     train_n_label_sample: 1

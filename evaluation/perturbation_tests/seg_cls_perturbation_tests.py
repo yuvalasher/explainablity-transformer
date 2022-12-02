@@ -11,7 +11,6 @@ import numpy as np
 from config import config
 
 vit_config = config['vit']
-evaluation_config = vit_config['evaluation']
 EXPERIMENTS_FOLDER_PATH = vit_config["experiments_path"]
 
 cuda = torch.cuda.is_available()

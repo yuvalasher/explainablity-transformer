@@ -37,7 +37,6 @@ if torch.cuda.is_available():
     torch.cuda.empty_cache()
 seed_everything(config["general"]["seed"])
 
-
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
@@ -47,8 +46,8 @@ explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkp
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
 train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
 n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
-use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name = get_params_from_vit_config(
-    vit_config=config["vit"])
+use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
+val_n_label_sample = get_params_from_vit_config(vit_config=config["vit"])
 
 os.makedirs(default_root_dir, exist_ok=True)
 
@@ -86,6 +85,8 @@ data_module = ImageSegDataModule(
     is_sampled_train_data_uniformly=is_sampled_train_data_uniformly,
     is_sampled_val_data_uniformly=is_sampled_val_data_uniformly,
     is_competitive_method_transforms=is_competitive_method_transforms,
+    train_n_label_sample=train_n_label_sample,
+    val_n_label_sample=val_n_label_sample
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
