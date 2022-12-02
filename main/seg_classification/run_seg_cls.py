@@ -80,6 +80,7 @@ data_module = ImageSegDataModule(
     val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
     is_sampled_train_data_uniformly=is_sampled_train_data_uniformly,
     is_sampled_val_data_uniformly=is_sampled_val_data_uniformly,
+    is_competitive_method_transforms=is_competitive_method_transforms,
 )
 
 warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(

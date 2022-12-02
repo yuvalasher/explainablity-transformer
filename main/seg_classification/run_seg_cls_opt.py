@@ -145,6 +145,7 @@ if __name__ == '__main__':
             train_image_path=str(image_path),
             val_image_path=str(image_path),
             target=target,
+            is_competitive_method_transforms=is_competitive_method_transforms,
             feature_extractor=feature_extractor,
             is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
         )

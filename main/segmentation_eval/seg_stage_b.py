@@ -44,6 +44,7 @@ import logging
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
+seed_everything(config["general"]["seed"])
 
 vit_config = config["vit"]
 loss_config = vit_config["seg_cls"]["loss"]
@@ -78,11 +79,6 @@ vit_config["patch_size"] = PATCH_SIZE
 RUN_BASE_MODEL = vit_config['run_base_model']
 
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
-is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
-batch_size = vit_config["batch_size"]
-n_epochs_to_optimize_stage_b = vit_config["n_epochs_to_optimize_stage_b"]
-freezing_classification_transformer = vit_config["freezing_classification_transformer"]
-segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
 
 ic(CKPT_PATH)
 ic(IMG_SIZE)
@@ -91,11 +87,7 @@ ic(segmentation_transformer_n_first_layers_to_freeze)
 ic(n_epochs_to_optimize_stage_b)
 ic(use_logits_only)
 ic(RUN_BASE_MODEL)
-ic(vit_config["model_name"])
 
-EXP_NAME = ''  # TODO
-
-seed_everything(config["general"]["seed"])
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 

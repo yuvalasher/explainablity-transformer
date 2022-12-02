@@ -11,9 +11,6 @@ from main.seg_classification.cnns.cnn_utils import convnet_resize_center_crop_tr
 from utils import get_image_from_path
 from utils.transformation import resize
 from vit_utils import get_image_and_inputs_and_transformed_image
-from config import config
-
-vit_config = config["vit"]
 
 
 class ImageSegOptDataset(Dataset):
@@ -22,12 +19,14 @@ class ImageSegOptDataset(Dataset):
             image_path: Union[str, WindowsPath],
             target: int,
             is_explaniee_convnet: bool,
+            is_competitive_method_transforms: bool,
             feature_extractor: ViTFeatureExtractor = None,
     ):
         self.image_path = image_path
         self.target = target
         self.feature_extractor = feature_extractor
         self.is_explaniee_convnet = is_explaniee_convnet
+        self.is_competitive_method_transforms = is_competitive_method_transforms
 
     def __len__(self):
         return 1
@@ -38,7 +37,7 @@ class ImageSegOptDataset(Dataset):
         if not self.is_explaniee_convnet:
             inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
                 image=image, feature_extractor=self.feature_extractor,
-                is_competitive_method_transforms=vit_config["is_competitive_method_transforms"]
+                is_competitive_method_transforms=self.is_competitive_method_transforms
             )
             image_resized = resize(image)
             inputs = inputs["pixel_values"]
