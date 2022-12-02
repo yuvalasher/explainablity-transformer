@@ -12,7 +12,7 @@ vit:
   is_sampled_val_data_uniformly: True
   is_clamp_between_0_to_1: True
   train_model_by_target_gt_class: False
-#  model_name: google/vit-base-patch16-224
+  explainer_model_name: resnet
   explainer_model_name: google/vit-base-patch16-224
 #  explainer_model_name: WinKawaks/vit-small-patch16-224
   #  explainee_model_name: google/vit-base-patch16-224
