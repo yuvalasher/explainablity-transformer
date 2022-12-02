@@ -45,7 +45,7 @@ batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_unifo
 train_model_by_target_gt_class, is_freezing_explaniee_model, \
 explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
+mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
 n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
 use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
 val_n_label_sample = get_params_from_config(config_vit=config["vit"])
@@ -72,7 +72,7 @@ mask_loss_mul = MASK_LOSS_MUL
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
 
-exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{activation_function}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{lr}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
+exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{activation_function}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_label_sample * 1000}_lr_{lr}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 plot_path = Path(plot_path, exp_name)
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_model_by_target_gt_class else 'predicted')
 
