@@ -202,11 +202,17 @@ def freeze_multitask_model(model,
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
     if is_explainer_convnet:
+        pass
+        """
         ct = 0
         for child in model.children():
             if ct <= explainer_model_n_first_layers_to_freeze:
+                print(ct)
                 for param in child.parameters():
                     param.requires_grad = False
+            ct += 1
+        print(print_number_of_trainable_and_not_trainable_params(model))
+        """
     else:
         modules = [model.vit_for_patch_classification.vit.embeddings,
                    model.vit_for_patch_classification.vit.encoder.layer[
