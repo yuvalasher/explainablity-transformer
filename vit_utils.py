@@ -3,6 +3,7 @@ import torch
 from torch import Tensor
 from torch import nn
 from torch.functional import F
+from torchvision.models import DenseNet, ResNet
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
 from models.modeling_vit import ViTBasicForForImageClassification
@@ -187,7 +188,7 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(model,
+def freeze_multitask_model(model: Union[ViTForImageClassification, ResNet, DenseNet],
                            is_freezing_explaniee_model: bool = True,
                            explainer_model_n_first_layers_to_freeze: int = 0,
                            is_explainer_convnet: bool = False,
@@ -196,7 +197,11 @@ def freeze_multitask_model(model,
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
     if is_explainer_convnet:
-        pass
+        ct = 0
+        for child in model.children():
+            if ct <= explainer_model_n_first_layers_to_freeze:
+                for param in child.parameters():
+                    param.requires_grad = False
     else:
         modules = [model.vit_for_patch_classification.vit.embeddings,
                    model.vit_for_patch_classification.vit.encoder.layer[
