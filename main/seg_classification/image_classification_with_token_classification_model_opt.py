@@ -32,7 +32,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             checkpoint_epoch_idx: int,
-            is_convnet: bool,
+            is_explainer_convnet: bool,
+            is_explainee_convnet: bool,
             lr: float,
             n_epochs: int,
             activation_function: str,
@@ -52,7 +53,8 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          model_for_mask_generation=model_for_mask_generation,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
-                         is_convnet=is_convnet,
+                         is_explainer_convnet=is_explainer_convnet,
+                         is_explainee_convnet=is_explainee_convnet,
                          lr=lr,
                          start_epoch_to_evaluate=start_epoch_to_evaluate,
                          n_batches_to_visualize=n_batches_to_visualize,
@@ -123,8 +125,9 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
-            is_convnet=self.is_convnet,
+            is_convnet=self.is_explainee_convnet,
             verbose=self.verbose,
+            img_size=self.img_size,
         )
         if self.best_auc is None or auc < self.best_auc:
             self.best_auc = auc

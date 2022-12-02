@@ -34,7 +34,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             best_auc_plot_path: str,
             experiment_path: str,
             checkpoint_epoch_idx: int,
-            is_convnet: bool,
+            is_explanier_convnet: bool,
+            is_explaniee_convnet: bool,
             lr: float,
             n_epochs: int,
             activation_function: str,
@@ -66,7 +67,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          patch_size=patch_size,
                          is_ce_neg=is_ce_neg,
                          experiment_path=experiment_path,
-                         is_convnet=is_convnet,
+                         is_explainer_convnet=is_explainer_convnet,
+                         is_explainee_convnet=is_explainee_convnet,
                          verbose=verbose,
                          )
         self.n_epochs = n_epochs
@@ -132,8 +134,9 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
-            is_convnet=self.is_convnet,
+            is_convnet=self.is_explainee_convnet,
             verbose=self.verbose,
+            img_size=self.img_size,
         )
         if self.best_auc is None or auc < self.best_auc:
             self.best_auc = auc
