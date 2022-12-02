@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch import nn
-from torch.functional import F
 from torchvision.models import DenseNet, ResNet
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
@@ -11,10 +10,8 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import os
-from typing import Dict, Tuple, Union, NewType, List, Optional
-from pathlib import Path, WindowsPath
-from utils.consts import PLOTS_PATH
-from utils import save_obj_to_disk
+from typing import Dict, Tuple, Union, NewType
+from pathlib import Path
 from config import config
 from torch import optim
 from utils.consts import IMAGES_FOLDER_PATH
@@ -41,13 +38,15 @@ def show_cam_on_image(img, mask):
     return cam
 
 
-def plot_vis_on_image(original_image, mask, file_name: str):
+def plot_vis_on_image(original_image,
+                      mask,
+                      file_name: str,
+                      ):
     """
     :param original_image.shape: [3, 224, 224]
     :param mask.shape: [1,1, 224, 224]:
     """
     mask = mask.data.squeeze(0).squeeze(0).cpu().numpy()  # [1,1,224,224]
-    # mask = torch.tensor(mask.data).squeeze(0).squeeze(0).numpy()  # [1,1,224,224]
     mask = (mask - mask.min()) / (mask.max() - mask.min())
     original_image = original_image.squeeze(0) if len(original_image.shape) == 4 else original_image
     image_transformer_attribution = original_image.permute(1, 2, 0).data.cpu().numpy()
@@ -114,7 +113,9 @@ def setup_model_config(model: VitModelForClassification) -> VitModelForClassific
 
 
 def get_logits_for_image(
-        model: VitModelForClassification, feature_extractor: ViTFeatureExtractor, image: Image
+        model: VitModelForClassification,
+        feature_extractor: ViTFeatureExtractor,
+        image: Image,
 ) -> Tensor:
     inputs = feature_extractor(images=image, return_tensors="pt")
     outputs = model(
@@ -147,14 +148,18 @@ def print_number_of_trainable_and_not_trainable_params(model) -> None:
     )
 
 
-def load_feature_extractor(vit_config: Dict, is_competitive_method_transforms: bool) -> ViTFeatureExtractor:
+def load_feature_extractor(vit_config: Dict,
+                           is_competitive_method_transforms: bool,
+                           ) -> ViTFeatureExtractor:
     feature_extractor = ViTFeatureExtractor.from_pretrained(
         vit_config["model_name"], is_competitive_method_transforms=is_competitive_method_transforms
     )
     return feature_extractor
 
 
-def load_ViTModel(vit_config: Dict, model_type: str) -> VitModelForClassification:
+def load_ViTModel(vit_config: Dict,
+                  model_type: str,
+                  ) -> VitModelForClassification:
     model = vit_model_types[model_type].from_pretrained(
         vit_config["model_name"], output_hidden_states=True
     )
@@ -188,7 +193,7 @@ def handle_model_config_and_freezing_for_task(
     return model
 
 
-def freeze_multitask_model(model: Union[ViTForImageClassification, ResNet, DenseNet],
+def freeze_multitask_model(model,
                            is_freezing_explaniee_model: bool = True,
                            explainer_model_n_first_layers_to_freeze: int = 0,
                            is_explainer_convnet: bool = False,
@@ -243,7 +248,9 @@ def setup_model_and_optimizer(model_name: str):
 
 
 def get_warmup_steps_and_total_training_steps(
-        n_epochs: int, train_samples_length: int, batch_size: int
+        n_epochs: int,
+        train_samples_length: int,
+        batch_size: int,
 ) -> Tuple[int, int]:
     steps_per_epoch = train_samples_length // batch_size
     total_training_steps = steps_per_epoch * n_epochs
@@ -251,14 +258,19 @@ def get_warmup_steps_and_total_training_steps(
     return warmup_steps, total_training_steps
 
 
-def normalize_losses(mask_loss_mul: float, prediction_loss_mul: float) -> Tuple[float, float]:
+def normalize_losses(mask_loss_mul: float,
+                     prediction_loss_mul: float,
+                     ) -> Tuple[float, float]:
     s = mask_loss_mul + prediction_loss_mul
     mask_loss_mul_norm = mask_loss_mul / s
     pred_loss_mul_norm = prediction_loss_mul / s
     return mask_loss_mul_norm, pred_loss_mul_norm
 
 
-def get_loss_multipliers(normalize: bool, mask_loss_mul: int, prediction_loss_mul: int) -> Dict[str, float]:
+def get_loss_multipliers(normalize: bool,
+                         mask_loss_mul: int,
+                         prediction_loss_mul: int,
+                         ) -> Dict[str, float]:
     if normalize:
         mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=mask_loss_mul,
                                                               prediction_loss_mul=prediction_loss_mul)
