@@ -15,11 +15,9 @@ def configure_log(vit_config: Dict, experiment_name: str, image_name: str):
 
 
 def get_wandb_config(vit_config: Dict, experiment_name: str, image_name: str):
-    if vit_config["log"]:
-        wandb.config = {
-            "learning_rate": vit_config["lr"],
-            "experiment_name": experiment_name,
-            "image_name": image_name,
-        }
-        return wandb.config
-    return None
+    wandb.config = {
+        "learning_rate": vit_config["lr"],
+        "experiment_name": experiment_name,
+        "image_name": image_name,
+    }
+    return wandb.config
