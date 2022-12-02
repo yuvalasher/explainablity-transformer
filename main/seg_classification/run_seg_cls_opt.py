@@ -23,7 +23,7 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
     GT_VALIDATION_PATH_LABELS, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
+from main.seg_classification.backbone_to_details import BACKBONE_DETAILS, EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
 from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
@@ -81,6 +81,7 @@ if __name__ == '__main__':
                         default=params_config["evaluation_experiment_folder_name"])
 
     args = parser.parse_args()
+
     EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[args.explainee_model_name], \
                                                  MODEL_ALIAS_MAPPING[args.explainer_model_name]
 
@@ -96,12 +97,12 @@ if __name__ == '__main__':
                          mask_loss_mul=args.mask_loss_mul,
                          prediction_loss_mul=args.prediction_loss_mul)
     target_or_predicted_model = "target" if args.train_model_by_target_gt_class else "predicted"
-    # TODO - need to re-design the BACKBONE_DETAILS
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[EXPLAINEE_MODEL_NAME]["ckpt_path"][
-                                                         target_or_predicted_model], \
-                                                     BACKBONE_DETAILS[EXPLAINEE_MODEL_NAME]["img_size"], \
-                                                     BACKBONE_DETAILS[EXPLAINEE_MODEL_NAME]["patch_size"], \
-                                                     BACKBONE_DETAILS[EXPLAINEE_MODEL_NAME]["mask_loss"]
+    EXPLAINER_EXPLAINEE_NAME = f"{args.explainer_model_name}-{args.explainee_model_name}"
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = \
+    EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["ckpt_path"][target_or_predicted_model], \
+    BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
+    BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
+
     args.mask_loss_mul = MASK_LOSS_MUL
     args.img_size = IMG_SIZE
     args.patch_size = PATCH_SIZE
@@ -110,7 +111,8 @@ if __name__ == '__main__':
 
     exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__train_uni_{args.is_sampled_train_data_uniformly}_val_unif_{args.is_sampled_val_data_uniformly}_activation_{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{args.mask_loss_mul}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}__bs_{args.batch_size}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)
-    BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if args.train_model_by_target_gt_class else 'predicted')
+    BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH,
+                                 'target' if args.train_model_by_target_gt_class else 'predicted')
 
     EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
     os.makedirs(EXP_PATH, exist_ok=True)
