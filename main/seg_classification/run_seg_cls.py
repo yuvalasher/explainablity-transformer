@@ -79,8 +79,6 @@ if __name__ == '__main__':
     parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
-    parser.add_argument('--n-epochs-to-optimize-stage-b', type=int,
-                        default=params_config["n_epochs_to_optimize_stage_b"])
     parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
     parser.add_argument('--img-size', type=int, default=params_config["img_size"])
     parser.add_argument('--patch-size', type=int, default=params_config["patch_size"])
