@@ -286,6 +286,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             original_image=image,
             transformer_attribution=mask,
             file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{round(auc, 0)}").resolve(),
+            img_size=self.img_size,
+            patch_size=self.patch_size,
         )
 
 

@@ -43,11 +43,11 @@ os.makedirs(vit_config['default_root_dir'], exist_ok=True)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-           train_model_by_target_gt_class, freezing_classification_transformer, \
-           segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
-           is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-           train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
-           is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
+train_model_by_target_gt_class, freezing_classification_transformer, \
+segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
+is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
     vit_config=vit_config)
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -69,8 +69,11 @@ ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 exp_name = f'sanity_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 
 model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-    explainee_model_name=explainee_model_name, explainer_model_name=explainer_model_name,
-    activation_function=activation_function)
+    explainee_model_name=explainee_model_name,
+    explainer_model_name=explainer_model_name,
+    activation_function=activation_function,
+    img_size=IMG_SIZE,
+)
 
 data_module = ImageSegDataModule(
     feature_extractor=feature_extractor,

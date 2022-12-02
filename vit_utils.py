@@ -59,7 +59,7 @@ def plot_vis_on_image(original_image, mask, file_name: str):
     plt.imsave(fname=Path(f"{file_name}.png"), dpi=300, arr=vis, format="png")
 
 
-def visu(original_image, transformer_attribution, file_name: str):
+def visu(original_image, transformer_attribution, file_name: str, img_size: int, patch_size: int):
     """
     :param original_image: shape: [3, 224, 224]
     :param transformer_attribution: shape: [n_patches, n_patches] = [14, 14]
@@ -68,13 +68,12 @@ def visu(original_image, transformer_attribution, file_name: str):
     """
     if type(transformer_attribution) == np.ndarray:
         transformer_attribution = torch.tensor(transformer_attribution)
-    transformer_attribution = transformer_attribution.reshape(1, int(vit_config["img_size"] / vit_config["patch_size"]),
-                                                              int(vit_config["img_size"] / vit_config["patch_size"]))
+    transformer_attribution = transformer_attribution.reshape(1, int(img_size / patch_size),
+                                                              int(img_size / patch_size))
     transformer_attribution = torch.nn.functional.interpolate(
-        transformer_attribution.unsqueeze(0), scale_factor=vit_config["patch_size"], mode="bilinear"
+        transformer_attribution.unsqueeze(0), scale_factor=patch_size, mode="bilinear"
     )
-    transformer_attribution = transformer_attribution.reshape(vit_config["img_size"],
-                                                              vit_config["img_size"]).data.cpu().numpy()
+    transformer_attribution = transformer_attribution.reshape(img_size, img_size).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min()
     )

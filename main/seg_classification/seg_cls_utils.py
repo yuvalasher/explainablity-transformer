@@ -10,7 +10,6 @@ from config import config
 from main.seg_classification.seg_cls_consts import OBT_OBJECTS_PLOT_FOLDER_NAME, OBT_OBJECTS_FOLDER_NAME
 
 vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction="mean")
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
