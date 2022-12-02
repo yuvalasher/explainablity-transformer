@@ -1,10 +1,10 @@
 import os
-from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
-    load_explainer_explaniee_models_and_feature_extractor
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
+    load_explainer_explaniee_models_and_feature_extractor
 from icecream import ic
 from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
@@ -29,16 +29,24 @@ from PIL import ImageFile
 import warnings
 import logging
 
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+logging.getLogger('checkpoint').setLevel(0)
+logging.getLogger('lightning').setLevel(0)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+gc.collect()
+
 
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
 train_model_by_target_gt_class, is_freezing_explaniee_model, \
 explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
-is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
-    vit_config=vit_config)
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
+n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
+use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name = get_params_from_vit_config(
+    vit_config=config["vit"])
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -49,9 +57,8 @@ loss_multipliers = get_loss_multipliers(normalize=False,
 
 seed_everything(config["general"]["seed"])
 
-vit_config["train_model_by_target_gt_class"] = False
-vit_config["enable_checkpointing"] = False
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+train_model_by_target_gt_class = False
+enable_checkpointing = False
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
                                                      target_or_predicted_model], \
@@ -59,25 +66,14 @@ CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_mode
                                                  BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
                                                  BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
 
-vit_config["img_size"] = IMG_SIZE
-vit_config["patch_size"] = PATCH_SIZE
-loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
-ic(vit_config["model_name"])
 ic(CKPT_PATH)
-ic(loss_config["mask_loss_mul"])
-
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger('checkpoint').setLevel(0)
-logging.getLogger('lightning').setLevel(0)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-
-gc.collect()
+ic(mask_loss_mul)
+ic(prediction_loss_mul)
 
 
 def init_get_normalize_and_trns():
@@ -166,7 +162,7 @@ if __name__ == '__main__':
         resume_from_checkpoint=CKPT_PATH,
         enable_progress_bar=True,
         enable_checkpointing=False,
-        default_root_dir=vit_config["default_root_dir"],
+        default_root_dir=default_root_dir,
         weights_summary=None
     )
 

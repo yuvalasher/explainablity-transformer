@@ -6,7 +6,6 @@ general:
 vit:
   train_images_path: train_data
   val_images_path: val_data
-  gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
   add_epsilon_to_patches_scores: False

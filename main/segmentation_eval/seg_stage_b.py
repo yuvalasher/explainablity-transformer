@@ -6,7 +6,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
 from pathlib import Path
-from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from icecream import ic
 import numpy as np
 import torch
@@ -16,7 +15,6 @@ from torch.utils.data import DataLoader
 from numpy import *
 from PIL import Image
 import imageio
-from transformers import ViTForImageClassification
 from tqdm import tqdm
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from utils.metrices import *
@@ -27,9 +25,8 @@ from main.segmentation_eval.imagenet import Imagenet_Segmentation, Imagenet_Segm
 import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
-from vit_loader.load_vit import load_vit_pretrained
-from vit_utils import load_feature_extractor_and_vit_model, get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_vit_config
+from vit_utils import get_warmup_steps_and_total_training_steps, get_loss_multipliers, freeze_multitask_model, \
+    get_checkpoint_idx, get_params_from_vit_config
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
@@ -43,20 +40,28 @@ from PIL import ImageFile
 import warnings
 import logging
 
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+logging.getLogger('checkpoint').setLevel(0)
+logging.getLogger('lightning').setLevel(0)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+gc.collect()
+num_workers = 0
+
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 seed_everything(config["general"]["seed"])
-
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
 train_model_by_target_gt_class, is_freezing_explaniee_model, \
 explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
-is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
-    vit_config=vit_config)
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
+n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
+use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name = get_params_from_vit_config(
+    vit_config=config["vit"])
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -64,18 +69,14 @@ IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.ke
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
-vit_config["enable_checkpointing"] = False
-vit_config["train_model_by_target_gt_class"] = False
-
+train_model_by_target_gt_class = False
+enable_checkpointing = False
 target_or_predicted_model = "predicted"
 CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
                                                      target_or_predicted_model], \
                                                  BACKBONE_DETAILS[explainee_model_name]["img_size"], \
                                                  BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
                                                  BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
-vit_config["img_size"] = IMG_SIZE
-loss_config["mask_loss_mul"] = MASK_LOSS_MUL
-vit_config["patch_size"] = PATCH_SIZE
 
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 
@@ -86,17 +87,6 @@ ic(explainer_model_n_first_layers_to_freeze)
 ic(n_epochs_to_optimize_stage_b)
 ic(use_logits_only)
 ic(RUN_BASE_MODEL)
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-gc.collect()
-
-num_workers = 0
-
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger('checkpoint').setLevel(0)
-logging.getLogger('lightning').setLevel(0)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def compute_pred(output):
@@ -217,9 +207,7 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
-        'experiment_folder_name'])
-
+    BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, evaluation_experiment_folder_name)
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
         explainee_model_name=explainee_model_name,
         explainer_model_name=explainer_model_name,
@@ -247,7 +235,8 @@ if __name__ == '__main__':
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='train',
         experiment_path='exp_name',
-        is_convnet=IS_EXPLANIEE_CONVNET,
+        is_explanier_convnet=IS_EXPLAINER_CONVNET,
+        is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
         lr=lr,
         n_epochs=n_epochs,
         start_epoch_to_evaluate=start_epoch_to_evaluate,
@@ -289,7 +278,7 @@ if __name__ == '__main__':
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
-            default_root_dir=vit_config["default_root_dir"],
+            default_root_dir=default_root_dir,
             weights_summary=None
         )
 

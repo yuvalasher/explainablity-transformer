@@ -41,20 +41,20 @@ logging.getLogger('lightning').setLevel(0)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-vit_config = config["vit"]
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
 train_model_by_target_gt_class, is_freezing_explaniee_model, \
 explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
-is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
-    vit_config=vit_config)
+train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
+n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
+use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name = get_params_from_vit_config(
+    vit_config=config["vit"])
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 
 seed_everything(config["general"]["seed"])
-vit_config["enable_checkpointing"] = False
+enable_checkpointing = False
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
@@ -68,15 +68,12 @@ CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_mode
                                                  BACKBONE_DETAILS[explainee_model_name]["img_size"], \
                                                  BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
                                                  BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
+mask_loss_mul = MASK_LOSS_MUL
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
-mask_loss_mul = MASK_LOSS_MUL
-vit_config["img_size"] = IMG_SIZE
-vit_config["patch_size"] = PATCH_SIZE
 
 exp_name = f'TESTTEST_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
-plot_path = Path(vit_config["plot_path"], exp_name)
-
+plot_path = Path(plot_path, exp_name)
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_model_by_target_gt_class else 'predicted')
 
 EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
@@ -129,7 +126,7 @@ model = OptImageClassificationWithTokenClassificationModel(
     verbose=VERBOSE,
 )
 
-experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experiment_folder_name"])
+experiment_path = Path(EXPERIMENTS_FOLDER_PATH, evaluation_experiment_folder_name)
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
@@ -168,7 +165,7 @@ if __name__ == '__main__':
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
             enable_checkpointing=False,
-            default_root_dir=vit_config["default_root_dir"],
+            default_root_dir=default_root_dir,
             weights_summary=None
         )
         trainer.fit(model=model, datamodule=data_module)

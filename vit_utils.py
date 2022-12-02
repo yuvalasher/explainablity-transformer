@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch import nn
-from torchvision.models import DenseNet, ResNet
+# from torchvision.models import DenseNet, ResNet
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
 from models.modeling_vit import ViTBasicForForImageClassification
@@ -10,18 +10,15 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import os
-from typing import Dict, Tuple, Union, NewType
+from typing import Dict, Tuple, NewType
 from pathlib import Path
 from config import config
-from torch import optim
 from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations, wolf_image_transformations
 from utils.utils_functions import get_image_from_path
 
 cuda = torch.cuda.is_available()
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
-
-vit_config = config["vit"]
 
 VitModelForClassification = NewType("VitModelForClassification", ViTForImageClassification)
 
@@ -148,41 +145,6 @@ def print_number_of_trainable_and_not_trainable_params(model) -> None:
     )
 
 
-def load_feature_extractor(vit_config: Dict,
-                           is_competitive_method_transforms: bool,
-                           ) -> ViTFeatureExtractor:
-    feature_extractor = ViTFeatureExtractor.from_pretrained(
-        vit_config["model_name"], is_competitive_method_transforms=is_competitive_method_transforms
-    )
-    return feature_extractor
-
-
-def load_ViTModel(vit_config: Dict,
-                  model_type: str,
-                  ) -> VitModelForClassification:
-    model = vit_model_types[model_type].from_pretrained(
-        vit_config["model_name"], output_hidden_states=True
-    )
-    return model
-
-
-def load_feature_extractor_and_vit_model(
-        vit_config: Dict, model_type: str, is_competitive_method_transforms: bool = False
-) -> Tuple[ViTFeatureExtractor, ViTForImageClassification]:
-    feature_extractor = load_feature_extractor(
-        vit_config=vit_config, is_competitive_method_transforms=is_competitive_method_transforms
-    )
-    vit_model = load_vit_model_by_type(vit_config=vit_config, model_type=model_type)
-    return feature_extractor, vit_model
-
-
-def load_vit_model_by_type(vit_config: Dict, model_type: str):
-    vit_model = handle_model_config_and_freezing_for_task(
-        model=load_ViTModel(vit_config, model_type=model_type)
-    )
-    return vit_model
-
-
 def handle_model_config_and_freezing_for_task(
         model: VitModelForClassification,
         freezing_transformer: bool = True,
@@ -242,15 +204,6 @@ def get_image_and_inputs_and_transformed_image(
         wolf_image_transformations(image) if is_competitive_method_transforms else image_transformations(image)
     )
     return inputs, transformed_image
-
-
-def setup_model_and_optimizer(model_name: str):
-    vit_ours_model = handle_model_config_and_freezing_for_task(
-        model=load_ViTModel(vit_config, model_type=model_name),
-        freezing_transformer=vit_config["freezing_transformer"],
-    )
-    optimizer = optim.Adam([vit_ours_model.vit.encoder.x_attention], lr=vit_config["lr"])
-    return vit_ours_model, optimizer
 
 
 def get_warmup_steps_and_total_training_steps(
@@ -325,9 +278,11 @@ def get_params_from_vit_config(vit_config: Dict):
     VERBOSE = vit_config["verbose"]
     IMG_SIZE = vit_config["img_size"]
     PATCH_SIZE = vit_config["patch_size"]
+    evaluation_experiment_folder_name = vit_config['evaluation']['experiment_folder_name']
     return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
            train_model_by_target_gt_class, is_freezing_explaniee_model, \
            explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
            is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-           train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
-           is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE
+           train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
+           n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
+           use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name
