@@ -42,6 +42,9 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 if __name__ == '__main__':
+    """
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls.py --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/test_argparse.out &
+    """
     params_config = get_params_from_config(config_vit=config["vit"])
 
     parser = argparse.ArgumentParser(description='Train pLTX model')
