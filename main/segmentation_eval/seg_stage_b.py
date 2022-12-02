@@ -68,16 +68,14 @@ vit_config["enable_checkpointing"] = False
 vit_config["train_model_by_target_gt_class"] = False
 
 target_or_predicted_model = "predicted"
-CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
                                                      target_or_predicted_model], \
-                                                 BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "img_size"], BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "patch_size"], BACKBONE_DETAILS[vit_config["model_name"]][
-                                                     "mask_loss"]
+                                                 BACKBONE_DETAILS[explainee_model_name]["img_size"], \
+                                                 BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
+                                                 BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
 vit_config["img_size"] = IMG_SIZE
 loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 vit_config["patch_size"] = PATCH_SIZE
-RUN_BASE_MODEL = vit_config['run_base_model']
 
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 
