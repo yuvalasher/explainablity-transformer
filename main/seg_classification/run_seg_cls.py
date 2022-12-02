@@ -43,8 +43,8 @@ os.makedirs(vit_config['default_root_dir'], exist_ok=True)
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-train_model_by_target_gt_class, freezing_classification_transformer, \
-segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+train_model_by_target_gt_class, is_freezing_explaniee_model, \
+explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
 train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
 is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
@@ -122,8 +122,8 @@ model = ImageClassificationWithTokenClassificationModel(
 remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
 model = freeze_multitask_model(
     model=model,
-    freezing_classification_transformer=freezing_classification_transformer,
-    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
+    is_freezing_explaniee_model=is_freezing_explaniee_model,
+    explainer_model_n_first_layers_to_freeze=explainer_model_n_first_layers_to_freeze,
     is_explainer_convnet=IS_EXPLAINER_CONVNET,
 )
 print(exp_name)

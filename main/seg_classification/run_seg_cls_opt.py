@@ -43,8 +43,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 vit_config = config["vit"]
 batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-train_model_by_target_gt_class, freezing_classification_transformer, \
-segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+train_model_by_target_gt_class, is_freezing_explaniee_model, \
+explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
 is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
 train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
 is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
@@ -74,7 +74,7 @@ mask_loss_mul = MASK_LOSS_MUL
 vit_config["img_size"] = IMG_SIZE
 vit_config["patch_size"] = PATCH_SIZE
 
-exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{loss_config["mask_loss"]}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
+exp_name = f'TESTTEST_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 plot_path = Path(vit_config["plot_path"], exp_name)
 
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_model_by_target_gt_class else 'predicted')
@@ -132,8 +132,8 @@ experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config["evaluation"]["experi
 remove_old_results_dfs(experiment_path=experiment_path)
 model = freeze_multitask_model(
     model=model,
-    freezing_classification_transformer=freezing_classification_transformer,
-    segmentation_transformer_n_first_layers_to_freeze=segmentation_transformer_n_first_layers_to_freeze,
+    is_freezing_explaniee_model=is_freezing_explaniee_model,
+    explainer_model_n_first_layers_to_freeze=explainer_model_n_first_layers_to_freeze,
     is_explainer_convnet=IS_EXPLAINER_CONVNET,
 )
 print(exp_name)

@@ -1,5 +1,4 @@
 from pathlib import Path
-from config import config
 import torch
 
 cuda = torch.cuda.is_available()

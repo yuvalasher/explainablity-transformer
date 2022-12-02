@@ -9,7 +9,6 @@ vit:
   gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
-  segmentation_transformer_n_first_layers_to_freeze: 0
   add_epsilon_to_patches_scores: False
   is_sampled_train_data_uniformly: True
   is_sampled_val_data_uniformly: True
@@ -25,7 +24,8 @@ vit:
   is_competitive_method_transforms: False
   img_size: 224
   patch_size: 16
-  freezing_classification_transformer: True
+  explainer_model_n_first_layers_to_freeze: 0
+  is_freezing_explaniee_model: True
   freeze_classification_head: False
   batch_size: 32
   default_root_dir: /raid/yuvalas/checkpoints

@@ -178,7 +178,8 @@ def load_vit_model_by_type(vit_config: Dict, model_type: str):
 
 
 def handle_model_config_and_freezing_for_task(
-        model: VitModelForClassification, freezing_transformer: bool = True
+        model: VitModelForClassification,
+        freezing_transformer: bool = True,
 ) -> VitModelForClassification:
     model = setup_model_config(model=model)
     if freezing_transformer:
@@ -187,19 +188,23 @@ def handle_model_config_and_freezing_for_task(
 
 
 def freeze_multitask_model(model,
-                           freezing_classification_transformer: bool = True,
-                           segmentation_transformer_n_first_layers_to_freeze: int = 0,
-                           is_explainer_convnet: bool = False):
-    if freezing_classification_transformer:
+                           is_freezing_explaniee_model: bool = True,
+                           explainer_model_n_first_layers_to_freeze: int = 0,
+                           is_explainer_convnet: bool = False,
+                           ):
+    if is_freezing_explaniee_model:
         for param in model.vit_for_classification_image.parameters():
             param.requires_grad = False
-    if not is_explainer_convnet:
+    if is_explainer_convnet:
+        pass
+    else:
         modules = [model.vit_for_patch_classification.vit.embeddings,
                    model.vit_for_patch_classification.vit.encoder.layer[
-                   :segmentation_transformer_n_first_layers_to_freeze]]
+                   :explainer_model_n_first_layers_to_freeze]]
         for module in modules:
             for param in module.parameters():
                 param.requires_grad = False
+
     return model
 
 
@@ -273,8 +278,8 @@ def get_params_from_vit_config(vit_config: Dict):
     is_sampled_train_data_uniformly = vit_config["is_sampled_train_data_uniformly"]
     is_sampled_val_data_uniformly = vit_config["is_sampled_val_data_uniformly"]
     train_model_by_target_gt_class = vit_config["train_model_by_target_gt_class"]
-    freezing_classification_transformer = vit_config["freezing_classification_transformer"]
-    segmentation_transformer_n_first_layers_to_freeze = vit_config["segmentation_transformer_n_first_layers_to_freeze"]
+    is_freezing_explaniee_model = vit_config["is_freezing_explaniee_model"]
+    explainer_model_n_first_layers_to_freeze = vit_config["explainer_model_n_first_layers_to_freeze"]
     is_clamp_between_0_to_1 = vit_config["is_clamp_between_0_to_1"]
     enable_checkpointing = vit_config["enable_checkpointing"]
     is_competitive_method_transforms = vit_config["is_competitive_method_transforms"]
@@ -298,8 +303,8 @@ def get_params_from_vit_config(vit_config: Dict):
     IMG_SIZE = vit_config["img_size"]
     PATCH_SIZE = vit_config["patch_size"]
     return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-           train_model_by_target_gt_class, freezing_classification_transformer, \
-           segmentation_transformer_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
+           train_model_by_target_gt_class, is_freezing_explaniee_model, \
+           explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
            is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
            train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, n_batches_to_visualize, \
            is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE
