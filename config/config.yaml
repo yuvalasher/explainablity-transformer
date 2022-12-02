@@ -11,11 +11,11 @@ vit:
   is_sampled_train_data_uniformly: True
   is_sampled_val_data_uniformly: True
   is_clamp_between_0_to_1: True
-  train_model_by_target_gt_class: False
+  train_model_by_target_gt_class: True
   explainer_model_name: resnet
-  explainer_model_name: google/vit-base-patch16-224
+#  explainer_model_name: google/vit-base-patch16-224
 #  explainer_model_name: WinKawaks/vit-small-patch16-224
-  #  explainee_model_name: google/vit-base-patch16-224
+#  explainee_model_name: google/vit-base-patch16-224
   explainee_model_name: resnet # densenet
   is_competitive_method_transforms: False
   img_size: 224
@@ -30,7 +30,7 @@ vit:
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 1
-  n_epochs: 100
+  n_epochs: 250
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
   verbose: False
