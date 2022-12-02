@@ -1,15 +1,13 @@
 import os
-from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
+    load_explainer_explaniee_models_and_feature_extractor
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 from icecream import ic
-from transformers import ViTForImageClassification
-from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
-from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModel_Segmentation
@@ -22,7 +20,6 @@ from main.seg_classification.image_token_data_module_opt_segmentation import Ima
 from config import config
 from utils.iou import IoU
 from main.segmentation_eval.imagenet import Imagenet_Segmentation
-from vit_loader.load_vit import load_vit_pretrained
 from vit_utils import get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_vit_config
 from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
@@ -43,12 +40,13 @@ train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_
 is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE = get_params_from_vit_config(
     vit_config=vit_config)
 
+IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+
 loss_multipliers = get_loss_multipliers(normalize=False,
                                         mask_loss_mul=mask_loss_mul,
                                         prediction_loss_mul=prediction_loss_mul)
 
-IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
-IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 seed_everything(config["general"]["seed"])
 
 vit_config["train_model_by_target_gt_class"] = False
@@ -109,13 +107,12 @@ if __name__ == '__main__':
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
 
-    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-        model_for_classification_image, model_for_mask_generation = load_vit_pretrained(
-            model_name=vit_config["model_name"])
-    else:
-        model_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-        model_for_mask_generation = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+    model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+        explainee_model_name=explainee_model_name,
+        explainer_model_name=explainer_model_name,
+        activation_function=activation_function,
+        img_size=IMG_SIZE,
+    )
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=n_epochs,
@@ -137,7 +134,8 @@ if __name__ == '__main__':
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='test',
         experiment_path='exp_name',
-        is_convnet=IS_EXPLANIEE_CONVNET,
+        is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
+        is_explanier_convnet=IS_EXPLAINER_CONVNET,
         lr=lr,
         n_epochs=n_epochs,
         start_epoch_to_evaluate=start_epoch_to_evaluate,

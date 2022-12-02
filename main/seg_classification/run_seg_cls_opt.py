@@ -1,7 +1,7 @@
 import os
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
     CONVNET_MODELS_BY_NAME

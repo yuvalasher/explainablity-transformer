@@ -3,7 +3,8 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
-from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
+    load_explainer_explaniee_models_and_feature_extractor
 from pathlib import Path
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from icecream import ic
@@ -221,17 +222,12 @@ if __name__ == '__main__':
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation'][
         'experiment_folder_name'])
 
-    feature_extractor, _ = load_feature_extractor_and_vit_model(
-        vit_config=vit_config,
-        model_type="vit-basic",
-        is_competitive_method_transforms=is_competitive_method_transforms,
+    model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+        explainee_model_name=explainee_model_name,
+        explainer_model_name=explainer_model_name,
+        activation_function=activation_function,
+        img_size=IMG_SIZE,
     )
-    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-        model_for_classification_image, model_for_mask_generation = load_vit_pretrained(
-            model_name=vit_config["model_name"])
-    else:
-        model_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-        model_for_mask_generation = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
         n_epochs=n_epochs_to_optimize_stage_b,
