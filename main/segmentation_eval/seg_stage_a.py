@@ -21,7 +21,7 @@ from config import config
 from utils.iou import IoU
 from main.segmentation_eval.imagenet import Imagenet_Segmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_vit_config
+    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_config
 from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
 import pytorch_lightning as pl
 import gc
@@ -45,7 +45,7 @@ is_competitive_method_transforms, explainer_model_name, explainee_model_name, pl
 train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
 n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
 use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
-val_n_label_sample = get_params_from_vit_config(vit_config=config["vit"])
+val_n_label_sample = get_params_from_config(config_vit=config["vit"])
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False

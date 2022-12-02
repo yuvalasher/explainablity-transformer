@@ -27,7 +27,7 @@ from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
-    get_params_from_vit_config,
+    get_params_from_config,
 )
 from pytorch_lightning import seed_everything
 import gc
@@ -48,7 +48,7 @@ is_competitive_method_transforms, explainer_model_name, explainee_model_name, pl
 train_n_samples, mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
 n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
 use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
-val_n_label_sample = get_params_from_vit_config(vit_config=config["vit"])
+val_n_label_sample = get_params_from_config(config_vit=config["vit"])
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -72,7 +72,7 @@ mask_loss_mul = MASK_LOSS_MUL
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
 BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
 
-exp_name = f'TESTTEST_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{vit_config["activation_function"]}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{vit_config["lr"]}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
+exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{activation_function}_pred_{prediction_loss_mul}_mask_l_{mask_loss}_{mask_loss_mul}__train_n_samples_{train_n_samples * 1000}_lr_{lr}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
 plot_path = Path(plot_path, exp_name)
 BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH, 'target' if train_model_by_target_gt_class else 'predicted')
 
