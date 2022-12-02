@@ -49,8 +49,9 @@ class ImagesDataset(Dataset):
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
         if not self.is_explaniee_convnet:
             inputs, resized_and_normalized_image = get_image_and_inputs_and_transformed_image(
-                image=image, feature_extractor=self.feature_extractor,
-                is_competitive_method_transforms=is_competitive_method_transforms
+                image=image,
+                feature_extractor=self.feature_extractor,
+                is_competitive_method_transforms=self.is_competitive_method_transforms,
             )
             image_resized = resize(image)
             inputs = inputs["pixel_values"]

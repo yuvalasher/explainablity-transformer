@@ -81,6 +81,7 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
             mask = mask + EPSILON
             mask = torch.clamp(mask, max=1)
 
-        interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=vit_config["patch_size"], mode='bilinear')
+        interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=vit_config["patch_size"],
+                                                            mode='bilinear')
 
         return interpolated_mask, mask

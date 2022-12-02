@@ -64,8 +64,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.activation_function = activation_function
         self.train_model_by_target_gt_class = train_model_by_target_gt_class
         self.use_logits_only = use_logits_only
-        self.img_size = img_size,
-        self.patch_size = patch_size,
+        self.img_size = img_size
+        self.patch_size = patch_size
         self.is_ce_neg = is_ce_neg
         self.n_batches_to_visualize = n_batches_to_visualize
         self.start_epoch_to_evaluate = start_epoch_to_evaluate
@@ -245,7 +245,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 patch_score_to_image(transformer_attribution=mask,
                                      output_2d_tensor=False,
                                      img_size=self.img_size,
-                                     patch_size=self.patch_size))
+                                     patch_size=self.patch_size)
+            )
         images_mask = torch.stack(images_mask).squeeze(1)
         return images_mask
 
