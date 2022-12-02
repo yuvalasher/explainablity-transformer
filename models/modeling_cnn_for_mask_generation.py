@@ -25,4 +25,4 @@ class CNNForMaskGeneration(LightningModule):
 
         interpolated_mask = torch.nn.functional.interpolate(tokens_mask, scale_factor=32, mode="bilinear")
         interpolated_mask = interpolated_mask.view(batch_size, 1, self.img_size, self.img_size)
-        return 1 - interpolated_mask, tokens_mask  # [batch_size, 1, img_size, img_size] , [batch_size, 1, n_tokens ]
+        return interpolated_mask, tokens_mask  # [batch_size, 1, img_size, img_size] , [batch_size, 1, n_tokens ]
