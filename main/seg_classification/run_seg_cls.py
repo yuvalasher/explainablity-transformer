@@ -1,3 +1,4 @@
+import argparse
 import os
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -20,7 +21,7 @@ from main.seg_classification.image_token_data_module import ImageSegDataModule
 import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    EXPERIMENTS_FOLDER_PATH,
+    EXPERIMENTS_FOLDER_PATH, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
 from vit_utils import (
     get_warmup_steps_and_total_training_steps,
@@ -40,122 +41,163 @@ seed_everything(config["general"]["seed"])
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
-batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-train_model_by_target_gt_class, is_freezing_explaniee_model, \
-explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
-is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
-n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
-use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
-val_n_label_sample = get_params_from_config(config_vit=config["vit"])
+if __name__ == '__main__':
+    params_config = get_params_from_config(config_vit=config["vit"])
 
-os.makedirs(default_root_dir, exist_ok=True)
+    parser = argparse.ArgumentParser(description='Train pLTX model')
+    parser.add_argument('-explainer-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
+    parser.add_argument('--train-model-by-target-gt-class', type=bool,
+                        default=params_config["train_model_by_target_gt_class"])
+    parser.add_argument('--enable-checkpointing', type=bool, default=params_config["enable_checkpointing"])
 
-IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
-IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
+    parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
+    parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
+    parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
+    parser.add_argument('--batch-size', type=int, default=params_config["batch_size"])
+    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
 
-loss_multipliers = get_loss_multipliers(normalize=False,
-                                        mask_loss_mul=mask_loss_mul,
-                                        prediction_loss_mul=prediction_loss_mul)
-ic(VERBOSE)
-ic(batch_size)
-ic(train_model_by_target_gt_class)
-ic(is_sampled_train_data_uniformly)
-ic(is_sampled_val_data_uniformly)
-ic(is_competitive_method_transforms)
-ic(explainer_model_name)
-ic(explainee_model_name)
-ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
+    parser.add_argument('--is-sampled-train-data-uniformly', type=bool,
+                        default=params_config["is_sampled_train_data_uniformly"])
+    parser.add_argument('--is-sampled-val-data-uniformly', type=bool,
+                        default=params_config["is_sampled_val_data_uniformly"])
+    parser.add_argument('--is-freezing-explaniee-model', type=bool,
+                        default=params_config["is_freezing_explaniee_model"])
+    parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,
+                        default=params_config["explainer_model_n_first_layers_to_freeze"])
+    parser.add_argument('--is-clamp-between-0-to-1', type=bool, default=params_config["is_clamp_between_0_to_1"])
+    parser.add_argument('--is-competitive-method-transforms', type=bool,
+                        default=params_config["is_competitive_method_transforms"])
+    parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
+    parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
+    parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
+    parser.add_argument('--lr', type=float, default=params_config["lr"])
+    parser.add_argument('--start-epoch-to-evaluate', type=int, default=params_config["start_epoch_to_evaluate"])
+    parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
+    parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
+    parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
+    parser.add_argument('--n-epochs-to-optimize-stage-b', type=int,
+                        default=params_config["n_epochs_to_optimize_stage_b"])
+    parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
+    parser.add_argument('--img-size', type=int, default=params_config["img_size"])
+    parser.add_argument('--patch-size', type=int, default=params_config["patch_size"])
+    parser.add_argument('--evaluation-experiment-folder-name', type=str,
+                        default=params_config["evaluation_experiment_folder_name"])
+    parser.add_argument('--train-n-label-sample', type=int, default=params_config["train_n_label_sample"])
+    parser.add_argument('--val-n-label-sample', type=int, default=params_config["val_n_label_sample"])
 
-exp_name = f'explanier_{explainer_model_name.replace("/", "_")}__explaniee_{explainee_model_name.replace("/", "_")}__train_uni_{is_sampled_train_data_uniformly}_val_unif_{is_sampled_val_data_uniformly}_activation_{activation_function}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{train_n_samples * 1000}_lr_{lr}__bs_{batch_size}_by_target_gt__{train_model_by_target_gt_class}'
+    args = parser.parse_args()
 
-model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-    explainee_model_name=explainee_model_name,
-    explainer_model_name=explainer_model_name,
-    activation_function=activation_function,
-    img_size=IMG_SIZE,
-)
+    EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[args.explainee_model_name], \
+                                                 MODEL_ALIAS_MAPPING[args.explainer_model_name]
 
-data_module = ImageSegDataModule(
-    feature_extractor=feature_extractor,
-    is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
-    batch_size=batch_size,
-    train_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
-    is_sampled_train_data_uniformly=is_sampled_train_data_uniformly,
-    is_sampled_val_data_uniformly=is_sampled_val_data_uniformly,
-    is_competitive_method_transforms=is_competitive_method_transforms,
-    train_n_label_sample=train_n_label_sample,
-    val_n_label_sample=val_n_label_sample
-)
+    IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+    IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-    n_epochs=n_epochs,
-    train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
-    batch_size=batch_size,
-)
+    loss_multipliers = get_loss_multipliers(normalize=False,
+                                            mask_loss_mul=args.mask_loss_mul,
+                                            prediction_loss_mul=args.prediction_loss_mul)
+    os.makedirs(args.default_root_dir, exist_ok=True)
+    ic(args.verbose)
+    ic(args.batch_size)
+    ic(args.train_model_by_target_gt_class)
+    ic(args.is_sampled_train_data_uniformly)
+    ic(args.is_sampled_val_data_uniformly)
+    ic(args.is_competitive_method_transforms)
+    ic(EXPLAINER_MODEL_NAME)
+    ic(EXPLAINEE_MODEL_NAME)
+    ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 
-plot_path = Path(plot_path, exp_name)
+    exp_name = f'ARGPARSE_explanier_{EXPLAINER_MODEL_NAME.replace("/", "_")}__explaniee_{EXPLAINEE_MODEL_NAME.replace("/", "_")}__train_uni_{args.is_sampled_train_data_uniformly}_val_unif_{args.is_sampled_val_data_uniformly}_activation_{args.activation_function}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{args.mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}__bs_{args.batch_size}_by_target_gt__{args.train_model_by_target_gt_class}'
 
-experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df", exp_name)
+    model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+        explainee_model_name=EXPLAINEE_MODEL_NAME,
+        explainer_model_name=EXPLAINER_MODEL_NAME,
+        activation_function=args.activation_function,
+        img_size=args.img_size,
+    )
 
-ic(experiment_perturbation_results_path)
+    data_module = ImageSegDataModule(
+        feature_extractor=feature_extractor,
+        is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
+        batch_size=args.batch_size,
+        train_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
+        val_images_path=str(IMAGENET_VAL_IMAGES_FOLDER_PATH),
+        is_sampled_train_data_uniformly=args.is_sampled_train_data_uniformly,
+        is_sampled_val_data_uniformly=args.is_sampled_val_data_uniformly,
+        is_competitive_method_transforms=args.is_competitive_method_transforms,
+        train_n_label_sample=args.train_n_label_sample,
+        val_n_label_sample=args.val_n_label_sample
+    )
 
-model = ImageClassificationWithTokenClassificationModel(
-    model_for_classification_image=model_for_classification_image,
-    model_for_mask_generation=model_for_mask_generation,
-    is_clamp_between_0_to_1=is_clamp_between_0_to_1,
-    plot_path=plot_path,
-    warmup_steps=warmup_steps,
-    total_training_steps=total_training_steps,
-    experiment_path=experiment_perturbation_results_path,
-    is_explainee_convnet=IS_EXPLANIEE_CONVNET,
-    is_explainer_convnet=IS_EXPLAINER_CONVNET,
-    lr=lr,
-    start_epoch_to_evaluate=start_epoch_to_evaluate,
-    n_batches_to_visualize=n_batches_to_visualize,
-    activation_function=activation_function,
-    train_model_by_target_gt_class=train_model_by_target_gt_class,
-    use_logits_only=use_logits_only,
-    img_size=IMG_SIZE,
-    patch_size=PATCH_SIZE,
-    is_ce_neg=is_ce_neg,
-    verbose=VERBOSE
-)
+    warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
+        n_epochs=args.n_epochs,
+        train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
+        batch_size=args.batch_size,
+    )
 
-remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
-model = freeze_multitask_model(
-    model=model,
-    is_freezing_explaniee_model=is_freezing_explaniee_model,
-    explainer_model_n_first_layers_to_freeze=explainer_model_n_first_layers_to_freeze,
-    is_explainer_convnet=IS_EXPLAINER_CONVNET,
-)
-print(exp_name)
-print_number_of_trainable_and_not_trainable_params(model)
+    plot_path = Path(args.plot_path, exp_name)
 
-checkpoints_default_root_dir = str(Path(default_root_dir, 'target' if train_model_by_target_gt_class else 'predicted',
-                                        exp_name))
+    experiment_perturbation_results_path = Path(EXPERIMENTS_FOLDER_PATH, "results_df", exp_name)
 
-ic(checkpoints_default_root_dir)
-WANDB_PROJECT = config["general"]["wandb_project"]
-run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
-wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
+    ic(experiment_perturbation_results_path)
 
-trainer = pl.Trainer(
-    # callbacks=[
-    #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
-    #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)],
-    logger=[wandb_logger],
-    accelerator='gpu',
-    auto_select_gpus=True,
-    max_epochs=n_epochs,
-    gpus=1,
-    progress_bar_refresh_rate=30,
-    num_sanity_val_steps=0,
-    default_root_dir=checkpoints_default_root_dir,
-    enable_checkpointing=enable_checkpointing,
-)
+    model = ImageClassificationWithTokenClassificationModel(
+        model_for_classification_image=model_for_classification_image,
+        model_for_mask_generation=model_for_mask_generation,
+        is_clamp_between_0_to_1=args.is_clamp_between_0_to_1,
+        plot_path=plot_path,
+        warmup_steps=warmup_steps,
+        total_training_steps=total_training_steps,
+        experiment_path=experiment_perturbation_results_path,
+        is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+        lr=args.lr,
+        start_epoch_to_evaluate=args.start_epoch_to_evaluate,
+        n_batches_to_visualize=args.n_batches_to_visualize,
+        activation_function=args.activation_function,
+        train_model_by_target_gt_class=args.train_model_by_target_gt_class,
+        use_logits_only=args.use_logits_only,
+        img_size=args.img_size,
+        patch_size=args.patch_size,
+        is_ce_neg=args.is_ce_neg,
+        verbose=args.verbose,
+    )
 
-if enable_checkpointing:
-    save_config_to_root_dir(exp_name=exp_name)
-trainer.fit(model=model, datamodule=data_module)
+    remove_old_results_dfs(experiment_path=experiment_perturbation_results_path)
+    model = freeze_multitask_model(
+        model=model,
+        is_freezing_explaniee_model=args.is_freezing_explaniee_model,
+        explainer_model_n_first_layers_to_freeze=args.explainer_model_n_first_layers_to_freeze,
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+    )
+    print(exp_name)
+    print_number_of_trainable_and_not_trainable_params(model)
+
+    checkpoints_default_root_dir = str(
+        Path(args.default_root_dir, 'target' if args.train_model_by_target_gt_class else 'predicted',
+             exp_name))
+
+    ic(checkpoints_default_root_dir)
+    WANDB_PROJECT = config["general"]["wandb_project"]
+    run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
+    wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
+
+    trainer = pl.Trainer(
+        # callbacks=[
+        #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
+        #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)],
+        logger=[wandb_logger],
+        accelerator='gpu',
+        auto_select_gpus=True,
+        max_epochs=args.n_epochs,
+        gpus=1,
+        progress_bar_refresh_rate=30,
+        num_sanity_val_steps=0,
+        default_root_dir=checkpoints_default_root_dir,
+        enable_checkpointing=args.enable_checkpointing,
+    )
+
+    if args.enable_checkpointing:
+        save_config_to_root_dir(exp_name=exp_name)
+    trainer.fit(model=model, datamodule=data_module)

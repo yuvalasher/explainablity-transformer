@@ -247,10 +247,11 @@ def get_ckpt_model_auc(ckpt_path: str) -> float:
     return float(str(ckpt_path).split("epoch_auc=")[-1].split(".ckpt")[0])
 
 
-def get_params_from_config(config_vit: Dict):
+def get_params_from_config(config_vit: Dict) -> Dict:
     loss_config = config_vit["seg_cls"]["loss"]
     batch_size = config_vit["batch_size"]
     n_epochs = config_vit["n_epochs"]
+    n_epochs_to_optimize_stage_b = config_vit["n_epochs_to_optimize_stage_b"]
     is_sampled_train_data_uniformly = config_vit["is_sampled_train_data_uniformly"]
     is_sampled_val_data_uniformly = config_vit["is_sampled_val_data_uniformly"]
     train_model_by_target_gt_class = config_vit["train_model_by_target_gt_class"]
@@ -271,21 +272,44 @@ def get_params_from_config(config_vit: Dict):
     n_batches_to_visualize = config_vit["n_batches_to_visualize"]
     is_ce_neg = loss_config["is_ce_neg"]
     activation_function = config_vit["activation_function"]
-    n_epochs_to_optimize_stage_b = config_vit["n_epochs_to_optimize_stage_b"]
     RUN_BASE_MODEL = config_vit["run_base_model"]
     use_logits_only = loss_config["use_logits_only"]
-    VERBOSE = config_vit["verbose"]
-    IMG_SIZE = config_vit["img_size"]
-    PATCH_SIZE = config_vit["patch_size"]
+    verbose = config_vit["verbose"]
+    img_size = config_vit["img_size"]
+    patch_size = config_vit["patch_size"]
     evaluation_experiment_folder_name = config_vit["evaluation"]["experiment_folder_name"]
     train_n_label_sample = config_vit["seg_cls"]["train_n_label_sample"]
     val_n_label_sample = config_vit["seg_cls"]["val_n_label_sample"]
 
-
-    return batch_size, n_epochs, is_sampled_train_data_uniformly, is_sampled_val_data_uniformly, \
-           train_model_by_target_gt_class, is_freezing_explaniee_model, \
-           explainer_model_n_first_layers_to_freeze, is_clamp_between_0_to_1, enable_checkpointing, \
-           is_competitive_method_transforms, explainer_model_name, explainee_model_name, plot_path, default_root_dir, \
-           mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
-           n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
-           use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, val_n_label_sample
+    return dict(batch_size=batch_size,
+                n_epochs=n_epochs,
+                is_sampled_train_data_uniformly=is_sampled_train_data_uniformly,
+                is_sampled_val_data_uniformly=is_sampled_val_data_uniformly,
+                train_model_by_target_gt_class=train_model_by_target_gt_class,
+                is_freezing_explaniee_model=is_freezing_explaniee_model,
+                explainer_model_n_first_layers_to_freeze=explainer_model_n_first_layers_to_freeze,
+                is_clamp_between_0_to_1=is_clamp_between_0_to_1,
+                enable_checkpointing=enable_checkpointing,
+                is_competitive_method_transforms=is_competitive_method_transforms,
+                explainer_model_name=explainer_model_name,
+                explainee_model_name=explainee_model_name,
+                plot_path=plot_path,
+                default_root_dir=default_root_dir,
+                mask_loss=mask_loss,
+                mask_loss_mul=mask_loss_mul,
+                prediction_loss_mul=prediction_loss_mul,
+                lr=lr,
+                start_epoch_to_evaluate=start_epoch_to_evaluate,
+                n_batches_to_visualize=n_batches_to_visualize,
+                is_ce_neg=is_ce_neg,
+                activation_function=activation_function,
+                n_epochs_to_optimize_stage_b=n_epochs_to_optimize_stage_b,
+                RUN_BASE_MODEL=RUN_BASE_MODEL,
+                use_logits_only=use_logits_only,
+                verbose=verbose,
+                img_size=img_size,
+                patch_size=patch_size,
+                evaluation_experiment_folder_name=evaluation_experiment_folder_name,
+                train_n_label_sample=train_n_label_sample,
+                val_n_label_sample=val_n_label_sample,
+                )
