@@ -66,7 +66,6 @@ vit_config["img_size"] = IMG_SIZE
 vit_config["patch_size"] = PATCH_SIZE
 loss_config["mask_loss_mul"] = MASK_LOSS_MUL
 CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
-RUN_BASE_MODEL = vit_config['run_base_model']
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
