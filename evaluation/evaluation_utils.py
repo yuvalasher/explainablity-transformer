@@ -8,8 +8,6 @@ import os
 import numpy as np
 from config import config
 
-vit_config = config["vit"]
-
 
 def load_obj_from_path(path: Union[str, WindowsPath, Path]) -> Any:
     if type(path) == str and path[-4:] != '.pkl':
@@ -21,19 +19,22 @@ def load_obj_from_path(path: Union[str, WindowsPath, Path]) -> Any:
         return pickle.load(f)
 
 
-def patch_score_to_image(transformer_attribution: Tensor, output_2d_tensor: bool = True) -> Tensor:
+def patch_score_to_image(transformer_attribution: Tensor,
+                         output_2d_tensor: bool = True,
+                         img_size: int = 224,
+                         patch_size: int = 16,
+                         ) -> Tensor:
     """
     Convert Patch scores ([196]) to image size tesnor [224, 224]
     :param transformer_attribution: Tensor with score of each patch in the picture
     :return:
     """
     transformer_attribution = transformer_attribution.reshape(1, 1,
-                                                              int(vit_config["img_size"] / vit_config["patch_size"]),
-                                                              int(vit_config["img_size"] / vit_config["patch_size"]))
+                                                              int(img_size / patch_size),
+                                                              int(img_size / patch_size))
     transformer_attribution = torch.nn.functional.interpolate(transformer_attribution, scale_factor=16, mode='bilinear')
     if output_2d_tensor:
-        transformer_attribution = transformer_attribution.reshape(vit_config["img_size"],
-                                                                  vit_config["img_size"]).data.cpu().numpy()
+        transformer_attribution = transformer_attribution.reshape(img_size, img_size).data.cpu().numpy()
     transformer_attribution = (transformer_attribution - transformer_attribution.min()) / (
             transformer_attribution.max() - transformer_attribution.min())
     return transformer_attribution

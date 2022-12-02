@@ -18,7 +18,7 @@ from main.seg_classification.output_dataclasses.image_classification_with_token_
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
-from vit_utils import visu, plot_vis_on_image
+from vit_utils import plot_vis_on_image
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 
@@ -39,6 +39,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             activation_function: str,
             train_model_by_target_gt_class: bool,
             use_logits_only: bool,
+            img_size: int,
+            patch_size: int,
             is_ce_neg: bool = False,
             n_batches_to_visualize: int = 2,
             start_epoch_to_evaluate: int = 1,
@@ -60,6 +62,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.activation_function = activation_function
         self.train_model_by_target_gt_class = train_model_by_target_gt_class
         self.use_logits_only = use_logits_only
+        self.img_size = img_size,
+        self.patch_size = patch_size,
         self.is_ce_neg = is_ce_neg
         self.n_batches_to_visualize = n_batches_to_visualize
         self.start_epoch_to_evaluate = start_epoch_to_evaluate
@@ -226,6 +230,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 experiment_path=self.experiment_path,
                 is_convnet=self.is_convnet,
                 verbose=self.verbose,
+                img_size=self.img_size,
             )
 
         self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)
@@ -234,7 +239,11 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def mask_patches_to_image_scores(self, patches_mask):
         images_mask = []
         for mask in patches_mask:
-            images_mask.append(patch_score_to_image(transformer_attribution=mask, output_2d_tensor=False))
+            images_mask.append(
+                patch_score_to_image(transformer_attribution=mask,
+                                     output_2d_tensor=False,
+                                     img_size=self.img_size,
+                                     patch_size=self.patch_size))
         images_mask = torch.stack(images_mask).squeeze(1)
         return images_mask
 

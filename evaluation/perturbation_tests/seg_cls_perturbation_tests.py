@@ -184,7 +184,14 @@ def save_best_auc_objects_to_disk(path, auc: float, vis, original_image, epoch_i
     save_obj_to_disk(path=path, obj=object)
 
 
-def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, is_convnet: bool, verbose:bool, experiment_path=None):
+def run_perturbation_test_opt(model,
+                              outputs,
+                              stage: str,
+                              epoch_idx: int,
+                              is_convnet: bool,
+                              verbose: bool,
+                              img_size: int,
+                              experiment_path=None):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
 
     if experiment_path is None:
@@ -198,6 +205,7 @@ def run_perturbation_test_opt(model, outputs, stage: str, epoch_idx: int, is_con
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
                                      model=model,
                                      outputs=outputs,
+                                     img_size=img_size,
                                      is_convenet=is_convnet,
                                      verbose=verbose,
                                      )
@@ -210,7 +218,15 @@ def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
     plt.show();
 
 
-def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment_path, is_convnet: bool, verbose:bool):
+def run_perturbation_test(model,
+                          outputs,
+                          stage: str,
+                          epoch_idx: int,
+                          experiment_path,
+                          is_convnet: bool,
+                          verbose: bool,
+                          img_size: int,
+                          ):
     VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
 
     if not os.path.exists(experiment_path):
@@ -228,6 +244,7 @@ def run_perturbation_test(model, outputs, stage: str, epoch_idx: int, experiment
         auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
                                      model=model,
                                      outputs=outputs,
+                                     img_size=img_size,
                                      is_convenet=is_convnet,
                                      verbose=verbose,
                                      )
