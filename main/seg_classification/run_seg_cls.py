@@ -45,7 +45,7 @@ if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
 
     parser = argparse.ArgumentParser(description='Train pLTX model')
-    parser.add_argument('-explainer-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainer-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
     parser.add_argument('--train-model-by-target-gt-class', type=bool,
                         default=params_config["train_model_by_target_gt_class"])
