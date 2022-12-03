@@ -36,8 +36,10 @@ from utils.consts import (
     MODEL_ALIAS_MAPPING,
     MODEL_OPTIONS,
 )
-from main.segmentation_eval.segmentation_utils import print_segmentation_results, init_get_normalize_and_transform, \
-    eval_results_per_res
+from main.segmentation_eval.segmentation_utils import (print_segmentation_results,
+                                                       init_get_normalize_and_transform,
+                                                       eval_results_per_res,
+                                                       )
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -64,8 +66,6 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
     parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
-    parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
-    parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--is-freezing-explaniee-model',
                         type=bool,
@@ -79,6 +79,7 @@ if __name__ == '__main__':
                         default=params_config["is_competitive_method_transforms"])
     parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
     parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
+    parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
     parser.add_argument('--train-n-label-sample', type=str, default=params_config["train_n_label_sample"])
     parser.add_argument('--lr', type=float, default=params_config["lr"])
@@ -87,8 +88,6 @@ if __name__ == '__main__':
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
     parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
-    parser.add_argument('--img-size', type=int, default=params_config["img_size"])
-    parser.add_argument('--patch-size', type=int, default=params_config["patch_size"])
     parser.add_argument('--evaluation-experiment-folder-name',
                         type=str,
                         default=params_config["evaluation_experiment_folder_name"])
@@ -101,9 +100,6 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-    loss_multipliers = get_loss_multipliers(normalize=False,
-                                            mask_loss_mul=args.mask_loss_mul,
-                                            prediction_loss_mul=args.prediction_loss_mul)
 
     args.train_model_by_target_gt_class = False
     target_or_predicted_model = "predicted"
@@ -113,16 +109,15 @@ if __name__ == '__main__':
         explainee_model_name=args.explainee_model_name,
         target_or_predicted_model=target_or_predicted_model,
     )
-
+    loss_multipliers = get_loss_multipliers(normalize=False,
+                                            mask_loss_mul=MASK_LOSS_MUL,
+                                            prediction_loss_mul=args.prediction_loss_mul)
     ic(CKPT_PATH)
-    ic(args.img_size)
-    ic(args.mask_loss_mul)
+    ic(MASK_LOSS_MUL)
     ic(args.explainer_model_n_first_layers_to_freeze)
     ic(args.n_epochs_to_optimize_stage_b)
     ic(args.use_logits_only)
     ic(args.RUN_BASE_MODEL)
-
-    args.batch_size = 1
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform() if not IS_EXPLANIEE_CONVNET else init_get_normalize_and_transform(
         mean=CONVENT_NORMALIZATION_MEAN, std=CONVNET_NORMALIZATION_STD)
@@ -136,7 +131,7 @@ if __name__ == '__main__':
         explainee_model_name=EXPLAINEE_MODEL_NAME,
         explainer_model_name=EXPLAINER_MODEL_NAME,
         activation_function=args.activation_function,
-        img_size=args.img_size,
+        img_size=IMG_SIZE,
     )
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -166,13 +161,13 @@ if __name__ == '__main__':
         start_epoch_to_evaluate=args.start_epoch_to_evaluate,
         n_batches_to_visualize=args.n_batches_to_visualize,
         mask_loss=args.mask_loss,
-        mask_loss_mul=args.mask_loss_mul,
+        mask_loss_mul=MASK_LOSS_MUL,
         prediction_loss_mul=args.prediction_loss_mul,
         activation_function=args.activation_function,
         train_model_by_target_gt_class=args.train_model_by_target_gt_class,
         use_logits_only=args.use_logits_only,
-        img_size=args.img_size,
-        patch_size=args.patch_size,
+        img_size=IMG_SIZE,
+        patch_size=PATCH_SIZE,
         is_ce_neg=args.is_ce_neg,
         verbose=args.verbose,
     )

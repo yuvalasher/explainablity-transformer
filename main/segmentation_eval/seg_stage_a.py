@@ -48,9 +48,10 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
     parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
-    parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
-    parser.add_argument('--batch-size', type=int, default=1)
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=32)
     parser.add_argument('--is-freezing-explaniee-model',
                         type=bool,
                         default=params_config["is_freezing_explaniee_model"])
@@ -71,8 +72,6 @@ if __name__ == '__main__':
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
     parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
-    parser.add_argument('--img-size', type=int, default=params_config["img_size"])
-    parser.add_argument('--patch-size', type=int, default=params_config["patch_size"])
     parser.add_argument('--evaluation-experiment-folder-name',
                         type=str,
                         default=params_config["evaluation_experiment_folder_name"])
@@ -85,9 +84,6 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-    loss_multipliers = get_loss_multipliers(normalize=False,
-                                            mask_loss_mul=args.mask_loss_mul,
-                                            prediction_loss_mul=args.prediction_loss_mul)
 
     args.train_model_by_target_gt_class = False
     target_or_predicted_model = "predicted"
@@ -97,25 +93,27 @@ if __name__ == '__main__':
         explainee_model_name=args.explainee_model_name,
         target_or_predicted_model=target_or_predicted_model,
     )
+    loss_multipliers = get_loss_multipliers(normalize=False,
+                                            mask_loss_mul=MASK_LOSS_MUL,
+                                            prediction_loss_mul=args.prediction_loss_mul)
 
     ic(CKPT_PATH)
-    ic(args.mask_loss_mul)
+    ic(MASK_LOSS_MUL)
     ic(args.prediction_loss_mul)
-
-    args.batch_size = 32
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform() if not IS_EXPLANIEE_CONVNET else init_get_normalize_and_transform(
         mean=CONVENT_NORMALIZATION_MEAN, std=CONVNET_NORMALIZATION_STD)
     ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
                                batch_size=args.batch_size,
                                transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+                               transform_resize=test_img_trans_only_resize,
+                               target_transform=test_lbl_trans)
 
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
         explainee_model_name=EXPLAINEE_MODEL_NAME,
         explainer_model_name=EXPLAINER_MODEL_NAME,
         activation_function=args.activation_function,
-        img_size=args.img_size,
+        img_size=IMG_SIZE,
     )
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -124,7 +122,7 @@ if __name__ == '__main__':
         batch_size=args.batch_size,
     )
 
-    metric = IoU(2, ignore_index=-1)
+    metric = IoU(num_classes=2, ignore_index=-1)
 
     model = OptImageClassificationWithTokenClassificationModelSegmentation(
         model_for_classification_image=model_for_classification_image,
@@ -145,7 +143,7 @@ if __name__ == '__main__':
         start_epoch_to_evaluate=args.start_epoch_to_evaluate,
         n_batches_to_visualize=args.n_batches_to_visualize,
         mask_loss=args.mask_loss,
-        mask_loss_mul=args.mask_loss_mul,
+        mask_loss_mul=MASK_LOSS_MUL,
         prediction_loss_mul=args.prediction_loss_mul,
         activation_function=args.activation_function,
         train_model_by_target_gt_class=args.train_model_by_target_gt_class,
