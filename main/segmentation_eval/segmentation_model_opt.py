@@ -22,7 +22,7 @@ from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
 pl.seed_everything(config["general"]["seed"])
 
 
-class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClassificationWithTokenClassificationModel):
+class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassificationWithTokenClassificationModel):
     def __init__(
             self,
             model_for_classification_image,
@@ -34,21 +34,24 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             best_auc_plot_path: str,
             experiment_path: str,
             checkpoint_epoch_idx: int,
-            is_explanier_convnet: bool,
-            is_explaniee_convnet: bool,
+            is_explainer_convnet: bool,
+            is_explainee_convnet: bool,
             lr: float,
             n_epochs: int,
             activation_function: str,
             train_model_by_target_gt_class: bool,
+            use_logits_only: bool,
             img_size: int,
             patch_size: int,
+            mask_loss: str,
+            mask_loss_mul: int,
+            prediction_loss_mul: int,
             is_ce_neg: bool = False,
             n_batches_to_visualize: int = 2,
             start_epoch_to_evaluate: int = 1,
             run_base_model_only: bool = False,
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
-            criterion: LossLoss = LossLoss(),
             verbose: bool = False,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
@@ -57,7 +60,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          total_training_steps=total_training_steps,
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
-                         criterion=criterion,
                          lr=lr,
                          start_epoch_to_evaluate=start_epoch_to_evaluate,
                          n_batches_to_visualize=n_batches_to_visualize,
@@ -65,7 +67,11 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
                          train_model_by_target_gt_class=train_model_by_target_gt_class,
                          img_size=img_size,
                          patch_size=patch_size,
+                         mask_loss=mask_loss,
+                         mask_loss_mul=mask_loss_mul,
+                         prediction_loss_mul=prediction_loss_mul,
                          is_ce_neg=is_ce_neg,
+                         use_logits_only=use_logits_only,
                          experiment_path=experiment_path,
                          is_explainer_convnet=is_explainer_convnet,
                          is_explainee_convnet=is_explainee_convnet,

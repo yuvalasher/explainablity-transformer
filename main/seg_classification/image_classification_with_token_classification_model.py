@@ -42,17 +42,21 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             use_logits_only: bool,
             img_size: int,
             patch_size: int,
+            mask_loss: str,
+            mask_loss_mul: int,
+            prediction_loss_mul: int,
             is_ce_neg: bool = False,
             n_batches_to_visualize: int = 2,
             start_epoch_to_evaluate: int = 1,
             is_clamp_between_0_to_1: bool = True,
-            criterion: LossLoss = LossLoss(),
             verbose: bool = False,
     ):
         super().__init__()
         self.vit_for_classification_image = model_for_classification_image
         self.vit_for_patch_classification = model_for_mask_generation
-        self.criterion = criterion
+        self.criterion = LossLoss(mask_loss=mask_loss,
+                                  mask_loss_mul=mask_loss_mul,
+                                  prediction_loss_mul=prediction_loss_mul)
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1

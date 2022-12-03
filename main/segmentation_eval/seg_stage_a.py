@@ -10,7 +10,7 @@ from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
-    OptImageClassificationWithTokenClassificationModel_Segmentation
+    OptImageClassificationWithTokenClassificationModelSegmentation
 import torch
 import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
@@ -46,7 +46,6 @@ mask_loss, mask_loss_mul, prediction_loss_mul, lr, start_epoch_to_evaluate, \
 n_batches_to_visualize, is_ce_neg, activation_function, n_epochs_to_optimize_stage_b, RUN_BASE_MODEL, \
 use_logits_only, VERBOSE, IMG_SIZE, PATCH_SIZE, evaluation_experiment_folder_name, train_n_label_sample, \
 val_n_label_sample = get_params_from_config(config_vit=config["vit"])
-
 
 IS_EXPLANIEE_CONVNET = True if explainee_model_name in CONVNET_MODELS_BY_NAME.keys() else False
 IS_EXPLAINER_CONVNET = True if explainer_model_name in CONVNET_MODELS_BY_NAME.keys() else False
@@ -117,7 +116,7 @@ if __name__ == '__main__':
 
     metric = IoU(2, ignore_index=-1)
 
-    model = OptImageClassificationWithTokenClassificationModel_Segmentation(
+    model = OptImageClassificationWithTokenClassificationModelSegmentation(
         model_for_classification_image=model_for_classification_image,
         model_for_mask_generation=model_for_mask_generation,
         plot_path='',
@@ -129,19 +128,24 @@ if __name__ == '__main__':
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='test',
         experiment_path='exp_name',
-        is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
-        is_explanier_convnet=IS_EXPLAINER_CONVNET,
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+        is_explainee_convnet=IS_EXPLANIEE_CONVNET,
         lr=lr,
         n_epochs=n_epochs,
         start_epoch_to_evaluate=start_epoch_to_evaluate,
         n_batches_to_visualize=n_batches_to_visualize,
+        mask_loss=mask_loss,
+        mask_loss_mul=mask_loss_mul,
+        prediction_loss_mul=prediction_loss_mul,
         activation_function=activation_function,
         train_model_by_target_gt_class=train_model_by_target_gt_class,
+        use_logits_only=use_logits_only,
         img_size=IMG_SIZE,
         patch_size=PATCH_SIZE,
         is_ce_neg=is_ce_neg,
         verbose=VERBOSE,
     )
+
     model = freeze_multitask_model(
         model=model,
         is_freezing_explaniee_model=is_freezing_explaniee_model,

@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from typing import Union
-
 from main.seg_classification.output_dataclasses.lossloss_output import LossLossOutput
 import torch
 from torch import Tensor
@@ -16,15 +14,14 @@ loss_config = vit_config["seg_cls"]["loss"]
 
 @dataclass
 class LossLoss:
-    mask_loss: str = loss_config["mask_loss"]
-    prediction_loss_mul: Union[float, int] = loss_config["prediction_loss_mul"]
-    mask_loss_mul: Union[float, int] = loss_config["mask_loss_mul"]
+    mask_loss: str
+    prediction_loss_mul: int
+    mask_loss_mul: int
 
     def __post_init__(self):
         loss_multipliers = get_loss_multipliers(normalize=False,
                                                 mask_loss_mul=self.mask_loss_mul,
                                                 prediction_loss_mul=self.prediction_loss_mul)
-        self.mask_loss = loss_config["mask_loss"]
         self.prediction_loss_mul = loss_multipliers["prediction_loss_mul"]
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")

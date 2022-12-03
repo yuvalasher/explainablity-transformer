@@ -229,7 +229,7 @@ def normalize_losses(mask_loss_mul: float,
 def get_loss_multipliers(normalize: bool,
                          mask_loss_mul: int,
                          prediction_loss_mul: int,
-                         ) -> Dict[str, float]:
+                         ) -> Dict[str, int]:
     if normalize:
         mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=mask_loss_mul,
                                                               prediction_loss_mul=prediction_loss_mul)

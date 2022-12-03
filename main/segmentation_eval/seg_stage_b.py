@@ -24,7 +24,7 @@ from utils.iou import IoU
 from main.segmentation_eval.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
 import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
-    OptImageClassificationWithTokenClassificationModel_Segmentation
+    OptImageClassificationWithTokenClassificationModelSegmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, get_loss_multipliers, freeze_multitask_model, \
     get_checkpoint_idx, get_params_from_config
 from utils.consts import (
@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
     metric = IoU(num_classes=2, ignore_index=-1)
 
-    model = OptImageClassificationWithTokenClassificationModel_Segmentation(
+    model = OptImageClassificationWithTokenClassificationModelSegmentation(
         model_for_classification_image=model_for_classification_image,
         model_for_mask_generation=model_for_mask_generation,
         plot_path='',
@@ -235,14 +235,18 @@ if __name__ == '__main__':
         run_base_model_only=RUN_BASE_MODEL,
         model_runtype='train',
         experiment_path='exp_name',
-        is_explanier_convnet=IS_EXPLAINER_CONVNET,
-        is_explaniee_convnet=IS_EXPLANIEE_CONVNET,
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+        is_explainee_convnet=IS_EXPLANIEE_CONVNET,
         lr=lr,
         n_epochs=n_epochs,
         start_epoch_to_evaluate=start_epoch_to_evaluate,
         n_batches_to_visualize=n_batches_to_visualize,
+        mask_loss=mask_loss,
+        mask_loss_mul=mask_loss_mul,
+        prediction_loss_mul=prediction_loss_mul,
         activation_function=activation_function,
         train_model_by_target_gt_class=train_model_by_target_gt_class,
+        use_logits_only=use_logits_only,
         img_size=IMG_SIZE,
         patch_size=PATCH_SIZE,
         is_ce_neg=is_ce_neg,
