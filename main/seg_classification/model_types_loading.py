@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Union
 from torchvision.models.resnet import ResNet
 from torchvision.models.densenet import DenseNet
@@ -34,7 +35,7 @@ def load_convnet_type_models(model_name: str,
                              activation_function: str,
                              img_size: int) -> Union[
     ResNet, DenseNet, CNNForMaskGeneration]:
-    model_for_classification_image = CONVNET_MODELS_BY_NAME[model_name].eval()
+    model_for_classification_image = deepcopy(CONVNET_MODELS_BY_NAME[model_name].eval())
     if not is_explanier_model:
         return model_for_classification_image
     model_for_mask_generation = CNNForMaskGeneration(cnn_model=model_for_classification_image,

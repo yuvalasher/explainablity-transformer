@@ -50,9 +50,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pLTX model')
     parser.add_argument('--explainer-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
-    parser.add_argument('--train-model-by-target-gt-class', type=bool,
+    parser.add_argument('--train-model-by-target-gt-class',
+                        type=bool,
                         default=params_config["train_model_by_target_gt_class"])
     parser.add_argument('--enable-checkpointing', type=bool, default=params_config["enable_checkpointing"])
+
 
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
