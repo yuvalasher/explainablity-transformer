@@ -28,19 +28,12 @@ from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
-    get_params_from_config,
+    get_params_from_config, suppress_warnings,
 )
 from pytorch_lightning import seed_everything
 import gc
 from PIL import ImageFile
-import logging
-import warnings
-
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger('checkpoint').setLevel(0)
-logging.getLogger('lightning').setLevel(0)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
+suppress_warnings()
 
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])

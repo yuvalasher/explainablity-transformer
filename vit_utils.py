@@ -268,3 +268,13 @@ def get_params_from_config(config_vit: Dict) -> Dict:
                 train_n_label_sample=train_n_label_sample,
                 val_n_label_sample=val_n_label_sample,
                 )
+
+def suppress_warnings():
+    import logging
+    import warnings
+
+    logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+    logging.getLogger('checkpoint').setLevel(0)
+    logging.getLogger('lightning').setLevel(0)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=UserWarning)
