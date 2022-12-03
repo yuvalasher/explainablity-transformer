@@ -105,7 +105,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
         output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = output.interpolated_mask
 
         return {
             "loss": output.lossloss_output.loss,

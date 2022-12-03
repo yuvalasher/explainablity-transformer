@@ -177,8 +177,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         image_resized = batch["image"]
         target_class = batch["target_class"]
         output = self.forward(inputs=inputs, image_resized=image_resized, target_class=target_class)
-
-        # images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
         images_mask = output.interpolated_mask
 
         return {
@@ -241,18 +239,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
         self.log("val/epoch_auc", epoch_auc, prog_bar=True, logger=True)
         return {"loss": loss}
-
-    def mask_patches_to_image_scores(self, patches_mask):
-        images_mask = []
-        for mask in patches_mask:
-            images_mask.append(
-                patch_score_to_image(transformer_attribution=mask,
-                                     output_2d_tensor=False,
-                                     img_size=self.img_size,
-                                     patch_size=self.patch_size)
-            )
-        images_mask = torch.stack(images_mask).squeeze(1)
-        return images_mask
 
     def configure_optimizers(self):
         optimizer = AdamW(self.parameters(), lr=self.lr)

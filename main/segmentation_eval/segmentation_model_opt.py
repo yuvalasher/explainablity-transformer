@@ -114,7 +114,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
 
         vit_cls_output = self.model_for_classification_image(inputs)
         output = self.forward(inputs, image_resized=image_resized)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = output.interpolated_mask
 
         return {
             "loss": output.lossloss_output.loss,
@@ -161,7 +161,8 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
         self.target = target
         self.image_resized = image_resized
         output = self.forward(inputs, image_resized)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = output.interpolated_mask
+
         outputs = {'images_mask': images_mask,
                    'target': target,
                    'image_resized': image_resized}  # If i want to save more things like orignal_img and etc.
