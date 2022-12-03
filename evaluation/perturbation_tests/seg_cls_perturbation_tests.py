@@ -9,15 +9,13 @@ from transformers.modeling_outputs import ImageClassifierOutput
 from torch import Tensor
 import numpy as np
 from config import config
+from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
 
 vit_config = config['vit']
 EXPERIMENTS_FOLDER_PATH = vit_config["experiments_path"]
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
-
-CONVENT_NORMALIZATION_MEAN = [0.485, 0.456, 0.406]
-CONVNET_NORMALIZATION_STD = [0.229, 0.224, 0.225]
 
 
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
@@ -191,7 +189,6 @@ def run_perturbation_test_opt(model,
                               verbose: bool,
                               img_size: int,
                               experiment_path=None):
-
     if experiment_path is None:
         experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     if not os.path.exists(experiment_path):

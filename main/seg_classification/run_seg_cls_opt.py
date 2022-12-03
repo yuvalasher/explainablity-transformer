@@ -47,12 +47,12 @@ if __name__ == '__main__':
                         default=params_config["train_model_by_target_gt_class"])
     parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
 
+    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
     parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size', type=int, default=1)
-    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
     parser.add_argument('--is-freezing-explaniee-model', type=bool,
                         default=params_config["is_freezing_explaniee_model"])
     parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,

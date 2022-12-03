@@ -1,21 +1,21 @@
 import argparse
 import os
 
+from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CONVENT_NORMALIZATION_MEAN
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
 from icecream import ic
-from main.segmentation_eval.segmentation_utils import print_segmentation_results
+from main.segmentation_eval.segmentation_utils import print_segmentation_results, init_get_normalize_and_transform
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModelSegmentation
 import torch
-import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
-from PIL import Image
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from config import config
 from utils.iou import IoU
@@ -34,25 +34,6 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
-
-
-def init_get_normalize_and_trns():
-    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    test_img_trans = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        normalize,
-    ])
-    test_img_trans_only_resize = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
-    test_lbl_trans = transforms.Compose([
-        transforms.Resize((224, 224), Image.NEAREST),
-    ])
-
-    return test_img_trans, test_img_trans_only_resize, test_lbl_trans
-
 
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
@@ -122,7 +103,9 @@ if __name__ == '__main__':
     ic(args.prediction_loss_mul)
 
     args.batch_size = 32
-    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
+
+    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform() if not IS_EXPLANIEE_CONVNET else init_get_normalize_and_transform(
+        mean=CONVENT_NORMALIZATION_MEAN, std=CONVNET_NORMALIZATION_STD)
     ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
                                batch_size=args.batch_size,
                                transform=test_img_trans,
