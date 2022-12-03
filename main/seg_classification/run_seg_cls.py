@@ -55,7 +55,6 @@ if __name__ == '__main__':
                         default=params_config["train_model_by_target_gt_class"])
     parser.add_argument('--enable-checkpointing', type=bool, default=params_config["enable_checkpointing"])
 
-
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
@@ -185,14 +184,19 @@ if __name__ == '__main__':
              exp_name))
 
     ic(checkpoints_default_root_dir)
+    callbacks = []
+    if args.enable_checkpointing:
+        callbacks.append(
+            ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
+                            filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)
+        )
+
     WANDB_PROJECT = config["general"]["wandb_project"]
     run = wandb.init(project=WANDB_PROJECT, entity=config["general"]["wandb_entity"], config=wandb.config)
     wandb_logger = WandbLogger(name=f"{exp_name}", project=WANDB_PROJECT)
 
     trainer = pl.Trainer(
-        # callbacks=[
-        #     ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
-        #                 filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)],
+        callbacks=callbacks,
         logger=[wandb_logger],
         accelerator='gpu',
         auto_select_gpus=True,
