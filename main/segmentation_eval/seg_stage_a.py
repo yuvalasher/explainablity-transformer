@@ -6,7 +6,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
 from icecream import ic
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
@@ -21,7 +20,7 @@ from config import config
 from utils.iou import IoU
 from main.segmentation_eval.imagenet import Imagenet_Segmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx, get_params_from_config, suppress_warnings
+    get_loss_multipliers, freeze_multitask_model, get_params_from_config, suppress_warnings
 from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
 import pytorch_lightning as pl
 import gc

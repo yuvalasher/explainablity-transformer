@@ -26,7 +26,7 @@ import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModelSegmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, get_loss_multipliers, freeze_multitask_model, \
-    get_checkpoint_idx, get_params_from_config, suppress_warnings, get_backbone_details
+    get_params_from_config, suppress_warnings, get_backbone_details
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,

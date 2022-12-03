@@ -23,12 +23,11 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
     GT_VALIDATION_PATH_LABELS, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS, EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
 from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
-    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
-    get_params_from_config, suppress_warnings, get_backbone_details,
+    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_config, suppress_warnings,
+    get_backbone_details,
 )
 from pytorch_lightning import seed_everything
 import gc
@@ -38,7 +37,6 @@ suppress_warnings()
 seed_everything(config["general"]["seed"])
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
-
 
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
