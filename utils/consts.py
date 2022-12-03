@@ -20,8 +20,8 @@ IMAGENET_VAL_GT_CSV_FILE_PATH = Path(ROOT_DIR, "gt_data_imagenet", "val_ground_t
 # IMAGES_LABELS_GT_PATH = Path(DATA_PATH, "ILSVRC2012_validation_ground_truth.txt")
 PLTE_CHECKPOINTS_PATH = Path(ROOT_DIR, 'checkpoints').resolve()
 
-MODEL_OPTIONS = ["vit_224_base", "vit_224_small", "resnet", "densenet"]
-MODEL_ALIAS_MAPPING = {"vit_224_base": "google/vit-base-patch16-224",
-                       "vit_224_small": "WinKawaks/vit-small-patch16-224",
+MODEL_OPTIONS = ["vit_base_224", "vit_small_224", "resnet", "densenet"]
+MODEL_ALIAS_MAPPING = {"vit_base_224": "google/vit-base-patch16-224",
+                       "vit_small_224": "WinKawaks/vit-small-patch16-224",
                        "resnet": "resnet",
                        "densenet": "densenet"}

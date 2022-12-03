@@ -41,8 +41,8 @@ gc.collect()
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Fine-tune LTX model')
-    parser.add_argument('--explainer-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
-    parser.add_argument('--explainee-model-name', type=str, default="vit_224_base", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument('--train-model-by-target-gt-class', type=bool,
                         default=params_config["train_model_by_target_gt_class"])
     parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
         explainer_model_name=args.explainer_model_name,
         explainee_model_name=args.explainee_model_name,
-        target_or_predicted_model=args.target_or_predicted_model,
+        target_or_predicted_model=target_or_predicted_model,
     )
 
     args.mask_loss_mul = MASK_LOSS_MUL
@@ -112,7 +112,9 @@ if __name__ == '__main__':
     ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
 
     BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
-        base_auc_objects_path=BASE_AUC_OBJECTS_PATH, exp_name=exp_name)
+        base_auc_objects_path=BASE_AUC_OBJECTS_PATH,
+        exp_name=exp_name,
+    )
 
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
         explainee_model_name=EXPLAINEE_MODEL_NAME,

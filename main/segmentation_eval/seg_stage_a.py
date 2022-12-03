@@ -20,7 +20,7 @@ from config import config
 from utils.iou import IoU
 from main.segmentation_eval.imagenet import Imagenet_Segmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_params_from_config, suppress_warnings
+    get_loss_multipliers, freeze_multitask_model, get_params_from_config, suppress_warnings, get_backbone_details
 from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
 import pytorch_lightning as pl
 import gc
