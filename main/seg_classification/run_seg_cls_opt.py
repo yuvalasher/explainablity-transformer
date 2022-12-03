@@ -46,15 +46,13 @@ if __name__ == '__main__':
     parser.add_argument('--train-model-by-target-gt-class', type=bool,
                         default=params_config["train_model_by_target_gt_class"])
     parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
-    parser.add_argument('--enable-checkpointing', type=bool, default=False)
 
+    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
+    parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
-    parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
-    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
-
     parser.add_argument('--is-freezing-explaniee-model', type=bool,
                         default=params_config["is_freezing_explaniee_model"])
     parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,
@@ -84,7 +82,6 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-    args.enable_checkpointing = False
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=args.mask_loss_mul,
                                             prediction_loss_mul=args.prediction_loss_mul)
