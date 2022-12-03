@@ -56,7 +56,7 @@ def init_get_normalize_and_trns():
 
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
-    parser = argparse.ArgumentParser(description='Fine-tune LTX model')
+    parser = argparse.ArgumentParser(description='Run segmentation of pLTX model')
     parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="densenet", choices=MODEL_OPTIONS)
     parser.add_argument('--train-model-by-target-gt-class',
@@ -109,7 +109,6 @@ if __name__ == '__main__':
                                             prediction_loss_mul=args.prediction_loss_mul)
 
     args.train_model_by_target_gt_class = False
-    args.enable_checkpointing = False
     target_or_predicted_model = "predicted"
 
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
