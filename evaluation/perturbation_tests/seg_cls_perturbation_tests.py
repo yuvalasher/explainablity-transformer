@@ -191,7 +191,6 @@ def run_perturbation_test_opt(model,
                               verbose: bool,
                               img_size: int,
                               experiment_path=None):
-    VIS_TYPES = []
 
     if experiment_path is None:
         experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
