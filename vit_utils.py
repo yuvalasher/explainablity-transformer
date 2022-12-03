@@ -97,36 +97,6 @@ def unfreeze_x_attention_params(model: VitModelForClassification) -> VitModelFor
     return model
 
 
-def handle_model_freezing(model: VitModelForClassification) -> VitModelForClassification:
-    model = freeze_all_model_params(model=model)
-    model = unfreeze_x_attention_params(model=model)
-    return model
-
-
-def setup_model_config(model: VitModelForClassification) -> VitModelForClassification:
-    model.config.output_scores = True
-    model.config.output_attentions = True
-    return model
-
-
-def get_logits_for_image(
-        model: VitModelForClassification,
-        feature_extractor: ViTFeatureExtractor,
-        image: Image,
-) -> Tensor:
-    inputs = feature_extractor(images=image, return_tensors="pt")
-    outputs = model(
-        **inputs
-    )  # inputs['pixel_values].shape: [batch_Size, n_channels, height, width]
-    logits = outputs.logits
-    return logits
-
-
-def get_pred_idx_from_logits(logits: Tensor) -> int:
-    predicted_class_idx = logits.argmax(-1).item()
-    return predicted_class_idx
-
-
 def calculate_num_of_trainable_params(model) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
@@ -143,16 +113,6 @@ def print_number_of_trainable_and_not_trainable_params(model) -> None:
     print(
         f"Number of params: {calculate_num_of_params(model)}, Number of trainable params: {calculate_num_of_trainable_params(model)}"
     )
-
-
-def handle_model_config_and_freezing_for_task(
-        model: VitModelForClassification,
-        freezing_transformer: bool = True,
-) -> VitModelForClassification:
-    model = setup_model_config(model=model)
-    if freezing_transformer:
-        model = handle_model_freezing(model=model)
-    return model
 
 
 def freeze_multitask_model(model,
@@ -184,11 +144,6 @@ def freeze_multitask_model(model,
                 param.requires_grad = False
 
     return model
-
-
-def create_folder(path: Path) -> Path:
-    os.makedirs(name=path, exist_ok=True)
-    return path
 
 
 def get_image_and_inputs_and_transformed_image(
