@@ -191,7 +191,7 @@ def run_perturbation_test_opt(model,
                               verbose: bool,
                               img_size: int,
                               experiment_path=None):
-    VIS_TYPES = [f'{stage}_vis_seg_cls_epoch_{epoch_idx}']
+    VIS_TYPES = []
 
     if experiment_path is None:
         experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
@@ -199,16 +199,15 @@ def run_perturbation_test_opt(model,
         os.makedirs(experiment_path, exist_ok=True)
 
     model.eval()
-    for vis_type in VIS_TYPES:
-        vit_type_experiment_path = Path(experiment_path, vis_type)
-        auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
-                                     model=model,
-                                     outputs=outputs,
-                                     img_size=img_size,
-                                     is_convenet=is_convnet,
-                                     verbose=verbose,
-                                     )
-        return auc
+    vit_type_experiment_path = Path(experiment_path, f'{stage}_vis_seg_cls_epoch_{epoch_idx}')
+    auc = eval_perturbation_test(experiment_dir=vit_type_experiment_path,
+                                 model=model,
+                                 outputs=outputs,
+                                 img_size=img_size,
+                                 is_convenet=is_convnet,
+                                 verbose=verbose,
+                                 )
+    return auc
 
 
 def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
