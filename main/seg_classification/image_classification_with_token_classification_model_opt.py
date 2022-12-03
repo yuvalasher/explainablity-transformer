@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from icecream import ic
 from pathlib import Path
 from typing import Union
 import pytorch_lightning as pl
@@ -11,10 +10,9 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_
                                                                       run_perturbation_test_opt)
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
 from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
-from vit_utils import visu
+from utils.vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 

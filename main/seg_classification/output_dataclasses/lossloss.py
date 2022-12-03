@@ -3,7 +3,7 @@ from main.seg_classification.output_dataclasses.lossloss_output import LossLossO
 import torch
 from torch import Tensor
 from main.seg_classification.seg_cls_utils import encourage_token_mask_to_prior_loss, l1_loss, prediction_loss
-from vit_utils import get_loss_multipliers
+from utils.vit_utils import get_loss_multipliers
 import numpy as np
 
 @dataclass

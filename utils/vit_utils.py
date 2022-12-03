@@ -1,19 +1,15 @@
 import numpy as np
 import torch
-from torch import Tensor
 from torch import nn
 # from torchvision.models import DenseNet, ResNet
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.backbone_to_details import EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
 from models.modeling_vit import ViTBasicForForImageClassification
-from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
-import os
 from typing import Dict, Tuple, NewType
 from pathlib import Path
-from config import config
 from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations, wolf_image_transformations
 from utils.utils_functions import get_image_from_path

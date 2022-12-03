@@ -1,16 +1,15 @@
-import os
-from typing import Union, List
+from typing import Union
 
 from torch.utils.data import Dataset
 import torch
 
 from feature_extractor import ViTFeatureExtractor
-from pathlib import WindowsPath, Path
+from pathlib import WindowsPath
 
 from main.seg_classification.cnns.cnn_utils import convnet_resize_center_crop_transform, convnet_preprocess
 from utils import get_image_from_path
 from utils.transformation import resize
-from vit_utils import get_image_and_inputs_and_transformed_image
+from utils.vit_utils import get_image_and_inputs_and_transformed_image
 
 
 class ImageSegOptDataset(Dataset):

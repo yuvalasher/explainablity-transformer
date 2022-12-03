@@ -1,15 +1,12 @@
-from icecream import ic
 from pathlib import Path
 from typing import Union
 import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 from torch.optim import AdamW
 from torchvision.models import DenseNet, ResNet
 from transformers import get_linear_schedule_with_warmup
 
 from config import config
-from evaluation.evaluation_utils import patch_score_to_image
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
     run_perturbation_test,
 )
@@ -18,7 +15,7 @@ from main.seg_classification.output_dataclasses.image_classification_with_token_
     ImageClassificationWithTokenClassificationModelOutput
 from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
-from vit_utils import plot_vis_on_image
+from utils.vit_utils import plot_vis_on_image
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from transformers import ViTForImageClassification
 
@@ -269,7 +266,6 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
 
 
 from matplotlib import pyplot as plt
-from torch import Tensor
 
 
 def show_mask(mask):  # [1, 1, 224, 224]

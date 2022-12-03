@@ -6,15 +6,13 @@ import torch
 from tqdm import tqdm
 from config import config
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
-    save_best_auc_objects_to_disk, run_perturbation_test_opt
+    run_perturbation_test_opt
 )
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from utils.metrices import batch_pix_accuracy, batch_intersection_union, get_ap_scores, get_f1_scores
-from vit_utils import visu
+from utils.vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
-from transformers import ViTForImageClassification
 from matplotlib import pyplot as plt
 from torch import Tensor
 from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE

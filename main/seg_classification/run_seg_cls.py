@@ -23,7 +23,7 @@ from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
-from vit_utils import (
+from utils.vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_config,

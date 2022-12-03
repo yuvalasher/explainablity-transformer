@@ -10,7 +10,7 @@ from pathlib import WindowsPath, Path
 from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 from utils import get_image_from_path
 from utils.transformation import resize
-from vit_utils import get_image_and_inputs_and_transformed_image
+from utils.vit_utils import get_image_and_inputs_and_transformed_image
 from config import config
 from utils.consts import IMAGENET_VAL_GT_CSV_FILE_PATH
 

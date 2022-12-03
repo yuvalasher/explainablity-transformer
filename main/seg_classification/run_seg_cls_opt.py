@@ -23,7 +23,7 @@ from utils.consts import (
     EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
     GT_VALIDATION_PATH_LABELS, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
-from vit_utils import (
+from utils.vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_config, suppress_warnings,
