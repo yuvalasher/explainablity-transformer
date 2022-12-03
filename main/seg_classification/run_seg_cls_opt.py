@@ -28,12 +28,17 @@ from vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
     print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_checkpoint_idx, get_ckpt_model_auc,
-    get_params_from_config, suppress_warnings,
+    get_params_from_config, suppress_warnings, get_backbone_details,
 )
 from pytorch_lightning import seed_everything
 import gc
 from PIL import ImageFile
+
 suppress_warnings()
+seed_everything(config["general"]["seed"])
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+gc.collect()
+
 
 if __name__ == '__main__':
     params_config = get_params_from_config(config_vit=config["vit"])
@@ -81,26 +86,21 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-    seed_everything(config["general"]["seed"])
-    enable_checkpointing = False
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
-    gc.collect()
-
-    get_loss_multipliers(normalize=False,
-                         mask_loss_mul=args.mask_loss_mul,
-                         prediction_loss_mul=args.prediction_loss_mul)
+    args.enable_checkpointing = False
+    loss_multipliers = get_loss_multipliers(normalize=False,
+                                            mask_loss_mul=args.mask_loss_mul,
+                                            prediction_loss_mul=args.prediction_loss_mul)
     target_or_predicted_model = "target" if args.train_model_by_target_gt_class else "predicted"
-    EXPLAINER_EXPLAINEE_NAME = f"{args.explainer_model_name}-{args.explainee_model_name}"
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = \
-    EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["ckpt_path"][target_or_predicted_model], \
-    BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
-    BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
+
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
+        explainer_model_name=args.explainer_model_name,
+        explainee_model_name=args.explainee_model_name,
+        target_or_predicted_model=args.target_or_predicted_model,
+    )
 
     args.mask_loss_mul = MASK_LOSS_MUL
     args.img_size = IMG_SIZE
     args.patch_size = PATCH_SIZE
-    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
-    BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
 
     exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__train_uni_{args.is_sampled_train_data_uniformly}_val_unif_{args.is_sampled_val_data_uniformly}_activation_{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{args.mask_loss_mul}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}__bs_{args.batch_size}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)

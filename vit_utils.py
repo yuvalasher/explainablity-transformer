@@ -5,6 +5,7 @@ from torch import nn
 # from torchvision.models import DenseNet, ResNet
 from transformers import ViTForImageClassification
 from feature_extractor import ViTFeatureExtractor
+from main.seg_classification.backbone_to_details import EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
 from models.modeling_vit import ViTBasicForForImageClassification
 from PIL import Image
 import cv2
@@ -269,6 +270,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
                 val_n_label_sample=val_n_label_sample,
                 )
 
+
 def suppress_warnings():
     import logging
     import warnings
@@ -278,3 +280,16 @@ def suppress_warnings():
     logging.getLogger('lightning').setLevel(0)
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def get_backbone_details(explainer_model_name: str, explainee_model_name: str, target_or_predicted_model: str):
+    EXPLAINER_EXPLAINEE_NAME = f"{explainer_model_name}-{explainee_model_name}"
+
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = \
+        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["ckpt_path"][target_or_predicted_model], \
+        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], \
+        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
+        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
+    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+    BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
+    return CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC

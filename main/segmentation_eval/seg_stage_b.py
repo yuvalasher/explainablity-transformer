@@ -26,13 +26,12 @@ import torch.nn.functional as F
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModelSegmentation
 from vit_utils import get_warmup_steps_and_total_training_steps, get_loss_multipliers, freeze_multitask_model, \
-    get_checkpoint_idx, get_params_from_config, suppress_warnings
+    get_checkpoint_idx, get_params_from_config, suppress_warnings, get_backbone_details
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
     IMAGENET_SEG_PATH,
 )
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
 from main.segmentation_eval.segmentation_utils import print_segmentation_results
 import pytorch_lightning as pl
 import gc
@@ -66,13 +65,13 @@ loss_multipliers = get_loss_multipliers(normalize=False,
 train_model_by_target_gt_class = False
 enable_checkpointing = False
 target_or_predicted_model = "predicted"
-CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = BACKBONE_DETAILS[explainee_model_name]["ckpt_path"][
-                                                     target_or_predicted_model], \
-                                                 BACKBONE_DETAILS[explainee_model_name]["img_size"], \
-                                                 BACKBONE_DETAILS[explainee_model_name]["patch_size"], \
-                                                 BACKBONE_DETAILS[explainee_model_name]["mask_loss"]
 
-CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
+CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
+    explainer_model_name=explainer_model_name,
+    explainee_model_name=explainee_model_name,
+    target_or_predicted_model=target_or_predicted_model,
+)
+
 
 ic(CKPT_PATH)
 ic(IMG_SIZE)
