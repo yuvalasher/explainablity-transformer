@@ -112,7 +112,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
         if self.current_epoch == self.checkpoint_epoch_idx:
             self.init_auc()
 
-        vit_cls_output = self.model_for_classification_image(inputs)
+        vit_cls_output = self.vit_for_classification_image(inputs)
         output = self.forward(inputs, image_resized=image_resized)
         images_mask = output.interpolated_mask
 
@@ -137,7 +137,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
             return
 
         auc = run_perturbation_test_opt(
-            model=self.model_for_classification_image,
+            model=self.vit_for_classification_image,
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,

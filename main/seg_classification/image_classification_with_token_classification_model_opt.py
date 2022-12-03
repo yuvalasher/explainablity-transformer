@@ -95,7 +95,6 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
 
     def training_step(self, batch, batch_idx):
         self.vit_for_classification_image.eval()
-        self.vit_for_patch_classification.encoder.eval()
         self.vit_for_patch_classification.encoder.eval() if self.is_explainer_convnet else self.vit_for_patch_classification.eval()
         inputs = batch["pixel_values"].squeeze(1)
         resized_and_normalized_image = batch["resized_and_normalized_image"]
