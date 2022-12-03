@@ -15,9 +15,6 @@ from config import config
 from utils.consts import IMAGENET_VAL_GT_CSV_FILE_PATH
 
 seed_everything(config["general"]["seed"])
-# vit_config = config["vit"]
-# print(f"TRAIN N_SAMPLES: {vit_config['seg_cls']['train_n_label_sample'] * 1000}")
-# print(f"VAL N_SAMPLES: {vit_config['seg_cls']['val_n_label_sample'] * 1000}")
 
 N_IMAGES_PER_LABEL = 1000
 

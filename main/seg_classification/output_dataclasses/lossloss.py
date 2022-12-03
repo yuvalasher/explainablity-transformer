@@ -8,10 +8,6 @@ from config import config
 from vit_utils import get_loss_multipliers
 import numpy as np
 
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
-
-
 @dataclass
 class LossLoss:
     mask_loss: str
