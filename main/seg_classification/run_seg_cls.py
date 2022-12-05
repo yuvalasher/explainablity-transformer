@@ -188,7 +188,7 @@ if __name__ == '__main__':
     if args.enable_checkpointing:
         callbacks.append(
             ModelCheckpoint(monitor="val/epoch_auc", mode="min", dirpath=checkpoints_default_root_dir, verbose=True,
-                            filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=70)
+                            filename="{epoch}_{val/epoch_auc:.3f}", save_top_k=args.n_epochs)
         )
 
     WANDB_PROJECT = config["general"]["wandb_project"]
