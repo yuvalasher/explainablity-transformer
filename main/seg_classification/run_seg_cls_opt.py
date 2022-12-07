@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
 
     parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
-    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
+    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs_to_optimize_stage_b"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size', type=int, default=1)
@@ -142,7 +142,7 @@ if __name__ == '__main__':
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
         is_explainee_convnet=IS_EXPLANIEE_CONVNET,
         lr=args.lr,
-        n_epochs=args.n_epochs,
+        n_epochs=CHECKPOINT_EPOCH_IDX + args.n_epochs_to_optimize_stage_b,
         start_epoch_to_evaluate=args.start_epoch_to_evaluate,
         train_model_by_target_gt_class=args.train_model_by_target_gt_class,
         use_logits_only=args.use_logits_only,
