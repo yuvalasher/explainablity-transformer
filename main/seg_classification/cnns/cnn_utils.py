@@ -23,5 +23,5 @@ convnet_preprocess = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(
         mean=CONVENT_NORMALIZATION_MEAN,
-        std=CONVNET_NORMALIZATION_STD
+        std=CONVNET_NORMALIZATION_STD,
     )])
