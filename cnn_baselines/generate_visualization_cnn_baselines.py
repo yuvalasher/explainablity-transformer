@@ -21,6 +21,7 @@ from cnn_baselines.torchgc.pytorch_grad_cam.score_cam import ScoreCAM
 from cnn_baselines.torchgc.pytorch_grad_cam.ablation_cam import AblationCAM
 import h5py
 import numpy as np
+from icecream import ic
 
 device = torch.device('cuda')
 USE_MASK = True
@@ -161,15 +162,19 @@ def compute_saliency_and_save(dir: Path,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate CNN baselines visualizations')
     parser.add_argument('--method', type=str, default="gradcam", choices=METHOD_OPTIONS)
-    parser.add_argument('--backbone-name', type=str, default="resnet101",
+    parser.add_argument('--backbone-name',
+                        type=str,
+                        default="resnet101",
                         choices=list(FEATURE_LAYER_NUMBER_BY_BACKBONE.keys()))
     parser.add_argument('--vis-by-target-gt-class', type=bool, default=True)
-
     parser.add_argument('--batch-size', type=int, default=1)
-    parser.add_argument('--verbose', type=bool, default=True)
+    parser.add_argument('--verbose', type=bool, default=False)
 
     args = parser.parse_args()
 
+    ic(args.method)
+    ic(args.backbone_name)
+    ic(args.vis_by_target_gt_class)
     vis_class = "target" if args.vis_by_target_gt_class else "top"
 
     FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[args.backbone_name]
