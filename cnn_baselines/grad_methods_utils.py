@@ -14,6 +14,7 @@ from torch import nn
 from tqdm import tqdm
 
 from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CONVENT_NORMALIZATION_MEAN
+from utils import show_image
 
 device = torch.device('cuda')
 
@@ -39,6 +40,8 @@ def run_all_operations(model,
                                                                                               use_mask=use_mask,
                                                                                               )
         results.append((t1, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap))
+
+        show_image(blended_img, title=operation)
     return results
 
 
