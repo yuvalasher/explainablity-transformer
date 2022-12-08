@@ -152,7 +152,7 @@ def compute_saliency_and_save(dir: Path,
                                                                                                        )
             else:
                 raise NotImplementedError
-            show_image(blended_im, title=method)
+            show_image(blended_im, title=f"{method}-{vis_class}")
             data_cam[-data.shape[0]:] = heatmap
 
 
@@ -183,7 +183,6 @@ if __name__ == '__main__':
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                   transform=convnet_preprocess,
                                   resize_transform=convnet_resize_center_crop_transform,
-                                  list_of_images_names=list(range(10)),
                                   )
 
     sample_loader = DataLoader(

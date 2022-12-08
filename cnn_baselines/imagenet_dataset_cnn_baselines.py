@@ -6,25 +6,30 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
+
 from utils.consts import GT_VALIDATION_PATH_LABELS
+
 
 class ImageNetDataset(Dataset):
 
     def __init__(self,
                  root_dir,
-                 list_of_images_names: List[int],
                  transform,
                  resize_transform,
+                 list_of_images_names: List[int] = None,
                  ):
         self.root_dir = root_dir
         self.transform = transform
         self.resize_transform = resize_transform
         self.listdir = sorted(os.listdir(root_dir))
         self.targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
+        self.list_of_images_names = list_of_images_names if list_of_images_names is not None else range(
+            len(self.listdir))
 
         n_samples = len(self.listdir)
-        self.images_name = [f"ILSVRC2012_val_{str(image_idx + 1).zfill(8)}.JPEG" for image_idx in list_of_images_names]
-        self.targets = [self.targets[image_idx] for image_idx in list_of_images_names]
+        self.images_name = [f"ILSVRC2012_val_{str(image_idx + 1).zfill(8)}.JPEG" for image_idx in
+                            self.list_of_images_names]
+        self.targets = [self.targets[image_idx] for image_idx in self.list_of_images_names]
         self.targets = self.targets[:n_samples]
         print(f"After filter images: {len(self.images_name)}")
 
