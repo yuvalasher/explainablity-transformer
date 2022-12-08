@@ -3,6 +3,7 @@ import os
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+from distutils.util import strtobool
 
 import wandb
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -57,27 +58,56 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train pLTX model')
     parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
-    parser.add_argument('--train-model-by-target-gt-class',
-                        type=bool,
+    parser.add_argument("--train-model-by-target-gt-class",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
                         default=params_config["train_model_by_target_gt_class"])
-    parser.add_argument('--enable-checkpointing', type=bool, default=params_config["enable_checkpointing"])
+
+    parser.add_argument("--enable-checkpointing",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["enable_checkpointing"])
 
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--batch-size', type=int, default=params_config["batch_size"])
-    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["verbose"])
 
-    parser.add_argument('--is-sampled-train-data-uniformly', type=bool,
+    parser.add_argument("--is-sampled-train-data-uniformly",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
                         default=params_config["is_sampled_train_data_uniformly"])
-    parser.add_argument('--is-sampled-val-data-uniformly', type=bool,
+    parser.add_argument("--is-sampled-val-data-uniformly",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
                         default=params_config["is_sampled_val_data_uniformly"])
-    parser.add_argument('--is-freezing-explaniee-model', type=bool,
+
+    parser.add_argument('--is-freezing-explaniee-model',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_freezing_explaniee_model"])
-    parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,
+    parser.add_argument('--explainer-model-n-first-layers-to-freeze',
+                        type=int,
                         default=params_config["explainer_model_n_first_layers_to_freeze"])
-    parser.add_argument('--is-clamp-between-0-to-1', type=bool, default=params_config["is_clamp_between_0_to_1"])
-    parser.add_argument('--is-competitive-method-transforms', type=bool,
+    parser.add_argument('--is-clamp-between-0-to-1',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_clamp_between_0_to_1"])
+    parser.add_argument('--is-competitive-method-transforms',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_competitive_method_transforms"])
     parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
     parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
@@ -87,10 +117,15 @@ if __name__ == '__main__':
     parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
-    parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
+    parser.add_argument('--use-logits-only',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["use_logits_only"])
     parser.add_argument('--img-size', type=int, default=params_config["img_size"])
     parser.add_argument('--patch-size', type=int, default=params_config["patch_size"])
-    parser.add_argument('--evaluation-experiment-folder-name', type=str,
+    parser.add_argument('--evaluation-experiment-folder-name',
+                        type=str,
                         default=params_config["evaluation_experiment_folder_name"])
     parser.add_argument('--train-n-label-sample', type=int, default=params_config["train_n_label_sample"])
     parser.add_argument('--val-n-label-sample', type=int, default=params_config["val_n_label_sample"])
