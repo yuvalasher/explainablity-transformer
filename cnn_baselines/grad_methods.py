@@ -91,7 +91,6 @@ if __name__ == '__main__':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = lift_cam(
                     model=model,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
@@ -102,7 +101,6 @@ if __name__ == '__main__':
                     modelCAM=ScoreCAM,
                     backbone_name=backbone_name,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
@@ -112,7 +110,6 @@ if __name__ == '__main__':
                     modelCAM=AblationCAM,
                     backbone_name=backbone_name,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
@@ -122,7 +119,6 @@ if __name__ == '__main__':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = ig_captum(
                     model=model,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
@@ -133,7 +129,6 @@ if __name__ == '__main__':
                     modelCAM=LayerCAM,
                     backbone_name=backbone_name,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
@@ -144,7 +139,6 @@ if __name__ == '__main__':
                     modelCAM=FullGrad,
                     backbone_name=backbone_name,
                     inputs=inputs,
-                    image_path=image_path,
                     label=label,
                     device=device,
                     use_mask=USE_MASK)
