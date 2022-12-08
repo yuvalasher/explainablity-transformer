@@ -172,9 +172,9 @@ if __name__ == '__main__':
     ic(exp_name)
     print(f"Total Images in path: {len(os.listdir(IMAGES_PATH))}")
     ic(MASK_LOSS_MUL, args.prediction_loss_mul)
-    listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
+    images_listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
     targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
-    for idx, (image_path, target) in tqdm(enumerate(zip(listdir, targets)), position=0, leave=True, total=len(listdir)):
+    for idx, (image_path, target) in tqdm(enumerate(zip(images_listdir, targets)), position=0, leave=True, total=len(images_listdir)):
         data_module = ImageSegOptDataModule(
             batch_size=1,
             train_image_path=str(image_path),
