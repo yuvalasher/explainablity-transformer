@@ -179,7 +179,7 @@ def lift_cam(model,
 
 
 def tensor2cv(inp):
-    inp = inp.numpy().transpose((1, 2, 0))
+    inp = inp.cpu().detach().numpy().transpose((1, 2, 0))
     mean = np.array(CONVENT_NORMALIZATION_MEAN)
     std = np.array(CONVNET_NORMALIZATION_STD)
     inp = std * inp + mean
