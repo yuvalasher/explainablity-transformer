@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-from cnn_baselines.grad_methods_utils import run_all_operations, run_by_class_grad
+from cnn_baselines.grad_methods_utils import run_by_class_grad
 from cnn_baselines.saliency_models import GradModel, ReLU, lift_cam, ig_captum, generic_torchcam
 from utils import get_gt_classes, get_preprocessed_image, show_image
 from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
@@ -24,21 +24,18 @@ FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
 
 if __name__ == '__main__':
     BY_MAX_CLASS = False  # predicted / TARGET
+    # operations = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
+    operations = ['gradcam']
 
-    images_listdir = sorted(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir()))[1:2]
-    targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)[1:2]
+    images_listdir = sorted(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir()))
+    targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
 
     backbone_name = backbones[1]
     FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[backbone_name]
     PREV_LAYER = FEATURE_LAYER_NUMBER - 1
     num_layers_options = [1]
 
-    operations = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
-    gradient_operations = []
-
     torch.nn.modules.activation.ReLU.forward = ReLU.forward
-    if backbone_name.__contains__('vgg'):
-        torch.nn.modules.activation.ReLU.forward = ReLU.forward
 
     model = GradModel(backbone_name, feature_layer=FEATURE_LAYER_NUMBER)
     model.to(device)
@@ -121,16 +118,16 @@ if __name__ == '__main__':
                 )
 
             elif operation in ['gradcam', 'gradcampp']:
-                t, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = run_by_class_grad(model=model,
-                                                                                                      image_preprocessed=inputs.squeeze(
-                                                                                                          0),
-                                                                                                      label=label,
-                                                                                                      backbone_name=backbone_name,
-                                                                                                      device=device,
-                                                                                                      features_layer=FEATURE_LAYER_NUMBER,
-                                                                                                      operation=operation,
-                                                                                                      use_mask=USE_MASK,
-                                                                                                      )
+                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = run_by_class_grad(model=model,
+                                                                                                        image_preprocessed=inputs.squeeze(
+                                                                                                            0),
+                                                                                                        label=label,
+                                                                                                        backbone_name=backbone_name,
+                                                                                                        device=device,
+                                                                                                        features_layer=FEATURE_LAYER_NUMBER,
+                                                                                                        operation=operation,
+                                                                                                        use_mask=USE_MASK,
+                                                                                                        )
             else:
                 raise NotImplementedError
             show_image(blended_im, title=operation)
