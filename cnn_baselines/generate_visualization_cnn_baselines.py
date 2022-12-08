@@ -1,4 +1,5 @@
 import os
+from distutils.util import strtobool
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -32,6 +33,7 @@ BASELINE_RESULTS_PATH = '/raid/yuvalas/baselines_results'
 
 
 def compute_saliency_and_save(dir: Path,
+                              model,
                               method: str,
                               dataloader: DataLoader,
                               vis_class: str,
@@ -160,21 +162,36 @@ def compute_saliency_and_save(dir: Path,
 
 
 if __name__ == '__main__':
+    """"
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcam --backbone-name resnet101 --vis-by-target-gt-class True &> nohups_logs/journal/cnn_baselines/resnet_gradcam_target.out &
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcam --backbone-name resnet101 --vis-by-target-gt-class False &> nohups_logs/journal/cnn_baselines/resnet_gradcam_predicted.out &
+    """
     parser = argparse.ArgumentParser(description='Generate CNN baselines visualizations')
     parser.add_argument('--method', type=str, default="gradcam", choices=METHOD_OPTIONS)
     parser.add_argument('--backbone-name',
                         type=str,
                         default="resnet101",
                         choices=list(FEATURE_LAYER_NUMBER_BY_BACKBONE.keys()))
-    parser.add_argument('--vis-by-target-gt-class', type=bool, default=True)
+    parser.add_argument("--vis-by-target-gt-class",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=True)
+
     parser.add_argument('--batch-size', type=int, default=1)
-    parser.add_argument('--verbose', type=bool, default=False)
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=False)
 
     args = parser.parse_args()
 
     ic(args.method)
     ic(args.backbone_name)
     ic(args.vis_by_target_gt_class)
+    ic(args.verbose)
+
     vis_class = "target" if args.vis_by_target_gt_class else "top"
 
     FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[args.backbone_name]
@@ -206,6 +223,7 @@ if __name__ == '__main__':
     )
 
     compute_saliency_and_save(dir=dir_path,
+                              model=model,
                               method=args.method,
                               dataloader=sample_loader,
                               vis_class=vis_class,
