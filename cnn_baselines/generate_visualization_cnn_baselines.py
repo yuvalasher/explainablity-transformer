@@ -1,22 +1,20 @@
 import os
-from typing import List, Union
-
-from torch.utils.data import DataLoader
-
-from cnn_baselines.imagenet_dataset_cnn_baselines import ImageNetDataset
-from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+import argparse
+from torch.utils.data import DataLoader
+from cnn_baselines.imagenet_dataset_cnn_baselines import ImageNetDataset
+from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 from pathlib import Path
 import torch
-from torch import Tensor
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from cnn_baselines.grad_methods_utils import run_by_class_grad
 from cnn_baselines.saliency_models import GradModel, ReLU, lift_cam, ig_captum, generic_torchcam
-from utils import get_gt_classes, get_preprocessed_image, show_image
-from utils.consts import GT_VALIDATION_PATH_LABELS, IMAGENET_VAL_IMAGES_FOLDER_PATH
+from utils import show_image
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH
 from cnn_baselines.torchgc.pytorch_grad_cam.fullgrad_cam import FullGrad
 from cnn_baselines.torchgc.pytorch_grad_cam.layer_cam import LayerCAM
 from cnn_baselines.torchgc.pytorch_grad_cam.score_cam import ScoreCAM
@@ -27,7 +25,7 @@ import numpy as np
 device = torch.device('cuda')
 USE_MASK = True
 
-backbones = ['densenet', 'resnet101']
+METHOD_OPTIONS = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
 FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
 BASELINE_RESULTS_PATH = '/raid/yuvalas/baselines_results'
 
@@ -36,6 +34,8 @@ def compute_saliency_and_save(dir: Path,
                               method: str,
                               dataloader: DataLoader,
                               vis_class: str,
+                              backbone_name: str,
+                              verbose: bool,
                               ):
     first = True
     with h5py.File(os.path.join(dir, 'results.hdf5'), 'a') as f:
@@ -152,32 +152,40 @@ def compute_saliency_and_save(dir: Path,
                                                                                                        )
             else:
                 raise NotImplementedError
-            show_image(blended_im, title=f"{method}-{vis_class}")
+
             data_cam[-data.shape[0]:] = heatmap
+            if verbose:
+                show_image(blended_im, title=f"{method}-{vis_class}")
 
 
 if __name__ == '__main__':
-    BY_MAX_CLASS = False  # predicted / TARGET
-    vis_class = "top" if BY_MAX_CLASS else "target"
-    # methods = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
-    method = 'gradcam'
+    parser = argparse.ArgumentParser(description='Generate CNN baselines visualizations')
+    parser.add_argument('--method', type=str, default="gradcam", choices=METHOD_OPTIONS)
+    parser.add_argument('--backbone-name', type=str, default="resnet101",
+                        choices=list(FEATURE_LAYER_NUMBER_BY_BACKBONE.keys()))
+    parser.add_argument('--vis-by-target-gt-class', type=bool, default=True)
 
-    backbone_name = backbones[1]
-    FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[backbone_name]
+    parser.add_argument('--batch-size', type=int, default=1)
+    parser.add_argument('--verbose', type=bool, default=True)
+
+    args = parser.parse_args()
+
+    vis_class = "target" if args.vis_by_target_gt_class else "top"
+
+    FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[args.backbone_name]
     PREV_LAYER = FEATURE_LAYER_NUMBER - 1
 
     torch.nn.modules.activation.ReLU.forward = ReLU.forward
 
-    model = GradModel(backbone_name, feature_layer=FEATURE_LAYER_NUMBER)
+    model = GradModel(args.backbone_name, feature_layer=FEATURE_LAYER_NUMBER)
     model.to(device)
     model.eval()
     model.zero_grad()
 
     os.makedirs(Path(BASELINE_RESULTS_PATH, 'visualizations'), exist_ok=True)
-    dir_path = Path(BASELINE_RESULTS_PATH, f'visualizations/{method}/{vis_class}')
+    dir_path = Path(BASELINE_RESULTS_PATH, f'visualizations/{args.method}/{vis_class}')
     os.makedirs(dir_path, exist_ok=True)
-    if os.path.exists(Path(dir_path, 'results.hdf5')):
-        os.remove(Path(dir_path, 'results.hdf5'))
+
     print(dir_path)
 
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VAL_IMAGES_FOLDER_PATH,
@@ -187,13 +195,15 @@ if __name__ == '__main__':
 
     sample_loader = DataLoader(
         imagenet_ds,
-        batch_size=1,
+        batch_size=args.batch_size,
         shuffle=False,
         num_workers=4,
     )
 
     compute_saliency_and_save(dir=dir_path,
-                              method=method,
+                              method=args.method,
                               dataloader=sample_loader,
                               vis_class=vis_class,
+                              backbone_name=args.backbone_name,
+                              verbose=args.verbose,
                               )
