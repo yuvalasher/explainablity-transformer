@@ -60,9 +60,6 @@ if __name__ == '__main__':
         if BY_MAX_CLASS:
             label = predicted_label
 
-        operation_index = 0
-        score_original_image = 0
-        img_dict = []
         for operation in operations:
             print(operation)
             if operation == 'lift-cam':
@@ -118,7 +115,7 @@ if __name__ == '__main__':
                     use_mask=USE_MASK)
 
             elif operation in ['gradcam', 'gradcampp']:
-                t1, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = run_by_class_grad(model=model,
+                t, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = run_by_class_grad(model=model,
                                                                                                       image_preprocessed=inputs.squeeze(
                                                                                                           0),
                                                                                                       label=label,
