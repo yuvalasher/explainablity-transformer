@@ -68,7 +68,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation == 'score-cam':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
@@ -77,7 +78,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation == 'ablation-cam':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
@@ -86,7 +88,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation == 'ig':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = ig_captum(
@@ -94,7 +97,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation == 'layercam':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
@@ -103,7 +107,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation == 'fullgrad':
                 t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
@@ -112,7 +117,8 @@ if __name__ == '__main__':
                     inputs=inputs,
                     label=label,
                     device=device,
-                    use_mask=USE_MASK)
+                    use_mask=USE_MASK,
+                )
 
             elif operation in ['gradcam', 'gradcampp']:
                 t, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = run_by_class_grad(model=model,
