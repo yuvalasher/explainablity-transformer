@@ -29,6 +29,7 @@ USE_MASK = True
 
 backbones = ['densenet', 'resnet101']
 FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
+BASELINE_RESULTS_PATH = '/raid/yuvalas/baselines_results'
 
 
 def compute_saliency_and_save(dir: Path,
@@ -73,7 +74,7 @@ def compute_saliency_and_save(dir: Path,
             data.requires_grad_()
 
             input_predictions = model(data.to(device), hook=False).detach()
-            predicted_label = torch.max(input_predictions, 1).indices[0].item()
+            predicted_label = torch.argmax(input_predictions, dim=1)
 
             index = predicted_label
             if vis_class == 'target':
@@ -173,7 +174,6 @@ if __name__ == '__main__':
     model.eval()
     model.zero_grad()
 
-    BASELINE_RESULTS_PATH = '/raid/yuvalas/baselines_results'
     os.makedirs(Path(BASELINE_RESULTS_PATH, 'visualizations'), exist_ok=True)
     dir_path = Path(BASELINE_RESULTS_PATH, f'visualizations/{method}/{vis_class}')
     os.makedirs(dir_path, exist_ok=True)
@@ -190,7 +190,7 @@ if __name__ == '__main__':
         imagenet_ds,
         batch_size=1,
         shuffle=False,
-        num_workers=4
+        num_workers=4,
     )
 
     compute_saliency_and_save(dir=dir_path,
