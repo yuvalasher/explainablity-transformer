@@ -13,10 +13,12 @@ class ImageNetDataset(Dataset):
     def __init__(self,
                  root_dir,
                  list_of_images_names: List[int],
-                 transform=None,
+                 transform,
+                 resize_transform,
                  ):
         self.root_dir = root_dir
         self.transform = transform
+        self.resize_transform = resize_transform
         self.listdir = sorted(os.listdir(root_dir))
         self.targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
 
@@ -36,10 +38,10 @@ class ImageNetDataset(Dataset):
         image_path = Path(self.root_dir, image_name)
         image = Image.open(image_path)
         image = image if image.mode == "RGB" else image.convert("RGB")  # Black & White images
-        image_without_transform = image
+        resized_image = self.resize_transform(image)
         if self.transform:
             image = self.transform(image)
-        return image, self.targets[idx], resize(image_without_transform)
+        return image, self.targets[idx], resized_image
 
 
 def show_pil_image(image):

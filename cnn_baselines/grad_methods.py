@@ -4,7 +4,7 @@ from typing import List, Union
 from torch.utils.data import DataLoader
 
 from cnn_baselines.imagenet_dataset_cnn_baselines import ImageNetDataset
-from main.seg_classification.cnns.cnn_utils import convnet_preprocess
+from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -55,7 +55,7 @@ def compute_saliency_and_save(dir: Path,
                                        dtype=np.int32,
                                        compression="gzip")
 
-        for batch_idx, (data, target, image_without_transform) in enumerate(tqdm(dataloader)):
+        for batch_idx, (data, target, resized_image) in enumerate(tqdm(dataloader)):
             if first:
                 first = False
                 data_cam.resize(data_cam.shape[0] + data.shape[0] - 1, axis=0)
@@ -67,7 +67,7 @@ def compute_saliency_and_save(dir: Path,
                 data_target.resize(data_target.shape[0] + data.shape[0], axis=0)
 
             # Add data
-            data_image[-data.shape[0]:] = data.data.cpu().numpy()
+            data_image[-data.shape[0]:] = resized_image.data.cpu().numpy()
             data_target[-data.shape[0]:] = target.data.cpu().numpy()
 
             data = data.to(device)
@@ -165,7 +165,6 @@ if __name__ == '__main__':
     backbone_name = backbones[1]
     FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[backbone_name]
     PREV_LAYER = FEATURE_LAYER_NUMBER - 1
-    num_layers_options = [1]
 
     torch.nn.modules.activation.ReLU.forward = ReLU.forward
 
@@ -183,6 +182,7 @@ if __name__ == '__main__':
 
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                   transform=convnet_preprocess,
+                                  resize_transform=convnet_resize_center_crop_transform,
                                   list_of_images_names=list(range(10)),
                                   )
 
