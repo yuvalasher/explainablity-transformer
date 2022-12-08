@@ -25,23 +25,23 @@ def run_all_operations(model,
                        backbone_name: str,
                        device,
                        features_layer: int,
-                       operations: List[str],
+                       methods: List[str],
                        use_mask: bool = False,
                        ):
     results = []
-    for operation in operations:
+    for method in methods:
         t1, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = run_by_class_grad(model=model,
                                                                                               image_preprocessed=image_preprocessed,
                                                                                               label=label,
                                                                                               backbone_name=backbone_name,
                                                                                               device=device,
                                                                                               features_layer=features_layer,
-                                                                                              operation=operation,
+                                                                                              method=method,
                                                                                               use_mask=use_mask,
                                                                                               )
         results.append((t1, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap))
 
-        show_image(blended_img, title=operation)
+        show_image(blended_img, title=method)
     return results
 
 
@@ -51,20 +51,20 @@ def run_by_class_grad(model,
                       backbone_name: str,
                       device,
                       features_layer: int,
-                      operation: str,
+                      method: str,
                       use_mask: bool = False
                       ):
     label = torch.tensor(label, dtype=torch.long, device=device)
     t1, blended_img, heatmap_cv, blended_img_mask, t2, score, heatmap = by_class_map(model=model,
                                                                                      image=image_preprocessed,
                                                                                      label=label,
-                                                                                     operation=operation,
+                                                                                     method=method,
                                                                                      use_mask=use_mask)
 
     return t1, blended_img, heatmap_cv, blended_img_mask, image_preprocessed, score, heatmap
 
 
-def by_class_map(model, image, label, operation: str, use_mask=False):
+def by_class_map(model, image, label, method: str, use_mask=False):
     weight_ratio = []
     model.eval()
     model.zero_grad()
@@ -84,7 +84,7 @@ def by_class_map(model, image, label, operation: str, use_mask=False):
                             X=image.unsqueeze(0).to(device),
                             gradients=gradients,
                             activations=None,
-                            operation=operation,
+                            method=method,
                             score=score,
                             do_nrm_rsz=True,
                             weight_ratio=weight_ratio)
@@ -99,7 +99,7 @@ def by_class_map(model, image, label, operation: str, use_mask=False):
 
 
 def tensor2cv(inp):
-    inp = inp.numpy().transpose((1, 2, 0))
+    inp = inp.cpu().detach().numpy().transpose((1, 2, 0))
     mean = np.array(CONVENT_NORMALIZATION_MEAN)
     std = np.array(CONVNET_NORMALIZATION_STD)
     inp = std * inp + mean
@@ -112,7 +112,7 @@ def grad2heatmaps(model,
                   X,
                   gradients,
                   activations=None,
-                  operation='iig'
+                  method='iig'
                   , score=None,
                   do_nrm_rsz=True,
                   weight_ratio=[],
@@ -121,15 +121,15 @@ def grad2heatmaps(model,
         activations = model.get_activations(
             X).detach()  # get the features of the model (some kind of feature extractor)
 
-    if operation == 'iig':
+    if method == 'iig':
         act_grads = F.relu(activations) * F.relu(gradients.detach()) ** 2
         heatmap = torch.sum(act_grads.squeeze(0), dim=0)
         heatmap = heatmap.unsqueeze(0).unsqueeze(0)
-    elif operation == 'gradcam':
+    elif method == 'gradcam':
         pooled_gradients = torch.mean(gradients, dim=[0, 2, 3], keepdim=True)
         heatmap = torch.mean(activations * pooled_gradients, dim=1, keepdim=True)
         heatmap = F.relu(heatmap)
-    elif operation == 'x-gradcam':
+    elif method == 'x-gradcam':
         sum_activations = np.sum(activations.detach().cpu().numpy(), axis=(2, 3))
         eps = 1e-7
         weights = gradients.detach().cpu().numpy() * activations.detach().cpu().numpy() / \
@@ -139,16 +139,16 @@ def grad2heatmaps(model,
         heatmap = F.relu(
             torch.sum(gradients.detach().cpu() * weights_tensor.detach().cpu() * activations.detach().cpu(), dim=1,
                       keepdim=True))
-    elif operation == 'activations':
+    elif method == 'activations':
         heatmap = torch.sum(F.relu(activations).squeeze(0), dim=0)
         heatmap = heatmap.unsqueeze(0).unsqueeze(0)
-    elif operation == 'gradients':
+    elif method == 'gradients':
         heatmap = torch.sum((F.relu(gradients.detach())).squeeze(0), dim=0)
         heatmap = heatmap.unsqueeze(0).unsqueeze(0)
-    elif operation == 'neg_gradients':
+    elif method == 'neg_gradients':
         heatmap = torch.sum((F.relu(-1 * gradients.detach())).squeeze(0), dim=0)
         heatmap = heatmap.unsqueeze(0).unsqueeze(0)
-    elif operation == 'gradcampp':
+    elif method == 'gradcampp':
         gradients = gradients.detach()
         activations = activations.detach()
         score = score.detach()
