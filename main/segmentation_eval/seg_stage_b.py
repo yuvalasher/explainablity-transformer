@@ -1,5 +1,6 @@
 import argparse
 import os
+from distutils.util import strtobool
 
 from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CONVENT_NORMALIZATION_MEAN
 
@@ -61,21 +62,38 @@ if __name__ == '__main__':
     parser.add_argument('--train-model-by-target-gt-class',
                         type=bool,
                         default=params_config["train_model_by_target_gt_class"])
-    parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
+    parser.add_argument("--RUN-BASE-MODEL",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["RUN_BASE_MODEL"])
 
-    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["verbose"])
+
     parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--is-freezing-explaniee-model',
-                        type=bool,
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_freezing_explaniee_model"])
     parser.add_argument('--explainer-model-n-first-layers-to-freeze',
                         type=int,
                         default=params_config["explainer_model_n_first_layers_to_freeze"])
-    parser.add_argument('--is-clamp-between-0-to-1', type=bool, default=params_config["is_clamp_between_0_to_1"])
+    parser.add_argument('--is-clamp-between-0-to-1',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_clamp_between_0_to_1"])
     parser.add_argument('--is-competitive-method-transforms',
-                        type=bool,
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_competitive_method_transforms"])
     parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
     parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
@@ -87,7 +105,11 @@ if __name__ == '__main__':
     parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
-    parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
+    parser.add_argument('--use-logits-only',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["use_logits_only"])
     parser.add_argument('--evaluation-experiment-folder-name',
                         type=str,
                         default=params_config["evaluation_experiment_folder_name"])
@@ -99,7 +121,6 @@ if __name__ == '__main__':
 
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
-
 
     args.train_model_by_target_gt_class = False
     target_or_predicted_model = "predicted"

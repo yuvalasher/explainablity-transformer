@@ -3,6 +3,7 @@ import os
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+from distutils.util import strtobool
 
 from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
     CONVNET_MODELS_BY_NAME
@@ -43,24 +44,43 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fine-tune LTX model')
     parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
-    parser.add_argument('--train-model-by-target-gt-class',
-                        type=bool,
+    parser.add_argument("--train-model-by-target-gt-class",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
                         default=params_config["train_model_by_target_gt_class"])
-    parser.add_argument('--RUN-BASE-MODEL', type=bool, default=params_config["RUN_BASE_MODEL"])
+    parser.add_argument("--RUN-BASE-MODEL",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["RUN_BASE_MODEL"])
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["verbose"])
 
-    parser.add_argument('--verbose', type=bool, default=params_config["verbose"])
     parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs_to_optimize_stage_b"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--is-freezing-explaniee-model',
-                        type=bool,
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_freezing_explaniee_model"])
-    parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,
+    parser.add_argument('--explainer-model-n-first-layers-to-freeze',
+                        type=int,
                         default=params_config["explainer_model_n_first_layers_to_freeze"])
-    parser.add_argument('--is-clamp-between-0-to-1', type=bool, default=params_config["is_clamp_between_0_to_1"])
+    parser.add_argument('--is-clamp-between-0-to-1',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_clamp_between_0_to_1"])
     parser.add_argument('--is-competitive-method-transforms',
-                        type=bool,
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
                         default=params_config["is_competitive_method_transforms"])
     parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
     parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
@@ -71,7 +91,11 @@ if __name__ == '__main__':
     parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
     parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
     parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
-    parser.add_argument('--use-logits-only', type=bool, default=params_config["use_logits_only"])
+    parser.add_argument('--use-logits-only',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["use_logits_only"])
     parser.add_argument('--evaluation-experiment-folder-name',
                         type=str,
                         default=params_config["evaluation_experiment_folder_name"])
@@ -96,7 +120,7 @@ if __name__ == '__main__':
                                             mask_loss_mul=MASK_LOSS_MUL,
                                             prediction_loss_mul=args.prediction_loss_mul)
 
-    exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
+    exp_name = f'DEBUG_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)
     BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH,
                                  'target' if args.train_model_by_target_gt_class else 'predicted')
