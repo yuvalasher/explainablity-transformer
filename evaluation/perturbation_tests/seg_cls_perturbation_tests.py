@@ -99,7 +99,7 @@ def eval_perturbation_test(experiment_dir: Path,
                                            std=CONVNET_NORMALIZATION_STD)
                 else:
                     _norm_data = normalize(_data.clone())
-                if verbose and perturbation_step < 4:
+                if verbose and perturbation_step < 3:
                     plot_image(_data)
 
                 out = model(_norm_data)
