@@ -13,13 +13,13 @@ VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_
                                                     "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 RESNET_RESNET_TARGET_CKPT_PATH = Path(
     "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__True/epoch=251_val/epoch_auc=18.475.ckpt")
-RESNET_RESNET_PREDICTED_CKPT_PATH_200__18_95 = Path(
-    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=204_val/epoch_auc=18.950.ckpt")
+RESNET_RESNET_PREDICTED_CKPT_PATH_93__19_1 = Path(
+    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=93_val/epoch_auc=19.100.ckpt")
 
 DENSENET_DENSENET_TARGET_CKPT_PATH = Path(
     "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__True/epoch=286_val/epoch_auc=18.565.ckpt")
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_194__18_655 = Path(
-    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=194_val/epoch_auc=18.655.ckpt")
+DENSENET_DENSENET_PREDICTED_CKPT_PATH_192 = Path(
+    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=192_val/epoch_auc=18.875.ckpt")
 
 BACKBONE_DETAILS = {
     "google/vit-base-patch16-224": {
@@ -75,7 +75,8 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     },
     "densenet-densenet": {
         "ckpt_path": {"target": DENSENET_DENSENET_TARGET_CKPT_PATH,
-                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH_234__18_86},
+                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH_192,
+                      },
         "img_size": 224,
         "patch_size": None,
         "mask_loss": 50,
@@ -88,7 +89,8 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     },
     "resnet-resnet": {
         "ckpt_path": {"target": RESNET_RESNET_TARGET_CKPT_PATH,
-                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH_200__18_95},
+                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH_93__19_1,
+                      },
         "img_size": 224,
         "patch_size": None,
         "mask_loss": 50,
