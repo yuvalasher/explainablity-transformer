@@ -76,7 +76,7 @@ if __name__ == '__main__':
                         const=True,
                         default=params_config["verbose"])
 
-    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
+    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs_to_optimize_stage_b"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--is-freezing-explaniee-model',

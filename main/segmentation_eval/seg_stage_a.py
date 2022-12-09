@@ -51,14 +51,13 @@ if __name__ == '__main__':
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=params_config["RUN_BASE_MODEL"])
+                        default=True)
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
                         default=params_config["verbose"])
-    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size',
