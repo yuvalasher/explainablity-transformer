@@ -180,6 +180,7 @@ if __name__ == '__main__':
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
         is_explainee_convnet=IS_EXPLANIEE_CONVNET,
         lr=args.lr,
+        batch_size=args.batch_size,
         n_epochs=args.n_epochs,
         start_epoch_to_evaluate=args.start_epoch_to_evaluate,
         n_batches_to_visualize=args.n_batches_to_visualize,
