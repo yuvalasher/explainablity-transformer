@@ -11,9 +11,11 @@ VIT_SMALL_224_VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "v
                                                        "pLTE_vit_small_224_predicted_best_auc__epoch=3_val_epoch_auc=0.ckpt")
 VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
                                                     "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
+RESNET_RESNET_TARGET_CKPT_PATH = Path("")
+RESNET_RESNET_PREDICTED_CKPT_PATH = Path("")
 
-DENSENET_EXPLAINEE_TARGET_CKPT_PATH = Path("")
-RESNET_EXPLAINEE_TARGET_CKPT_PATH = Path("")
+DENSENET_DENSENET_TARGET_CKPT_PATH = Path("")
+DENSENET_DENSENET_PREDICTED_CKPT_PATH = Path("")
 
 BACKBONE_DETAILS = {
     "google/vit-base-patch16-224": {
@@ -39,7 +41,7 @@ BACKBONE_DETAILS = {
         },
     },
     "densenet": {
-        "ckpt_path": {"target": RESNET_EXPLAINEE_TARGET_CKPT_PATH, "predicted": None},
+        "ckpt_path": {"target": None, "predicted": None},
         "img_size": 224,
         "patch_size": 16,
         "mask_loss": 50,
@@ -49,7 +51,7 @@ BACKBONE_DETAILS = {
         },
     },
     "resnet": {
-        "ckpt_path": {"target": RESNET_EXPLAINEE_TARGET_CKPT_PATH, "predicted": None},
+        "ckpt_path": {"target": None, "predicted": None},
         "img_size": 224,
         "patch_size": 16,
         "mask_loss": 50,
