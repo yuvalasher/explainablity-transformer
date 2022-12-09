@@ -39,6 +39,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
             activation_function: str,
             train_model_by_target_gt_class: bool,
             use_logits_only: bool,
+            batch_size: int,
             img_size: int,
             patch_size: int,
             mask_loss: str,
@@ -75,6 +76,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
                          is_explainee_convnet=is_explainee_convnet,
                          verbose=verbose,
                          )
+        self.batch_size = batch_size
         self.n_epochs = n_epochs
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
