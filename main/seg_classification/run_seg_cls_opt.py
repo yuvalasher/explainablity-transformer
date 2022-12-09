@@ -40,6 +40,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 gc.collect()
 
 if __name__ == '__main__':
+    """
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL True --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/resnet_resnet_stage_a_target.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/resnet_resnet_stage_b_target.out &
+    """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Fine-tune LTX model')
     parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
@@ -122,7 +126,7 @@ if __name__ == '__main__':
                                             mask_loss_mul=MASK_LOSS_MUL,
                                             prediction_loss_mul=args.prediction_loss_mul)
 
-    exp_name = f'DEBUG_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
+    exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)
     BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH,
                                  'target' if args.train_model_by_target_gt_class else 'predicted')
@@ -135,8 +139,7 @@ if __name__ == '__main__':
     ic(args.RUN_BASE_MODEL)
     ic(MASK_LOSS_MUL)
     ic(args.verbose)
-    """
-
+    os.makedirs(EXP_PATH, exist_ok=True)
     BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
         base_auc_objects_path=BASE_AUC_OBJECTS_PATH,
         exp_name=exp_name,
@@ -201,7 +204,8 @@ if __name__ == '__main__':
     ic(MASK_LOSS_MUL, args.prediction_loss_mul)
     images_listdir = sorted(list(Path(IMAGES_PATH).iterdir()))
     targets = get_gt_classes(path=GT_VALIDATION_PATH_LABELS)
-    for idx, (image_path, target) in tqdm(enumerate(zip(images_listdir, targets)), position=0, leave=True, total=len(images_listdir)):
+    for idx, (image_path, target) in tqdm(enumerate(zip(images_listdir, targets)), position=0, leave=True,
+                                          total=len(images_listdir)):
         data_module = ImageSegOptDataModule(
             batch_size=1,
             train_image_path=str(image_path),
