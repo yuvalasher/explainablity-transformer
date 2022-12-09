@@ -60,7 +60,9 @@ if __name__ == '__main__':
                         const=True,
                         default=params_config["verbose"])
 
-    parser.add_argument('--n_epochs_to_optimize_stage_b', type=int, default=params_config["n_epochs_to_optimize_stage_b"])
+    parser.add_argument('--n_epochs_to_optimize_stage_b',
+                        type=int,
+                        default=params_config["n_epochs_to_optimize_stage_b"])
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
     parser.add_argument('--batch-size', type=int, default=1)
@@ -126,13 +128,14 @@ if __name__ == '__main__':
                                  'target' if args.train_model_by_target_gt_class else 'predicted')
 
     EXP_PATH = Path(BASE_AUC_OBJECTS_PATH, exp_name)
-    os.makedirs(EXP_PATH, exist_ok=True)
-    ic(args.verbose)
     ic(EXP_PATH)
+    ic(args.explainer_model_name)
+    ic(args.explainee_model_name)
+    ic(args.train_model_by_target_gt_class)
     ic(args.RUN_BASE_MODEL)
     ic(MASK_LOSS_MUL)
-    ic(args.train_model_by_target_gt_class)
-    ic(str(IMAGENET_VAL_IMAGES_FOLDER_PATH))
+    ic(args.verbose)
+    """
 
     BEST_AUC_PLOT_PATH, BEST_AUC_OBJECTS_PATH, BASE_MODEL_BEST_AUC_PLOT_PATH, BASE_MODEL_BEST_AUC_OBJECTS_PATH = create_folder_hierarchy(
         base_auc_objects_path=BASE_AUC_OBJECTS_PATH,
