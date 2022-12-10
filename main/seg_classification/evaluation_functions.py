@@ -61,6 +61,7 @@ resize = transforms.Compose([
 def plot_image(image) -> None:  # [1,3,224,224] or [3,224,224]
     image = image if len(image.shape) == 3 else image.squeeze(0)
     plt.imshow(image.cpu().detach().permute(1, 2, 0))
+    plt.axis('off');
     plt.show();
 
 
@@ -213,22 +214,17 @@ def run_evaluation_metrics(model_for_image_classification,
         saliency_map_confidence=saliency_map_probability_by_index
     )
 
-    avg_change_percentage = calculate_average_change_percentage(
-        full_image_confidence=full_image_probability_by_index,
-        saliency_map_confidence=saliency_map_probability_by_index
-    )
-
     return dict(avg_drop_percentage=avg_drop_percentage,
                 percentage_increase_in_confidence_indicators=percentage_increase_in_confidence_indicators,
-                avg_change_percentage=avg_change_percentage)
+                )
 
 
-def infer_adp_pic_acp(model_for_image_classification: ViTForImageClassification,
-                      images_and_masks,
-                      gt_classes_list: List[int],
-                      is_explainee_convnet: bool,
-                      ):
-    adp_values, pic_values, acp_values = [], [], []
+def infer_adp_pic(model_for_image_classification: ViTForImageClassification,
+                  images_and_masks,
+                  gt_classes_list: List[int],
+                  is_explainee_convnet: bool,
+                  ):
+    adp_values, pic_values = [], []
 
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
@@ -245,7 +241,6 @@ def infer_adp_pic_acp(model_for_image_classification: ViTForImageClassification,
                                          )
         adp_values.append(metrics["avg_drop_percentage"])
         pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
-        acp_values.append(metrics["avg_change_percentage"])
 
     averaged_drop_percentage = 100 * np.mean(adp_values)
     percentage_increase_in_confidence = 100 * np.mean(pic_values)
@@ -276,11 +271,11 @@ def run_evaluations(pkl_path,
                                                                )
 
     # ADP & PIC metrics
-    evaluation_metrics = infer_adp_pic_acp(model_for_image_classification=model_for_classification_image,
-                                           images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list,
-                                           is_explainee_convnet=is_explainee_convnet,
-                                           )
+    evaluation_metrics = infer_adp_pic(model_for_image_classification=model_for_classification_image,
+                                       images_and_masks=images_and_masks,
+                                       gt_classes_list=gt_classes_list,
+                                       is_explainee_convnet=is_explainee_convnet,
+                                       )
     print(
         f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%;')
 
