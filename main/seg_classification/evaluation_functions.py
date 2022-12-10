@@ -13,13 +13,14 @@ from pytorch_lightning import seed_everything
 from torch.nn import functional as F
 import numpy as np
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
-from feature_extractor import ViTFeatureExtractor
-from main.seg_classification.backbone_to_details import BACKBONE_DETAILS
-from vit_loader.load_vit import load_vit_pretrained
+from main.seg_classification.backbone_to_details import EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
+from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
+from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
+    CONVNET_MODELS_BY_NAME
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, GT_VALIDATION_PATH_LABELS, MODEL_ALIAS_MAPPING
 import torch
 from enum import Enum
 import pickle
-from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, GT_VALIDATION_PATH_LABELS
 
 vit_config = config["vit"]
 
@@ -133,6 +134,7 @@ def infer_perturbation_tests(images_and_masks,
                              model_for_image_classification,
                              perturbation_config: Dict[str, Union[PerturbationType, bool]],
                              gt_classes_list: List[int],
+                             is_explainee_convnet: bool,
                              ) -> Tuple[List[float], List[float]]:
     """
     :param config: contains the configuration of the perturbation test:
@@ -151,7 +153,9 @@ def infer_perturbation_tests(images_and_masks,
                                                                           model=model_for_image_classification,
                                                                           outputs=outputs,
                                                                           perturbation_type=perturbation_type,
-                                                                          is_calculate_deletion_insertion=is_calculate_deletion_insertion)
+                                                                          is_calculate_deletion_insertion=is_calculate_deletion_insertion,
+                                                                          is_convenet=is_explainee_convnet,
+                                                                          )
         aucs_perturbation.append(auc_perturbation)
         aucs_auc_deletion_insertion.append(auc_deletion_insertion)
     return aucs_perturbation, aucs_auc_deletion_insertion
@@ -163,15 +167,21 @@ def get_probability_and_class_idx_by_index(logits, index: int) -> float:
     return predicted_probability_by_idx
 
 
-def run_evaluation_metrics(vit_for_image_classification,
+def run_evaluation_metrics(model_for_image_classification,
                            inputs,
                            inputs_scatter,
                            gt_class: int,
+                           is_explainee_convnet: bool
                            ):
     full_image_probability_by_index = get_probability_and_class_idx_by_index(
-        vit_for_image_classification(inputs).logits, index=gt_class)
+        logits=model_for_image_classification(inputs) if is_explainee_convnet else model_for_image_classification(
+            inputs).logits,
+        index=gt_class)
     saliency_map_probability_by_index = get_probability_and_class_idx_by_index(
-        vit_for_image_classification(inputs_scatter).logits, index=gt_class)
+        logits=model_for_image_classification(
+            inputs_scatter) if is_explainee_convnet else model_for_image_classification(
+            inputs_scatter).logits,
+        index=gt_class)
 
     avg_drop_percentage = calculate_avg_drop_percentage(
         full_image_confidence=full_image_probability_by_index,
@@ -192,21 +202,31 @@ def run_evaluation_metrics(vit_for_image_classification,
                 avg_change_percentage=avg_change_percentage)
 
 
-def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
+def infer_adp_pic_acp(model_for_image_classification: ViTForImageClassification,
                       images_and_masks,
                       gt_classes_list: List[int],
+                      is_explainee_convnet: bool,
                       ):
     adp_values, pic_values, acp_values = [], [], []
 
+    def get_normalization_mean_std(is_explainee_convnet: bool) -> Tuple[List[float], List[float]]:
+        mean, std = (CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD) if is_explainee_convnet else (
+            [0.5, 0.5, 0.5],
+            [0.5, 0.5, 0.5])
+        return mean, std
+
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
-        norm_original_image = normalize(image.clone())
+        normalize_mean, normalize_std = get_normalization_mean_std(is_explainee_convnet=is_explainee_convnet)
+
+        norm_original_image = normalize(image.clone(), mean=normalize_mean, std=normalize_std)
         scattered_image = scatter_image_by_mask(image=image, mask=mask)
-        norm_scattered_image = normalize(scattered_image)
-        metrics = run_evaluation_metrics(vit_for_image_classification=vit_for_image_classification,
+        norm_scattered_image = normalize(scattered_image, mean=normalize_mean, std=normalize_std)
+        metrics = run_evaluation_metrics(model_for_image_classification=model_for_image_classification,
                                          inputs=norm_original_image,
                                          inputs_scatter=norm_scattered_image,
                                          gt_class=gt_classes_list[image_idx],
+                                         is_explainee_convnet=is_explainee_convnet,
                                          )
         adp_values.append(metrics["avg_drop_percentage"])
         pic_values.append(metrics["percentage_increase_in_confidence_indicators"])
@@ -223,12 +243,13 @@ def infer_adp_pic_acp(vit_for_image_classification: ViTForImageClassification,
 
 
 def run_evaluations(pkl_path,
-                    exp_name: str,
                     is_base_model: bool,
                     target_or_predicted_model: str,
                     backbone_name: str,
                     imagenet_val_images_folder_path,
-                    device):
+                    device,
+                    is_explainee_convnet: bool,
+                    ):
     print(f"backbone_name: {backbone_name}")
     print(f"is_base_model: {is_base_model}")
     print(f"pkl_path: {pkl_path}")
@@ -236,12 +257,16 @@ def run_evaluations(pkl_path,
     NAME = f'{"Base" if is_base_model else "Opt"} Model + {target_or_predicted_model} - {backbone_name}'
     print(NAME)
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=imagenet_val_images_folder_path,
-                                                               mask_path=pkl_path, device=device)
+                                                               mask_path=pkl_path,
+                                                               device=device,
+                                                               )
 
     # ADP & PIC metrics
-    evaluation_metrics = infer_adp_pic_acp(vit_for_image_classification=vit_for_image_classification,
+    evaluation_metrics = infer_adp_pic_acp(model_for_image_classification=model_for_classification_image,
                                            images_and_masks=images_and_masks,
-                                           gt_classes_list=gt_classes_list)
+                                           gt_classes_list=gt_classes_list,
+                                           is_explainee_convnet=is_explainee_convnet,
+                                           )
     print(
         f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
 
@@ -258,9 +283,11 @@ def run_evaluations(pkl_path,
 
         auc_perturbation_list, auc_deletion_insertion_list = infer_perturbation_tests(
             images_and_masks=images_and_masks,
-            model_for_image_classification=vit_for_image_classification,
+            model_for_image_classification=model_for_classification_image,
             perturbation_config=perturbation_config,
-            gt_classes_list=gt_classes_list)
+            gt_classes_list=gt_classes_list,
+            is_explainee_convnet=is_explainee_convnet,
+        )
         auc_perturbation, auc_deletion_insertion = np.mean(auc_perturbation_list), np.mean(auc_deletion_insertion_list)
 
         print(
@@ -274,44 +301,56 @@ if __name__ == '__main__':
     PERTURBATION_DELETION_INSERTION_MAPPING = {PerturbationType.POS: "Deletion", PerturbationType.NEG: "Insertion"}
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
 
-    for backbone_name in BACKBONE_DETAILS.keys():
+    for explainer_explainee_backbones in EXPLAINER_EXPLAINEE_BACKBONE_DETAILS.keys():
         for target_or_predicted_model in ["predicted", "target"]:
-            HOME_BASE_PATH = BACKBONE_DETAILS[backbone_name]["experiment_base_path"][target_or_predicted_model]
+            HOME_BASE_PATH = \
+                EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["experiment_base_path"][
+                    target_or_predicted_model]
             OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
             OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
             OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
-            try:
-                feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
-                if backbone_name in ["google/vit-base-patch16-224"]:
-                    vit_for_image_classification, _ = load_vit_pretrained(
-                        model_name=backbone_name)
-                else:
-                    vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-            except Exception as e:
-                print(e)
-                sleep(60)
-                feature_extractor = ViTFeatureExtractor.from_pretrained(backbone_name)
-                if backbone_name in ["google/vit-base-patch16-224"]:
-                    vit_for_image_classification, _ = load_vit_pretrained(
-                        model_name=backbone_name)
-                else:
-                    vit_for_image_classification = ViTForImageClassification.from_pretrained(backbone_name)
-            vit_for_image_classification = vit_for_image_classification.to(device)
+            explainer_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["explainer"]
+            explainee_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["explainee"]
+            IMG_SIZE = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["img_size"]
+
+            EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[explainee_model_name], \
+                                                         MODEL_ALIAS_MAPPING[explainer_model_name]
+
+            IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+            IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+
+            model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+                explainee_model_name=EXPLAINEE_MODEL_NAME,
+                explainer_model_name=EXPLAINER_MODEL_NAME,
+                img_size=IMG_SIZE,
+                activation_function="sigmoid",
+            )
+            model_for_classification_image = model_for_classification_image.to(device)
+            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
+                            is_base_model=False,
+                            target_or_predicted_model=target_or_predicted_model,
+                            backbone_name=explainer_explainee_backbones,
+                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                            device=device,
+                            is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+                            )
 
             if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
-                                exp_name=HOME_BASE_PATH,
                                 is_base_model=True,
                                 target_or_predicted_model=target_or_predicted_model,
-                                backbone_name=backbone_name,
+                                backbone_name=explainer_explainee_backbones,
                                 imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                device=device)
+                                device=device,
+                                is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+                                )
 
             if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
-                                exp_name=HOME_BASE_PATH,
                                 is_base_model=False,
                                 target_or_predicted_model=target_or_predicted_model,
-                                backbone_name=backbone_name,
+                                backbone_name=explainer_explainee_backbones,
                                 imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                device=device)
+                                device=device,
+                                is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+                                )
