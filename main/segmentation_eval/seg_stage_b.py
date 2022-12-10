@@ -1,8 +1,4 @@
-import argparse
 import os
-from distutils.util import strtobool
-
-from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CONVENT_NORMALIZATION_MEAN
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
@@ -44,6 +40,9 @@ from main.segmentation_eval.segmentation_utils import (print_segmentation_result
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
+import argparse
+from distutils.util import strtobool
+
 
 seed_everything(config["general"]["seed"])
 suppress_warnings()
