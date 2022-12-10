@@ -70,8 +70,8 @@ def load_feature_extractor(explainee_model_name: str, explainer_model_name: str)
 
 def load_explainer_explaniee_models_and_feature_extractor(explainee_model_name: str,
                                                           explainer_model_name: str,
-                                                          activation_function: str,
                                                           img_size: int,
+                                                          activation_function: str = 'sigmoid',
                                                           ):
     model_for_classification_image = load_model_by_name(model_name=explainee_model_name,
                                                         is_explanier_model=False,
