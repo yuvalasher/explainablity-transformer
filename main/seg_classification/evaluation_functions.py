@@ -72,6 +72,13 @@ def show_mask(mask, model_type='N/A', auc='N/A'):  # [1, 1, 224, 224]
     return
 
 
+def get_normalization_mean_std(is_explainee_convnet: bool) -> Tuple[List[float], List[float]]:
+    mean, std = (CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD) if is_explainee_convnet else (
+        [0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5])
+    return mean, std
+
+
 def normalize_mask_values(mask, clamp_between_0_to_1: bool = False):
     if clamp_between_0_to_1:
         norm_mask = torch.clamp(mask, min=0, max=1)
@@ -223,12 +230,6 @@ def infer_adp_pic_acp(model_for_image_classification: ViTForImageClassification,
                       ):
     adp_values, pic_values, acp_values = [], [], []
 
-    def get_normalization_mean_std(is_explainee_convnet: bool) -> Tuple[List[float], List[float]]:
-        mean, std = (CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD) if is_explainee_convnet else (
-            [0.5, 0.5, 0.5],
-            [0.5, 0.5, 0.5])
-        return mean, std
-
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks), total=len(gt_classes_list)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         normalize_mean, normalize_std = get_normalization_mean_std(is_explainee_convnet=is_explainee_convnet)
@@ -248,11 +249,9 @@ def infer_adp_pic_acp(model_for_image_classification: ViTForImageClassification,
 
     averaged_drop_percentage = 100 * np.mean(adp_values)
     percentage_increase_in_confidence = 100 * np.mean(pic_values)
-    averaged_change_percentage = 100 * np.mean(acp_values)
 
     return dict(percentage_increase_in_confidence=percentage_increase_in_confidence,
                 averaged_drop_percentage=averaged_drop_percentage,
-                averaged_change_percentage=averaged_change_percentage,
                 )
 
 
@@ -283,7 +282,7 @@ def run_evaluations(pkl_path,
                                            is_explainee_convnet=is_explainee_convnet,
                                            )
     print(
-        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%; ACP (% Average Change Percentage - Higher is better): {round(evaluation_metrics["averaged_change_percentage"], 4)}%;')
+        f'PIC (% Increase in Confidence - Higher is better): {round(evaluation_metrics["percentage_increase_in_confidence"], 4)}%; ADP (Average Drop % - Lower is better): {round(evaluation_metrics["averaged_drop_percentage"], 4)}%;')
 
     # Perturbation + Deletion & Insertion tests
     for perturbation_type in [PerturbationType.POS, PerturbationType.NEG]:
