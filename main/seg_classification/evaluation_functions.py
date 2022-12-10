@@ -53,7 +53,7 @@ def get_image(path) -> Image:
 
 
 resize = transforms.Compose([
-    transforms.Resize((config['vit']['img_size'], config['vit']['img_size'])),
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
 
@@ -158,8 +158,11 @@ def infer_perturbation_tests(images_and_masks,
     for image_idx, image_and_mask in tqdm(enumerate(images_and_masks)):
         image, mask = image_and_mask["image_resized"], image_and_mask["image_mask"]  # [1,3,224,224], [1,1,224,224]
         outputs = [
-            {'image_resized': image, 'image_mask': mask,
-             'target_class': torch.tensor([gt_classes_list[image_idx]])}]
+            {'image_resized': image,
+             'image_mask': mask,
+             'target_class': torch.tensor([gt_classes_list[image_idx]]),
+             }
+        ]
         auc_perturbation, auc_deletion_insertion = eval_perturbation_test(experiment_dir=Path(""),
                                                                           model=model_for_image_classification,
                                                                           outputs=outputs,
@@ -291,7 +294,8 @@ def run_evaluations(pkl_path,
                                                                    )
 
         perturbation_config = {'perturbation_type': perturbation_type,
-                               "is_calculate_deletion_insertion": True}
+                               "is_calculate_deletion_insertion": True,
+                               }
 
         print(
             f'Perturbation tests - {perturbation_config["perturbation_type"].name}')
