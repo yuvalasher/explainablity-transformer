@@ -14,7 +14,8 @@ from torch.nn import functional as F
 import numpy as np
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
 from main.seg_classification.backbone_to_details import EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
-from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
+from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD, \
+    convnet_resize_center_crop_transform
 from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
     CONVNET_MODELS_BY_NAME
 from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, GT_VALIDATION_PATH_LABELS, MODEL_ALIAS_MAPPING
@@ -95,36 +96,46 @@ def get_probability_by_logits(logits):
     return F.softmax(logits, dim=1)[0]
 
 
-def calculate_average_change_percentage(full_image_confidence: float, saliency_map_confidence: float) -> float:
+def calculate_average_change_percentage(full_image_confidence: float,
+                                        saliency_map_confidence: float,
+                                        ) -> float:
     """
     Higher is better
     """
     return (saliency_map_confidence - full_image_confidence) / full_image_confidence
 
 
-def calculate_avg_drop_percentage(full_image_confidence: float, saliency_map_confidence: float) -> float:
+def calculate_avg_drop_percentage(full_image_confidence: float,
+                                  saliency_map_confidence: float,
+                                  ) -> float:
     """
     Lower is better
     """
     return max(0, full_image_confidence - saliency_map_confidence) / full_image_confidence
 
 
-def calculate_percentage_increase_in_confidence(full_image_confidence: float, saliency_map_confidence: float) -> float:
+def calculate_percentage_increase_in_confidence(full_image_confidence: float,
+                                                saliency_map_confidence: float,
+                                                ) -> float:
     """
     Higher is better
     """
     return 1 if full_image_confidence < saliency_map_confidence else 0
 
 
-def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
+def read_image_and_mask_from_pickls_by_path(image_path,
+                                            mask_path,
+                                            device,
+                                            is_explainee_convnet: bool,
+                                            ):
     masks_listdir = os.listdir(mask_path)
     for idx in range(len(masks_listdir)):
         pkl_path = Path(mask_path, f"{idx}.pkl")  # pkl are zero-based
         loaded_obj = load_obj(pkl_path)
         image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
         image = image if image.mode == "RGB" else image.convert("RGB")
-        image_resized = resize(image).unsqueeze(0)
-        yield dict(image_resized=image_resized.to(device),
+        image_resized = convnet_resize_center_crop_transform(image) if is_explainee_convnet else resize(image)
+        yield dict(image_resized=image_resized.unsqueeze(0).to(device),
                    image_mask=loaded_obj["vis"].to(device),
                    auc=loaded_obj["auc"],
                    )
@@ -259,6 +270,7 @@ def run_evaluations(pkl_path,
     images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=imagenet_val_images_folder_path,
                                                                mask_path=pkl_path,
                                                                device=device,
+                                                               is_explainee_convnet=is_explainee_convnet,
                                                                )
 
     # ADP & PIC metrics
@@ -273,7 +285,10 @@ def run_evaluations(pkl_path,
     # Perturbation + Deletion & Insertion tests
     for perturbation_type in [PerturbationType.POS, PerturbationType.NEG]:
         images_and_masks = read_image_and_mask_from_pickls_by_path(image_path=imagenet_val_images_folder_path,
-                                                                   mask_path=pkl_path, device=device)
+                                                                   mask_path=pkl_path,
+                                                                   device=device,
+                                                                   is_explainee_convnet=is_explainee_convnet,
+                                                                   )
 
         perturbation_config = {'perturbation_type': perturbation_type,
                                "is_calculate_deletion_insertion": True}
