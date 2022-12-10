@@ -125,7 +125,8 @@ def read_image_and_mask_from_pickls_by_path(image_path, mask_path, device):
         image_resized = resize(image).unsqueeze(0)
         yield dict(image_resized=image_resized.to(device),
                    image_mask=loaded_obj["vis"].to(device),
-                   auc=loaded_obj["auc"])
+                   auc=loaded_obj["auc"],
+                   )
 
 
 def infer_perturbation_tests(images_and_masks,
