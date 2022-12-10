@@ -142,12 +142,14 @@ if __name__ == '__main__':
     ic(args.use_logits_only)
     ic(args.RUN_BASE_MODEL)
 
-    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform() if not IS_EXPLANIEE_CONVNET else init_get_normalize_and_transform(
-        mean=CONVENT_NORMALIZATION_MEAN, std=CONVNET_NORMALIZATION_STD)
+    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform(
+        is_convnet=IS_EXPLANIEE_CONVNET)
     ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
                                batch_size=args.batch_size,
                                transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+                               transform_resize=test_img_trans_only_resize,
+                               target_transform=test_lbl_trans,
+                               )
 
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, args.evaluation_experiment_folder_name)
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
