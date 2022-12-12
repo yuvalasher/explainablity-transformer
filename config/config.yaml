@@ -26,7 +26,7 @@ vit:
   batch_size: 32
   default_root_dir: /raid/yuvalas/checkpoints
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
-  experiments_path: /home/yuvalas/explainability/research/experiments
+  experiments_path: /raid/yuvalas/experiments/experiments
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 1
