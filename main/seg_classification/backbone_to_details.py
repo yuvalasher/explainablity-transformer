@@ -59,7 +59,7 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "densenet",
         "explainee": "densenet",
         "experiment_base_path": {
-            "target": None,
+            "target": "/raid/yuvalas/experiments/target/direct_opt_ckpt_201_auc_18.855_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_by_target_gt__True",
             "predicted": None,
         },
     },
@@ -73,8 +73,8 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "resnet",
         "explainee": "resnet",
         "experiment_base_path": {
-            "target": None,
-            "predicted": None,
+            "target": "/raid/yuvalas/experiments/target/direct_opt_ckpt_86_auc_19.145_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_by_target_gt__True",
+            "predicted": "/raid/yuvalas/experiments/predicted/direct_opt_ckpt_94_auc_19.1_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_by_target_gt__False",
         },
     },
     "vit_base_224-resnet": {
