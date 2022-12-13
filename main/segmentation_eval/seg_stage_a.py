@@ -124,8 +124,8 @@ if __name__ == '__main__':
     ic(MASK_LOSS_MUL)
     ic(args.prediction_loss_mul)
 
-    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform(is_convnet=IS_EXPLANIEE_CONVNET)
-    ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
+    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform()
+    ds = Imagenet_Segmentation(path=IMAGENET_SEG_PATH,
                                batch_size=args.batch_size,
                                transform=test_img_trans,
                                transform_resize=test_img_trans_only_resize,

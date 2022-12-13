@@ -15,16 +15,13 @@ def print_segmentation_results(pixAcc: float, mAp: float, mIoU: float, mF1: floa
     print(f"F1 {round(mF1 * 100, 4)}%")
 
 
-def init_get_normalize_and_transform(is_convnet:bool, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
+def init_get_normalize_and_transform(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     normalize = transforms.Normalize(mean=mean, std=std)
-    if is_convnet:
-        test_img_trans = convnet_preprocess
-    else:
-        test_img_trans = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            normalize,
-        ])
+    test_img_trans = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        normalize,
+    ])
     test_img_trans_only_resize = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor()
