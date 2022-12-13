@@ -54,6 +54,9 @@ cuda = torch.cuda.is_available()
 device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
+    """
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/seg_stage_b_resnet_resnet_target.out &
+    """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
     parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
@@ -63,11 +66,6 @@ if __name__ == '__main__':
                         nargs='?',
                         const=True,
                         default=False)
-    parser.add_argument("--RUN-BASE-MODEL",
-                        type=lambda x: bool(strtobool(x)),
-                        nargs='?',
-                        const=True,
-                        default=params_config["RUN_BASE_MODEL"])
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
@@ -141,7 +139,6 @@ if __name__ == '__main__':
     ic(args.explainer_model_n_first_layers_to_freeze)
     ic(args.n_epochs_to_optimize_stage_b)
     ic(args.use_logits_only)
-    ic(args.RUN_BASE_MODEL)
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform(
         is_convnet=IS_EXPLANIEE_CONVNET)
@@ -177,7 +174,7 @@ if __name__ == '__main__':
         best_auc_objects_path=Path(""),
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
-        run_base_model_only=args.RUN_BASE_MODEL,
+        run_base_model_only=False,
         model_runtype='train',
         experiment_path='exp_name',
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
@@ -223,7 +220,7 @@ if __name__ == '__main__':
             gpus=1,
             devices=[1, 2],
             num_sanity_val_steps=0,
-            check_val_every_n_epoch=100,
+            check_val_every_n_epoch=300,
             max_epochs=CHECKPOINT_EPOCH_IDX + args.n_epochs_to_optimize_stage_b,
             resume_from_checkpoint=CKPT_PATH,
             enable_progress_bar=False,
