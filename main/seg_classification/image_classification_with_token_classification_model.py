@@ -89,7 +89,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def forward(self,
                 inputs,
                 image_resized,
-                target_class=None) -> ImageClassificationWithTokenClassificationModelOutput:
+                target_class=None,
+                ) -> ImageClassificationWithTokenClassificationModelOutput:
         vit_cls_output = self.vit_for_classification_image(inputs)
         vit_cls_output_logits = vit_cls_output.logits if not self.is_explainee_convnet else vit_cls_output
 
@@ -98,7 +99,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             interpolated_mask_normalized = interpolated_mask
         else:
             interpolated_mask_normalized = self.normalize_mask_values(mask=interpolated_mask.clone(),
-                                                                      is_clamp_between_0_to_1=self.is_clamp_between_0_to_1)
+                                                                      is_clamp_between_0_to_1=self.is_clamp_between_0_to_1,
+                                                                      )
 
         masked_image = image_resized * interpolated_mask_normalized
         if self.is_explainee_convnet:
