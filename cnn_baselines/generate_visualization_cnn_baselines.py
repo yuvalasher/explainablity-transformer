@@ -171,19 +171,22 @@ if __name__ == '__main__':
     parser.add_argument('--backbone-name',
                         type=str,
                         default="resnet101",
-                        choices=list(FEATURE_LAYER_NUMBER_BY_BACKBONE.keys()))
+                        choices=list(FEATURE_LAYER_NUMBER_BY_BACKBONE.keys()),
+                        )
     parser.add_argument("--vis-by-target-gt-class",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=True)
+                        default=True,
+                        )
 
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=False)
+                        default=False,
+                        )
 
     args = parser.parse_args()
 
@@ -192,7 +195,7 @@ if __name__ == '__main__':
     ic(args.vis_by_target_gt_class)
     ic(args.verbose)
 
-    vis_class = "target" if args.vis_by_target_gt_class else "top"
+    vis_class = "target" if args.vis_by_target_gt_class else "predicted"
 
     FEATURE_LAYER_NUMBER = FEATURE_LAYER_NUMBER_BY_BACKBONE[args.backbone_name]
     PREV_LAYER = FEATURE_LAYER_NUMBER - 1
