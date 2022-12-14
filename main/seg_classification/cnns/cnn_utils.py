@@ -12,16 +12,33 @@ def resize_center_crop_normalize(image):
     return convnet_preprocess(image)
 
 
+# convnet_resize_center_crop_transform = transforms.Compose([
+#     transforms.Resize(256),
+#     transforms.CenterCrop(224),
+#     transforms.ToTensor(), ])
+
+# convnet_preprocess = transforms.Compose([
+#     transforms.Resize(256),
+#     transforms.CenterCrop(224),
+#     transforms.ToTensor(),
+#     transforms.Normalize(
+#         mean=CONVENT_NORMALIZATION_MEAN,
+#         std=CONVNET_NORMALIZATION_STD,
+#     )])
+
 convnet_resize_center_crop_transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
+    transforms.Resize((224,224)),
     transforms.ToTensor(), ])
 
+
 convnet_preprocess = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
+    transforms.Resize((224,224)),
     transforms.ToTensor(),
     transforms.Normalize(
         mean=CONVENT_NORMALIZATION_MEAN,
         std=CONVNET_NORMALIZATION_STD,
     )])
+
+resize_224 = transforms.Compose([
+    transforms.Resize((224,224)),
+    transforms.ToTensor(), ])
