@@ -168,7 +168,8 @@ def lift_cam(model,
 
     with torch.no_grad():
         heatmap = vis_ex_map
-        heatmap = F.interpolate(heatmap, size=(224, 224), mode='bicubic', align_corners=False)
+        heatmap = F.interpolate(heatmap, scale_factor=int(224 / 7), mode="bilinear")
+        # heatmap = F.interpolate(heatmap, size=(224, 224), mode='bicubic', align_corners=False)
         heatmap -= heatmap.min()
         heatmap /= heatmap.max()
         heatmap = heatmap.squeeze().cpu().data.numpy()
@@ -228,7 +229,7 @@ def ig_captum(model,
 
     with torch.no_grad():
         heatmap = torch.mean(attr, dim=1, keepdim=True)
-        heatmap = F.interpolate(heatmap, size=(224, 224), mode='bicubic', align_corners=False)
+        heatmap = F.interpolate(heatmap, scale_factor=int(224 / 7), mode="bilinear")
         heatmap -= heatmap.min()
         heatmap /= heatmap.max()
         heatmap = heatmap.squeeze().cpu().data.numpy()

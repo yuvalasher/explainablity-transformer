@@ -160,7 +160,8 @@ def grad2heatmaps(model,
         weights = torch.sum(alpha * pos_grads, dim=[2, 3], keepdim=True).detach()
         heatmap = torch.sum(activations * weights, dim=1, keepdim=True).detach()
 
-    heatmap = F.interpolate(heatmap, size=(224, 224), mode='bicubic', align_corners=False)
+    # heatmap = F.interpolate(heatmap, size=(224, 224), mode='bicubic', align_corners=False)
+    heatmap = F.interpolate(heatmap, scale_factor=int(224 / 7), mode="bilinear")
     heatmap -= heatmap.min()
     heatmap /= heatmap.max()
     heatmap = heatmap.squeeze().cpu().data.numpy()
