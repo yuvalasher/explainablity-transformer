@@ -102,7 +102,8 @@ if __name__ == '__main__':
     )
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=MASK_LOSS_MUL,
-                                            prediction_loss_mul=args.prediction_loss_mul)
+                                            prediction_loss_mul=args.prediction_loss_mul,
+                                            )
 
     ic(CKPT_PATH)
     ic(MASK_LOSS_MUL)

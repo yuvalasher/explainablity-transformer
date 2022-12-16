@@ -1,7 +1,7 @@
 import os
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
@@ -65,11 +65,13 @@ if __name__ == '__main__':
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=params_config["verbose"])
+                        default=params_config["verbose"],
+                        )
 
     parser.add_argument('--n_epochs_to_optimize_stage_b',
                         type=int,
-                        default=params_config["n_epochs_to_optimize_stage_b"])
+                        default=params_config["n_epochs_to_optimize_stage_b"],
+                        )
     parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
     parser.add_argument('--batch-size', type=int, default=1)
     parser.add_argument('--is-freezing-explaniee-model',
@@ -124,7 +126,8 @@ if __name__ == '__main__':
     )
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=MASK_LOSS_MUL,
-                                            prediction_loss_mul=args.prediction_loss_mul)
+                                            prediction_loss_mul=args.prediction_loss_mul,
+                                            )
     ic(CKPT_PATH)
     ic(MASK_LOSS_MUL)
     ic(args.explainer_model_n_first_layers_to_freeze)
