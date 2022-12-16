@@ -53,7 +53,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.vit_for_patch_classification = model_for_mask_generation
         self.criterion = LossLoss(mask_loss=mask_loss,
                                   mask_loss_mul=mask_loss_mul,
-                                  prediction_loss_mul=prediction_loss_mul)
+                                  prediction_loss_mul=prediction_loss_mul,
+                                  )
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
         self.is_clamp_between_0_to_1 = is_clamp_between_0_to_1
@@ -106,7 +107,8 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         if self.is_explainee_convnet:
             masked_image_inputs = self.normalize_image(masked_image,
                                                        mean=CONVENT_NORMALIZATION_MEAN,
-                                                       std=CONVNET_NORMALIZATION_STD)
+                                                       std=CONVNET_NORMALIZATION_STD,
+                                                       )
         else:
             masked_image_inputs = self.normalize_image(masked_image)
         vit_masked_output = self.vit_for_classification_image(masked_image_inputs)

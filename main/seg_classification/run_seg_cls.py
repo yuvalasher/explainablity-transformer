@@ -4,7 +4,6 @@ import os
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 from distutils.util import strtobool
-
 import wandb
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
@@ -27,7 +26,9 @@ from utils.consts import (
 from utils.vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
-    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_config,
+    print_number_of_trainable_and_not_trainable_params,
+    get_loss_multipliers,
+    get_params_from_config,
 )
 from pytorch_lightning import seed_everything
 import torch
@@ -140,7 +141,8 @@ if __name__ == '__main__':
 
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=args.mask_loss_mul,
-                                            prediction_loss_mul=args.prediction_loss_mul)
+                                            prediction_loss_mul=args.prediction_loss_mul,
+                                            )
     os.makedirs(args.default_root_dir, exist_ok=True)
     ic(args.verbose)
     ic(args.batch_size)
