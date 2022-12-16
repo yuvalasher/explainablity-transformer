@@ -1,5 +1,8 @@
-from time import sleep
 import os
+
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 from icecream import ic
 from matplotlib import pyplot as plt
 from PIL import Image
