@@ -106,10 +106,12 @@ if __name__ == '__main__':
                         type=lambda x: bool(strtobool(x)),
                         nargs="?",
                         const=True,
-                        default=params_config["use_logits_only"])
+                        default=params_config["use_logits_only"],
+                        )
     parser.add_argument('--evaluation-experiment-folder-name',
                         type=str,
-                        default=params_config["evaluation_experiment_folder_name"])
+                        default=params_config["evaluation_experiment_folder_name"],
+                        )
 
     args = parser.parse_args()
 
