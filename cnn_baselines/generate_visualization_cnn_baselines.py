@@ -207,8 +207,9 @@ if __name__ == '__main__':
     model.eval()
     model.zero_grad()
 
-    os.makedirs(Path(BASELINE_RESULTS_PATH, 'visualizations'), exist_ok=True)
-    dir_path = Path(BASELINE_RESULTS_PATH, f'visualizations/{args.method}/{vis_class}')
+    BASE_FOLDER_NAME = "visualizations"
+    os.makedirs(Path(BASELINE_RESULTS_PATH, BASE_FOLDER_NAME), exist_ok=True)
+    dir_path = Path(BASELINE_RESULTS_PATH, f'{BASE_FOLDER_NAME}/{args.method}/{vis_class}')
     os.makedirs(dir_path, exist_ok=True)
 
     print(dir_path)
