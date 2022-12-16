@@ -54,17 +54,12 @@ device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/seg_stage_b_resnet_resnet_target.out &
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/seg_stage_b_resnet_resnet_target.out &
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
     parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
-    parser.add_argument("--train-model-by-target-gt-class",
-                        type=lambda x: bool(strtobool(x)),
-                        nargs='?',
-                        const=True,
-                        default=False)
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
@@ -122,13 +117,10 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-    args.train_model_by_target_gt_class = False
-    target_or_predicted_model = "predicted"
-
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
         explainer_model_name=args.explainer_model_name,
         explainee_model_name=args.explainee_model_name,
-        target_or_predicted_model=target_or_predicted_model,
+        target_or_predicted_model="predicted",
     )
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=MASK_LOSS_MUL,
@@ -186,7 +178,7 @@ if __name__ == '__main__':
         mask_loss_mul=MASK_LOSS_MUL,
         prediction_loss_mul=args.prediction_loss_mul,
         activation_function=args.activation_function,
-        train_model_by_target_gt_class=args.train_model_by_target_gt_class,
+        train_model_by_target_gt_class=False,
         use_logits_only=args.use_logits_only,
         img_size=IMG_SIZE,
         patch_size=PATCH_SIZE,

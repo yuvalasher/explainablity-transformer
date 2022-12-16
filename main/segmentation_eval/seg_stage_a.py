@@ -2,8 +2,6 @@ import argparse
 import os
 from distutils.util import strtobool
 
-from main.seg_classification.cnns.cnn_utils import CONVNET_NORMALIZATION_STD, CONVENT_NORMALIZATION_MEAN
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
@@ -41,17 +39,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run segmentation of pLTX model')
     parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
-    parser.add_argument("--train-model-by-target-gt-class",
-                        type=lambda x: bool(strtobool(x)),
-                        nargs='?',
-                        const=True,
-                        default=False)
-
-    parser.add_argument("--RUN-BASE-MODEL",
-                        type=lambda x: bool(strtobool(x)),
-                        nargs='?',
-                        const=True,
-                        default=True)
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
@@ -108,13 +95,10 @@ if __name__ == '__main__':
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
 
-    args.train_model_by_target_gt_class = False
-    target_or_predicted_model = "predicted"
-
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
         explainer_model_name=args.explainer_model_name,
         explainee_model_name=args.explainee_model_name,
-        target_or_predicted_model=target_or_predicted_model,
+        target_or_predicted_model="predicted",
     )
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=MASK_LOSS_MUL,
@@ -156,7 +140,7 @@ if __name__ == '__main__':
         best_auc_objects_path='',
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
-        run_base_model_only=args.RUN_BASE_MODEL,
+        run_base_model_only=True,
         model_runtype='test',
         experiment_path='exp_name',
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
@@ -170,7 +154,7 @@ if __name__ == '__main__':
         mask_loss_mul=MASK_LOSS_MUL,
         prediction_loss_mul=args.prediction_loss_mul,
         activation_function=args.activation_function,
-        train_model_by_target_gt_class=args.train_model_by_target_gt_class,
+        train_model_by_target_gt_class=False,
         use_logits_only=args.use_logits_only,
         img_size=IMG_SIZE,
         patch_size=PATCH_SIZE,
