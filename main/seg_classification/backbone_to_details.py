@@ -12,31 +12,15 @@ VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_
                                                     "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 
 RESNET_RESNET_TARGET_CKPT_PATH = Path(
-    "/raid/yuvalas/checkpoints/target/RESIZE_224_ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__True/epoch=169_val/epoch_auc=14.100.ckpt")
-RESNET_RESNET_PREDICTED_CKPT_PATH_92 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=92_val/epoch_auc=14.630.ckpt")
+    "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__True/epoch=2_val/epoch_auc=15.280.ckpt")
+RESNET_RESNET_PREDICTED_CKPT_PATH_EPOCH_2 = Path(
+    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__False/epoch=2_val/epoch_auc=14.025.ckpt"
+)
 
 DENSENET_DENSENET_TARGET_CKPT_PATH = Path(
-    "/raid/yuvalas/checkpoints/target/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__True/epoch=274_val/epoch_auc=13.930.ckpt")
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_139 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=139_val/epoch_auc=13.945.ckpt"
-)
-
-RESNET_RESNET_PREDICTED_CKPT_PATH_99 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=99_val/epoch_auc=14.715.ckpt")
-RESNET_RESNET_PREDICTED_CKPT_PATH_217 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=217_val/epoch_auc=14.340.ckpt")
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_164 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=164_val/epoch_auc=13.910.ckpt"
-)
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_141 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=141_val/epoch_auc=14.035.ckpt"
-)
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_237 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=237_val/epoch_auc=14.045.ckpt"
-)
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_97 = Path(
-    "/raid/yuvalas/checkpoints/predicted/RESIZE_224_ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002__bs_32_by_target_gt__False/epoch=97_val/epoch_auc=14.365.ckpt"
+    "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__True/epoch=2_val/epoch_auc=14.365.ckpt")
+DENSENET_DENSENET_PREDICTED_CKPT_PATH_EPOCH_3 = Path(
+    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__False/epoch=3_val/epoch_auc=14.635.ckpt"
 )
 
 EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
@@ -68,7 +52,7 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     },
     "densenet-densenet": {
         "ckpt_path": {"target": DENSENET_DENSENET_TARGET_CKPT_PATH,
-                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH_139,
+                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH_EPOCH_3,
                       },
         "img_size": 224,
         "patch_size": None,
@@ -76,13 +60,13 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "densenet",
         "explainee": "densenet",
         "experiment_base_path": {
-            "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_275_auc_13.93_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_by_target_gt__True",
+            "target": None,
             "predicted": None,
         },
     },
     "resnet-resnet": {
         "ckpt_path": {"target": RESNET_RESNET_TARGET_CKPT_PATH,
-                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH_92,
+                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH_EPOCH_2,
                       },
         "img_size": 224,
         "patch_size": None,
@@ -90,8 +74,8 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "resnet",
         "explainee": "resnet",
         "experiment_base_path": {
-            "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_170_auc_14.1_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_1000_lr_0.002_by_target_gt__True",
-            "predicted": None,
+            "target": None,
+            "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_3_auc_14.025_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False",
         },
     },
     "vit_base_224-resnet": {
