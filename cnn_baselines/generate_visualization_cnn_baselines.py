@@ -165,6 +165,8 @@ if __name__ == '__main__':
     """"
     CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcam --backbone-name resnet101 --vis-by-target-gt-class True &> nohups_logs/journal/cnn_baselines/resnet_gradcam_target.out &
     CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcam --backbone-name resnet101 --vis-by-target-gt-class False &> nohups_logs/journal/cnn_baselines/resnet_gradcam_predicted.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcampp --backbone-name resnet101 --vis-by-target-gt-class True &> nohups_logs/journal/cnn_baselines/resnet_gradcampp_target.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/generate_visualization_cnn_baselines.py --method gradcampp --backbone-name resnet101 --vis-by-target-gt-class False &> nohups_logs/journal/cnn_baselines/resnet_gradcampp_predicted.out &
     """
     parser = argparse.ArgumentParser(description='Generate CNN baselines visualizations')
     parser.add_argument('--method', type=str, default="gradcam", choices=METHOD_OPTIONS)
@@ -209,7 +211,7 @@ if __name__ == '__main__':
 
     BASE_FOLDER_NAME = "visualizations"
     os.makedirs(Path(BASELINE_RESULTS_PATH, BASE_FOLDER_NAME), exist_ok=True)
-    dir_path = Path(BASELINE_RESULTS_PATH, f'{BASE_FOLDER_NAME}/{args.method}/{vis_class}')
+    dir_path = Path(BASELINE_RESULTS_PATH, f'{BASE_FOLDER_NAME}/{args.backbone_name}/{args.method}/{vis_class}')
     os.makedirs(dir_path, exist_ok=True)
 
     print(dir_path)
