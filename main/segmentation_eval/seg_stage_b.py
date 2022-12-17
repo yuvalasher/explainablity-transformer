@@ -54,8 +54,8 @@ device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/resize_224/seg_stage_b_resnet_resnet.out &
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name densenet --explainee-model-name densenet &> nohups_logs/journal/eval/resize_224/seg_stage_b_densenet_densenet.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/train_6000/seg_stage_b_resnet_resnet.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name densenet --explainee-model-name densenet &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet.out &
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
