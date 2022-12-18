@@ -74,7 +74,7 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "resnet",
         "explainee": "resnet",
         "experiment_base_path": {
-            "target": None,
+            "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_3_auc_15.28_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True",
             "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_3_auc_14.025_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False",
         },
     },
