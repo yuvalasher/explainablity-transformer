@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from cnn_baselines.grad_methods_utils import run_by_class_grad
 from cnn_baselines.saliency_models import GradModel, ReLU, lift_cam, ig_captum, generic_torchcam
 from utils import show_image
-from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, CNN_BASELINES_RESULTS_PATH
 from cnn_baselines.torchgc.pytorch_grad_cam.fullgrad_cam import FullGrad
 from cnn_baselines.torchgc.pytorch_grad_cam.layer_cam import LayerCAM
 from cnn_baselines.torchgc.pytorch_grad_cam.score_cam import ScoreCAM
@@ -29,8 +29,6 @@ USE_MASK = True
 
 METHOD_OPTIONS = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
 FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
-BASELINE_RESULTS_PATH = '/raid/yuvalas/baselines_results'
-
 
 def compute_saliency_and_save(dir: Path,
                               model,
@@ -210,8 +208,8 @@ if __name__ == '__main__':
     model.zero_grad()
 
     BASE_FOLDER_NAME = "visualizations"
-    os.makedirs(Path(BASELINE_RESULTS_PATH, BASE_FOLDER_NAME), exist_ok=True)
-    dir_path = Path(BASELINE_RESULTS_PATH, f'{BASE_FOLDER_NAME}/{args.backbone_name}/{args.method}/{vis_class}')
+    os.makedirs(Path(CNN_BASELINES_RESULTS_PATH, BASE_FOLDER_NAME), exist_ok=True)
+    dir_path = Path(CNN_BASELINES_RESULTS_PATH, f'{BASE_FOLDER_NAME}/{args.backbone_name}/{args.method}/{vis_class}')
     os.makedirs(dir_path, exist_ok=True)
 
     print(dir_path)

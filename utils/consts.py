@@ -13,6 +13,7 @@ PLOTS_PATH: Path = Path(ROOT_DIR, 'research', 'plots')
 IMAGES_FOLDER_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
 PICKLES_FOLDER_PATH: Path = Path(ROOT_DIR, 'pickles').resolve()
 EXPERIMENTS_FOLDER_PATH: str = "/raid/yuvalas/experiments"
+CNN_BASELINES_RESULTS_PATH = '/raid/yuvalas/baselines_results'
 RESULTS_PICKLES_FOLDER_PATH = EXPERIMENTS_FOLDER_PATH
 EVALUATION_FOLDER_PATH: Path = Path(ROOT_DIR, 'evaluation').resolve()
 GT_VALIDATION_PATH_LABELS = Path(ROOT_DIR, "gt_data_imagenet", "val ground truth.txt")
