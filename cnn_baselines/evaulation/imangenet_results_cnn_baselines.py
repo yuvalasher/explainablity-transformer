@@ -11,7 +11,6 @@ class ImagenetResults(Dataset):
         self.path = os.path.join(path, "results.hdf5")
         self.data = None
 
-        print("Reading dataset length...")
         with h5py.File(self.path, "r") as f:
             self.data_length = len(f["/image"])
 

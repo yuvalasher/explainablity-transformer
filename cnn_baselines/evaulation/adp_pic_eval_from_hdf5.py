@@ -127,20 +127,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Infer")
     parser.add_argument("--batch-size", type=int,
                         default=32,
-                        help='')
+                        )
     parser.add_argument("--method", type=str,
-                        default="gradcampp",
-                        choices=["gradcam", "gradcampp", "liftcam", "fullgrad", "ablation-cam"],
-                        help='')
+                        default="lift-cam",
+                        choices=["gradcam", "gradcampp", "lift-cam", "fullgrad", "ablation-cam"],
+                        )
     parser.add_argument('--backbone', type=str,
                         default='densenet',
                         choices=["resnet101", "densenet"],
-                        help='')
+                        )
     parser.add_argument("--is-target",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=False)
+                        default=False,
+                        )
 
     args = parser.parse_args()
     print(args)
