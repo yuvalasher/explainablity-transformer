@@ -74,7 +74,8 @@ def plot_image(image, title=None) -> None:  # [1,3,224,224] or [3,224,224]
 def show_mask(mask, model_type='N/A', auc='N/A'):  # [1, 1, 224, 224]
     mask = mask if len(mask.shape) == 3 else mask.squeeze(0)
     _ = plt.imshow(mask.squeeze(0).cpu().detach())
-    plt.title(f'{model_type}, auc: {auc}')
+    if model_type != "N/A" or auc != "N/A":
+        plt.title(f'{model_type}, auc: {auc}')
     plt.axis('off');
     plt.show()
     return
