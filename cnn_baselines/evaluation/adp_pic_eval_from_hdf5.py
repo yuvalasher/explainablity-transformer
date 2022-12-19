@@ -8,7 +8,7 @@ from utils.vit_utils import suppress_warnings
 from pathlib import Path
 from torch.utils.data import DataLoader
 from torchvision import models
-from cnn_baselines.evaulation.imangenet_results_cnn_baselines import ImagenetResults
+from cnn_baselines.evaluation.imangenet_results_cnn_baselines import ImagenetResults
 from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
 import torch
 from tqdm import tqdm
@@ -121,6 +121,13 @@ def show_mask(mask):
 
 
 if __name__ == "__main__":
+    """
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone resnet101 --is-target True &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_target.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone resnet101 --is-target False &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_predicted.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone densenet --is-target True &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_target.out &
+    TODO (19.12.22, 10:26):
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone densenet --is-target False &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_predicted.out &
+    """
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
@@ -130,17 +137,17 @@ if __name__ == "__main__":
                         )
     parser.add_argument("--method", type=str,
                         default="lift-cam",
-                        choices=["gradcam", "gradcampp", "lift-cam", "fullgrad", "ablation-cam"],
+                        choices=["gradcam", "gradcampp", "lift-cam", "fullgrad", "ablation-cam", "layercam"],
                         )
     parser.add_argument('--backbone', type=str,
-                        default='densenet',
+                        default='resnet101',
                         choices=["resnet101", "densenet"],
                         )
     parser.add_argument("--is-target",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=False,
+                        default=True,
                         )
 
     args = parser.parse_args()
