@@ -3,7 +3,7 @@ from distutils.util import strtobool
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = "3"
-
+from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import preprocess
 from utils.vit_utils import suppress_warnings
 from pathlib import Path
 from torch.utils.data import DataLoader
@@ -85,27 +85,6 @@ def eval(imagenet_ds, sample_loader, model, method: str):
     print(f"ADP = {adp.item()}")
 
 
-def preprocess(backbone: str, method: str, is_target: bool):
-    runs_dir = Path(CNN_BASELINES_RESULTS_PATH, "visualizations", backbone, method,
-                    "target" if is_target else "predicted")
-    print(runs_dir)
-    imagenet_ds = ImagenetResults(runs_dir)
-    if backbone == "resnet101":
-        model = models.resnet101(pretrained=True).cuda()
-    elif backbone == "densenet":
-        model = models.densenet201(pretrained=True).cuda()
-    else:
-        raise ("Backbone not implemented")
-    model.eval()
-    sample_loader = DataLoader(
-        imagenet_ds,
-        batch_size=args.batch_size,
-        num_workers=2,
-        shuffle=False,
-    )
-    return imagenet_ds, sample_loader, model
-
-
 def plot_image(image, title: str = None):
     plt.imshow(image.cpu().detach().permute(1, 2, 0))
     plt.axis('off');
@@ -153,5 +132,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     torch.multiprocessing.set_start_method('spawn')
-    imagenet_ds, sample_loader, model = preprocess(backbone=args.backbone, method=args.method, is_target=args.is_target)
+    imagenet_ds, sample_loader, model = preprocess(backbone=args.backbone,
+                                                   method=args.method,
+                                                   is_target=args.is_target,
+                                                   batch_size=args.batch_size,
+                                                   )
     eval(imagenet_ds=imagenet_ds, sample_loader=sample_loader, model=model, method=args.method)
