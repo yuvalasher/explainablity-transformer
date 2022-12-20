@@ -15,6 +15,9 @@ import argparse
 import matplotlib.pyplot as plt
 suppress_warnings()
 
+PERTURBATION_DELETION_INSERTION_MAPPING = {"POS": "DEL", "NEG": "INS"}
+
+
 def normalize(tensor, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]):
     dtype = tensor.dtype
     mean = torch.as_tensor(mean, dtype=dtype, device=tensor.device)
@@ -140,13 +143,13 @@ def eval(imagenet_ds, sample_loader, model, method: str, is_neg: bool, verbose: 
     values = np.insert(values, 0, init_mean_accuracy)
     steps = np.arange(0, 1, 0.1)
     auc_score = auc(steps, values) * 100
-    print(f"Proba AUC: {auc_score} \n\n\n")
-    print(
-        f'np.mean(num_correct_model)= {np.mean(num_correct_model)} \n np.std(num_correct_model) = {np.std(num_correct_model)}')
+    print(f"Proba AUC - {PERTURBATION_DELETION_INSERTION_MAPPING['NEG' if is_neg else 'POS']}: {auc_score} \n\n\n")
+    # print(
+    #     f'np.mean(num_correct_model)= {np.mean(num_correct_model)} \n np.std(num_correct_model) = {np.std(num_correct_model)}')
     # print(
     #     f'np.mean(dissimilarity_model)= {np.mean(dissimilarity_model)} \n np.std(dissimilarity_model) = {np.std(dissimilarity_model)}')
-    print(
-        f'np.mean(num_correct_pertub)= {np.mean(num_correct_pertub, axis=1)} \n np.std(num_correct_pertub) = {np.std(num_correct_pertub, axis=1)}')
+    # print(
+    #     f'np.mean(num_correct_pertub)= {np.mean(num_correct_pertub, axis=1)} \n np.std(num_correct_pertub) = {np.std(num_correct_pertub, axis=1)}')
     # print(
     #     f'np.mean(dissimilarity_pertub)= {np.mean(dissimilarity_pertub, axis=1)} \n np.std(dissimilarity_pertub) = {np.std(dissimilarity_pertub, axis=1)}')
 
