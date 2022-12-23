@@ -228,8 +228,7 @@ def ig_captum(model,
     attr = integrated_grads.attribute(inputs.to(device), baseline, class_id)
 
     with torch.no_grad():
-        heatmap = torch.mean(attr, dim=1, keepdim=True)
-        heatmap = F.interpolate(heatmap, scale_factor=int(224 / 7), mode="bilinear")
+        heatmap = torch.mean(attr, dim=1, keepdim=True) # IG already generate map [224,224]
         heatmap -= heatmap.min()
         heatmap /= heatmap.max()
         heatmap = heatmap.squeeze().cpu().data.numpy()
