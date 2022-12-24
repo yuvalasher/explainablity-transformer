@@ -1,7 +1,7 @@
 import os
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 from icecream import ic
 from matplotlib import pyplot as plt
@@ -240,7 +240,7 @@ def infer_adp_pic(model_for_image_classification: ViTForImageClassification,
 
         norm_original_image = normalize(image.clone(), mean=normalize_mean, std=normalize_std)
         scattered_image = scatter_image_by_mask(image=image, mask=mask)
-        norm_scattered_image = normalize(scattered_image, mean=normalize_mean, std=normalize_std)
+        norm_scattered_image = normalize(scattered_image.clone(), mean=normalize_mean, std=normalize_std)
         metrics = run_evaluation_metrics(model_for_image_classification=model_for_image_classification,
                                          inputs=norm_original_image,
                                          inputs_scatter=norm_scattered_image,
