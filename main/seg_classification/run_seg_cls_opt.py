@@ -2,9 +2,9 @@ import argparse
 import os
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-from distutils.util import strtobool
+# os.environ['CUDA_VISIBLE_DEVICES'] = "2"
 
+from distutils.util import strtobool
 from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
     CONVNET_MODELS_BY_NAME
 from tqdm import tqdm
@@ -12,8 +12,6 @@ from main.seg_classification.image_classification_with_token_classification_mode
     OptImageClassificationWithTokenClassificationModel
 from main.seg_classification.image_token_data_module_opt import ImageSegOptDataModule
 from config import config
-from icecream import ic
-
 from main.seg_classification.seg_cls_utils import load_pickles_and_calculate_auc, create_folder_hierarchy, \
     get_gt_classes
 from utils import remove_old_results_dfs
@@ -21,18 +19,24 @@ from pathlib import Path
 import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    EXPERIMENTS_FOLDER_PATH, RESULTS_PICKLES_FOLDER_PATH,
-    GT_VALIDATION_PATH_LABELS, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
+    EXPERIMENTS_FOLDER_PATH,
+    RESULTS_PICKLES_FOLDER_PATH,
+    GT_VALIDATION_PATH_LABELS,
+    MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
 )
 from utils.vit_utils import (
     get_warmup_steps_and_total_training_steps,
     freeze_multitask_model,
-    print_number_of_trainable_and_not_trainable_params, get_loss_multipliers, get_params_from_config, suppress_warnings,
+    print_number_of_trainable_and_not_trainable_params,
+    get_loss_multipliers,
+    get_params_from_config,
+    suppress_warnings,
     get_backbone_details,
 )
 from pytorch_lightning import seed_everything
 import gc
 from PIL import ImageFile
+from icecream import ic
 
 suppress_warnings()
 seed_everything(config["general"]["seed"])
@@ -55,17 +59,20 @@ if __name__ == '__main__':
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=params_config["train_model_by_target_gt_class"])
+                        default=params_config["train_model_by_target_gt_class"],
+                        )
     parser.add_argument("--RUN-BASE-MODEL",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=params_config["RUN_BASE_MODEL"])
+                        default=params_config["RUN_BASE_MODEL"],
+                        )
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
                         const=True,
-                        default=params_config["verbose"])
+                        default=params_config["verbose"],
+                        )
 
     parser.add_argument('--n_epochs_to_optimize_stage_b',
                         type=int,
@@ -127,7 +134,8 @@ if __name__ == '__main__':
 
     loss_multipliers = get_loss_multipliers(normalize=False,
                                             mask_loss_mul=MASK_LOSS_MUL,
-                                            prediction_loss_mul=args.prediction_loss_mul)
+                                            prediction_loss_mul=args.prediction_loss_mul,
+                                            )
 
     exp_name = f'RESIZE_224_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)
@@ -139,6 +147,7 @@ if __name__ == '__main__':
     ic(args.explainer_model_name)
     ic(args.explainee_model_name)
     ic(args.train_model_by_target_gt_class)
+    ic(args.n_epochs_to_optimize_stage_b)
     ic(args.RUN_BASE_MODEL)
     ic(MASK_LOSS_MUL)
     ic(args.verbose)
