@@ -347,15 +347,6 @@ if __name__ == '__main__':
                 activation_function="sigmoid",
             )
             model_for_classification_image = model_for_classification_image.to(device)
-            run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
-                            is_base_model=False,
-                            target_or_predicted_model=target_or_predicted_model,
-                            backbone_name=explainer_explainee_backbones,
-                            imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                            device=device,
-                            is_explainee_convnet=IS_EXPLANIEE_CONVNET,
-                            )
-
             if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
                                 is_base_model=True,
@@ -365,7 +356,6 @@ if __name__ == '__main__':
                                 device=device,
                                 is_explainee_convnet=IS_EXPLANIEE_CONVNET,
                                 )
-
             if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
                 run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
                                 is_base_model=False,
