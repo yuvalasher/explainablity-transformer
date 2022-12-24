@@ -2,8 +2,8 @@ import argparse
 import os
 from distutils.util import strtobool
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
