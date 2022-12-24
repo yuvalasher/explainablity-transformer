@@ -4,6 +4,9 @@ from torchvision import models
 from cnn_baselines.evaluation.imangenet_results_cnn_baselines import ImagenetResults
 from utils.consts import CNN_BASELINES_RESULTS_PATH
 
+METHOD_OPTIONS = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
+FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
+
 
 def preprocess(backbone: str, method: str, is_target: bool, batch_size: int):
     runs_dir = Path(CNN_BASELINES_RESULTS_PATH, "visualizations", backbone, method,

@@ -1,7 +1,7 @@
 import os
 from distutils.util import strtobool
 from icecream import ic
-from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import preprocess
+from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import preprocess, METHOD_OPTIONS
 from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
 from utils.vit_utils import suppress_warnings
 
@@ -13,6 +13,7 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+
 suppress_warnings()
 
 PERTURBATION_DELETION_INSERTION_MAPPING = {"POS": "DEL", "NEG": "INS"}
@@ -188,7 +189,6 @@ def get_auc(num_correct_pertub, num_correct_model):
     return auc
 
 
-
 if __name__ == "__main__":
     """
     CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5.py --method lift-cam --backbone resnet101 --is-target True --neg False &> nohups_logs/journal/cnn_baselines/eval/pertub_liftcam_resnet_target_pos.out &
@@ -197,37 +197,35 @@ if __name__ == "__main__":
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
-    parser = argparse.ArgumentParser(description='Perturbation Evaluation')
-    parser.add_argument('--batch-size',
+    parser = argparse.ArgumentParser(description="Perturbation Evaluation")
+    parser.add_argument("--batch-size",
                         type=int,
                         default=32,
                         help='',
                         )
     parser.add_argument("--neg",
                         type=lambda x: bool(strtobool(x)),
-                        nargs='?',
+                        nargs="?",
                         const=True,
                         default=False)
-    parser.add_argument('--backbone', type=str,
-                        default='resnet101',
+    parser.add_argument("--backbone", type=str,
+                        default="resnet101",
                         choices=["resnet101", "densenet"],
-                        help='',
                         )
-    parser.add_argument('--method',
+    parser.add_argument("--method",
                         type=str,
                         default="lift-cam",
-                        choices=["gradcam", "gradcampp", "lift-cam", "fullgrad", "ablation-cam"],
-                        help='',
+                        choices=METHOD_OPTIONS,
                         )
     parser.add_argument("--is-target",
                         type=lambda x: bool(strtobool(x)),
-                        nargs='?',
+                        nargs="?",
                         const=True,
                         default=True,
                         )
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
-                        nargs='?',
+                        nargs="?",
                         const=True,
                         default=False,
                         )
