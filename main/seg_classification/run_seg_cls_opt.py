@@ -137,7 +137,7 @@ if __name__ == '__main__':
                                             prediction_loss_mul=args.prediction_loss_mul,
                                             )
 
-    exp_name = f'RESIZE_224_direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
+    exp_name = f'direct_opt_ckpt_{CHECKPOINT_EPOCH_IDX}_auc_{BASE_CKPT_MODEL_AUC}_explanier_{args.explainer_model_name.replace("/", "_")}__explaniee_{args.explainee_model_name.replace("/", "_")}__{args.activation_function}_pred_{args.prediction_loss_mul}_mask_l_{args.mask_loss}_{MASK_LOSS_MUL}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}_by_target_gt__{args.train_model_by_target_gt_class}'
     plot_path = Path(args.plot_path, exp_name)
     BASE_AUC_OBJECTS_PATH = Path(RESULTS_PICKLES_FOLDER_PATH,
                                  'target' if args.train_model_by_target_gt_class else 'predicted')
