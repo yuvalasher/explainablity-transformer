@@ -3,19 +3,14 @@ from distutils.util import strtobool
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = "3"
-from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import preprocess
+from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import preprocess, METHOD_OPTIONS
 from utils.vit_utils import suppress_warnings
-from pathlib import Path
-from torch.utils.data import DataLoader
-from torchvision import models
-from cnn_baselines.evaluation.imangenet_results_cnn_baselines import ImagenetResults
 from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
 import torch
 from tqdm import tqdm
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
-from utils.consts import CNN_BASELINES_RESULTS_PATH
 
 suppress_warnings()
 
@@ -74,8 +69,6 @@ def eval(imagenet_ds, sample_loader, model, method: str):
         prob_correct_model_mask[model_index:model_index + len(target_probs)] = target_probs_mask.data.cpu().numpy()
 
         model_index += len(target)
-        # if batch_idx in [733, 734, 735]:
-        #     print(1)
 
     x = torch.tensor(prob_correct_model)
     y = torch.tensor(prob_correct_model_mask)
@@ -110,31 +103,36 @@ if __name__ == "__main__":
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
 
-    parser = argparse.ArgumentParser(description="Infer")
-    parser.add_argument("--batch-size", type=int,
+    parser = argparse.ArgumentParser(description="Infer from HDF5 file")
+    parser.add_argument("--batch-size",
+                        type=int,
                         default=32,
                         )
     parser.add_argument("--method", type=str,
-                        default="lift-cam",
-                        choices=["gradcam", "gradcampp", "lift-cam", "fullgrad", "ablation-cam", "layercam"],
+                        default="gradcam",
+                        choices=METHOD_OPTIONS,
                         )
-    parser.add_argument('--backbone', type=str,
-                        default='resnet101',
+    parser.add_argument("--backbone", type=str,
+                        default="resnet101",
                         choices=["resnet101", "densenet"],
                         )
     parser.add_argument("--is-target",
                         type=lambda x: bool(strtobool(x)),
-                        nargs='?',
+                        nargs="?",
                         const=True,
                         default=True,
                         )
 
     args = parser.parse_args()
     print(args)
-    torch.multiprocessing.set_start_method('spawn')
+    torch.multiprocessing.set_start_method("spawn")
     imagenet_ds, sample_loader, model = preprocess(backbone=args.backbone,
                                                    method=args.method,
                                                    is_target=args.is_target,
                                                    batch_size=args.batch_size,
                                                    )
-    eval(imagenet_ds=imagenet_ds, sample_loader=sample_loader, model=model, method=args.method)
+    eval(imagenet_ds=imagenet_ds,
+         sample_loader=sample_loader,
+         model=model,
+         method=args.method,
+         )

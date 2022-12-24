@@ -6,6 +6,7 @@ from distutils.util import strtobool
 
 import argparse
 from torch.utils.data import DataLoader
+from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import METHOD_OPTIONS, FEATURE_LAYER_NUMBER_BY_BACKBONE
 from cnn_baselines.imagenet_dataset_cnn_baselines import ImageNetDataset
 from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
 from pathlib import Path
@@ -27,8 +28,6 @@ from icecream import ic
 device = torch.device('cuda')
 USE_MASK = True
 
-METHOD_OPTIONS = ['lift-cam', 'layercam', 'ig', 'ablation-cam', 'fullgrad', 'gradcam', 'gradcampp']
-FEATURE_LAYER_NUMBER_BY_BACKBONE = {'resnet101': 8, 'densenet': 12}
 
 def compute_saliency_and_save(dir: Path,
                               model,
