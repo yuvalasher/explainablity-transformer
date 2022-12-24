@@ -11,8 +11,16 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+from icecream import ic
 
 suppress_warnings()
+
+
+def show_plots(n_images: int, method: str, vis, img_with_mask, target_probs, target_probs_mask) -> None:
+    for image_idx in range(n_images):
+        show_mask(vis[image_idx])
+        plot_image(img_with_mask[image_idx],
+                   title=f"{method} - Original:{round(target_probs[image_idx].item(), 3)}, masked: {round(target_probs_mask[image_idx].item(), 3)}")
 
 
 def normalize(tensor,
@@ -26,7 +34,7 @@ def normalize(tensor,
     return tensor
 
 
-def eval(imagenet_ds, sample_loader, model, method: str):
+def eval(imagenet_ds, sample_loader, model, method: str, verbose: bool = False):
     prob_correct_model = np.zeros((len(imagenet_ds, )))
     prob_correct_model_mask = np.zeros((len(imagenet_ds, )))
     model_index = 0
@@ -60,18 +68,28 @@ def eval(imagenet_ds, sample_loader, model, method: str):
                                    )
         pred_mask = model(norm_data_mask)
         probs_mask = torch.softmax(pred_mask, dim=1)
-        # if batch_idx in [23541//32 - 1, 23541//32 , 23541//32 + 1]:
-        #     print(1)
         target_probs_mask = torch.gather(probs_mask, 1, target[:, None])[:, 0]
-        # for i in range(20):
-        #     show_mask(vis[i])
-        #     plot_image(img_with_mask[i], title=f"{method} - Original:{round(target_probs[i].item(),3)}, masked: {round(target_probs_mask[i].item(),3)}")
+        if verbose:
+            show_plots(n_images=20,
+                       method=method,
+                       vis=vis,
+                       img_with_mask=img_with_mask,
+                       target_probs=target_probs,
+                       target_probs_mask=target_probs_mask,
+                       )
         prob_correct_model_mask[model_index:model_index + len(target_probs)] = target_probs_mask.data.cpu().numpy()
 
         model_index += len(target)
+        if torch.isnan(vis).any():
+            print(f"batch_idx: {batch_idx} contains nan values")
 
     x = torch.tensor(prob_correct_model)
     y = torch.tensor(prob_correct_model_mask)
+    non_nans_indices = torch.where((torch.isnan(y)), 0, 1).nonzero().T[0]
+    ic(len(non_nans_indices))
+    x = x[non_nans_indices]
+    y = y[non_nans_indices]
+
     adp = (torch.maximum(x - y, torch.zeros_like(x)) / x).mean() * 100
     pic = torch.where(x < y, 1.0, 0.0).mean() * 100
     print(f"PIC = {pic.item()}")
@@ -94,11 +112,7 @@ def show_mask(mask):
 
 if __name__ == "__main__":
     """
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone resnet101 --is-target True &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_target.out &
-    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone resnet101 --is-target False &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_predicted.out &
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone densenet --is-target True &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_target.out &
-    TODO (19.12.22, 10:26):
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method layercam --backbone densenet --is-target False &> nohups_logs/journal/cnn_baselines/eval/layercam_resnet_predicted.out &
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/adp_pic_eval_from_hdf5.py --method lift-cam --backbone resnet101 --is-target True &> nohups_logs/journal/cnn_baselines/eval/liftcam_resnet_target.out &
     """
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")
@@ -122,6 +136,12 @@ if __name__ == "__main__":
                         const=True,
                         default=True,
                         )
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=False,
+                        )
 
     args = parser.parse_args()
     print(args)
@@ -135,4 +155,5 @@ if __name__ == "__main__":
          sample_loader=sample_loader,
          model=model,
          method=args.method,
+         verbose=args.verbose,
          )
