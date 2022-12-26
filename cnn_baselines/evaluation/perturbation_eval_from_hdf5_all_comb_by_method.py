@@ -44,12 +44,24 @@ def eval(imagenet_ds, sample_loader, model, method: str, is_neg: bool, verbose: 
     logit_diff_pertub = np.zeros((9, len(imagenet_ds)))
     prob_diff_pertub = np.zeros((9, len(imagenet_ds)))
     perturb_index = 0
+    s = 0
 
     for batch_idx, (data, vis, target) in enumerate(tqdm(sample_loader)):
         num_samples += len(data)
         data = data.to(device)
         vis = vis.to(device)
         target = target.to(device)
+
+        vis_shape = vis.shape
+        vis_reshaped = vis.reshape(vis_shape[0], -1)
+        non_nans_indices = torch.where((torch.any(vis_reshaped.isnan(), dim=1)), 0, 1).nonzero().T[0]
+        if vis.shape[0] - non_nans_indices.shape[0] > 0:
+            print(f"{vis.shape[0] - non_nans_indices.shape[0]} NaNs in batch_idx: {batch_idx}")
+
+        data = data[non_nans_indices]
+        vis = vis[non_nans_indices]
+        target = target[non_nans_indices]
+        s += non_nans_indices.shape[0]
 
         norm_data = normalize(data.clone(),
                               mean=CONVENT_NORMALIZATION_MEAN,
@@ -138,6 +150,8 @@ def eval(imagenet_ds, sample_loader, model, method: str, is_neg: bool, verbose: 
     steps = np.arange(0, 1, 0.1)
     auc_score = auc(steps, values) * 100
     # print(f"Pertubation Step Avg. : {np.mean(num_correct_pertub, axis=1)}")
+
+    print(f"total_images after nans removal: {s}")
     print(f'AUC  = {auc_score} \n')
     init_mean_accuracy = np.mean(prob_correct_model)
     values = np.mean(prob_correct_pertub, axis=1)
@@ -191,7 +205,7 @@ def get_auc(num_correct_pertub, num_correct_model):
 
 if __name__ == "__main__":
     """
-    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5_all_comb_by_method.py --method ig &> nohups_logs/journal/cnn_baselines/eval/pertub_ig_all_combinations.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5_all_comb_by_method.py --method gradcam &> nohups_logs/journal/cnn_baselines/eval/pertub_gradcam_all_combinations.out &
     """
     cuda = torch.cuda.is_available()
     device = torch.device("cuda" if cuda else "cpu")

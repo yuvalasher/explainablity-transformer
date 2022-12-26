@@ -44,12 +44,23 @@ def eval(imagenet_ds, sample_loader, model, method: str, is_neg: bool, verbose: 
     logit_diff_pertub = np.zeros((9, len(imagenet_ds)))
     prob_diff_pertub = np.zeros((9, len(imagenet_ds)))
     perturb_index = 0
-
+    s = 0
     for batch_idx, (data, vis, target) in enumerate(tqdm(sample_loader)):
         num_samples += len(data)
         data = data.to(device)
         vis = vis.to(device)
         target = target.to(device)
+
+        vis_shape = vis.shape
+        vis_reshaped = vis.reshape(vis_shape[0], -1)
+        non_nans_indices = torch.where((torch.any(vis_reshaped.isnan(), dim=1)), 0, 1).nonzero().T[0]
+        if vis.shape[0] - non_nans_indices.shape[0] > 0:
+            print(f"{vis.shape[0] - non_nans_indices.shape[0]} NaNs in batch_idx: {batch_idx}")
+
+        data = data[non_nans_indices]
+        vis = vis[non_nans_indices]
+        target = target[non_nans_indices]
+        s += non_nans_indices.shape[0]
 
         norm_data = normalize(data.clone(),
                               mean=CONVENT_NORMALIZATION_MEAN,
@@ -144,6 +155,7 @@ def eval(imagenet_ds, sample_loader, model, method: str, is_neg: bool, verbose: 
     values = np.insert(values, 0, init_mean_accuracy)
     steps = np.arange(0, 1, 0.1)
     auc_score = auc(steps, values) * 100
+    print(f"total_images after nans removal: {s}")
     print(f"Proba AUC - {PERTURBATION_DELETION_INSERTION_MAPPING['NEG' if is_neg else 'POS']}: {auc_score} \n\n\n")
     # print(
     #     f'np.mean(num_correct_model)= {np.mean(num_correct_model)} \n np.std(num_correct_model) = {np.std(num_correct_model)}')
@@ -191,7 +203,7 @@ def get_auc(num_correct_pertub, num_correct_model):
 
 if __name__ == "__main__":
     """
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5.py --method lift-cam --backbone resnet101 --is-target True --neg False &> nohups_logs/journal/cnn_baselines/eval/pertub_liftcam_resnet_target_pos.out &
+    CUDA_VISIBLE_DEVICES=2 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5.py --method gradcam --backbone resnet101 --is-target True --neg False &> nohups_logs/journal/cnn_baselines/eval/pertube_test_gradcam_test_pos_resnet.out &
     CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python cnn_baselines/evaluation/perturbation_eval_from_hdf5.py --method gradcam --backbone densenet --is-target True --neg False &> nohups_logs/journal/cnn_baselines/eval/pertub_gradcam_densenet_target_pos.out &
     """
     cuda = torch.cuda.is_available()
@@ -214,7 +226,7 @@ if __name__ == "__main__":
                         )
     parser.add_argument("--method",
                         type=str,
-                        default="lift-cam",
+                        default="gradcam",
                         choices=METHOD_OPTIONS,
                         )
     parser.add_argument("--is-target",
