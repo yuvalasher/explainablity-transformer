@@ -204,6 +204,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
     batch_size = config_vit["batch_size"]
     n_epochs = config_vit["n_epochs"]
     n_epochs_to_optimize_stage_b = config_vit["n_epochs_to_optimize_stage_b"]
+    optimize_by_pos = config_vit["optimize_by_pos"]
     is_sampled_train_data_uniformly = config_vit["is_sampled_train_data_uniformly"]
     is_sampled_val_data_uniformly = config_vit["is_sampled_val_data_uniformly"]
     train_model_by_target_gt_class = config_vit["train_model_by_target_gt_class"]
@@ -235,6 +236,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
 
     return dict(batch_size=batch_size,
                 n_epochs=n_epochs,
+                optimize_by_pos=optimize_by_pos,
                 is_sampled_train_data_uniformly=is_sampled_train_data_uniformly,
                 is_sampled_val_data_uniformly=is_sampled_val_data_uniformly,
                 train_model_by_target_gt_class=train_model_by_target_gt_class,
