@@ -152,7 +152,6 @@ if __name__ == '__main__':
     ic(args.explainer_model_name)
     ic(args.optimize_by_pos)
     ic(args.train_model_by_target_gt_class)
-    ic(args.train_model_by_target_gt_class)
     ic(args.n_epochs_to_optimize_stage_b)
     ic(args.RUN_BASE_MODEL)
     ic(MASK_LOSS_MUL)
