@@ -8,7 +8,7 @@ import argparse
 from torch.utils.data import DataLoader
 from cnn_baselines.evaluation.evaluation_cnn_baselines_utils import METHOD_OPTIONS, FEATURE_LAYER_NUMBER_BY_BACKBONE
 from cnn_baselines.imagenet_dataset_cnn_baselines import ImageNetDataset
-from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_center_crop_transform
+from main.seg_classification.cnns.cnn_utils import convnet_preprocess, convnet_resize_transform
 from pathlib import Path
 import torch
 from tqdm import tqdm
@@ -215,7 +215,7 @@ if __name__ == '__main__':
 
     imagenet_ds = ImageNetDataset(root_dir=IMAGENET_VAL_IMAGES_FOLDER_PATH,
                                   transform=convnet_preprocess,
-                                  resize_transform=convnet_resize_center_crop_transform,
+                                  resize_transform=convnet_resize_transform,
                                   )
 
     sample_loader = DataLoader(

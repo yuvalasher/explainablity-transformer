@@ -19,7 +19,7 @@ import numpy as np
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import eval_perturbation_test
 from main.seg_classification.backbone_to_details import EXPLAINER_EXPLAINEE_BACKBONE_DETAILS
 from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD, \
-    convnet_resize_center_crop_transform
+    convnet_resize_transform
 from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
     CONVNET_MODELS_BY_NAME
 from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, GT_VALIDATION_PATH_LABELS, MODEL_ALIAS_MAPPING
@@ -150,7 +150,7 @@ def read_image_and_mask_from_pickls_by_path(image_path,
         loaded_obj = load_obj(pkl_path)
         image = get_image(Path(image_path, f'ILSVRC2012_val_{str(idx + 1).zfill(8)}.JPEG'))  # images are one-based
         image = image if image.mode == "RGB" else image.convert("RGB")
-        image_resized = convnet_resize_center_crop_transform(image) if is_explainee_convnet else resize(image)
+        image_resized = resize(image)
         yield dict(image_resized=image_resized.unsqueeze(0).to(device),
                    image_mask=loaded_obj["vis"].to(device),
                    auc=loaded_obj["auc"],

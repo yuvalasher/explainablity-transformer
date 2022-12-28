@@ -5,7 +5,7 @@ CONVNET_NORMALIZATION_STD = [0.229, 0.224, 0.225]
 
 
 def resize_center_crop(image):
-    return convnet_resize_center_crop_transform(image)
+    return convnet_resize_transform(image)
 
 
 def resize_center_crop_normalize(image):
@@ -26,7 +26,7 @@ def resize_center_crop_normalize(image):
 #         std=CONVNET_NORMALIZATION_STD,
 #     )])
 
-convnet_resize_center_crop_transform = transforms.Compose([
+convnet_resize_transform = transforms.Compose([
     transforms.Resize((224,224)),
     transforms.ToTensor(), ])
 

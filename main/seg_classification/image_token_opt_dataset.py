@@ -6,7 +6,7 @@ import torch
 from feature_extractor import ViTFeatureExtractor
 from pathlib import WindowsPath
 
-from main.seg_classification.cnns.cnn_utils import convnet_resize_center_crop_transform, convnet_preprocess
+from main.seg_classification.cnns.cnn_utils import convnet_resize_transform, convnet_preprocess
 from utils import get_image_from_path
 from utils.transformation import resize
 from utils.vit_utils import get_image_and_inputs_and_transformed_image
@@ -43,7 +43,7 @@ class ImageSegOptDataset(Dataset):
         else:
             inputs = convnet_preprocess(image)
             resized_and_normalized_image = convnet_preprocess(image)
-            image_resized = convnet_resize_center_crop_transform(image)
+            image_resized = convnet_resize_transform(image)
 
         return dict(
             image_name=self.image_path.split('/')[-1].split('.')[0],
