@@ -45,9 +45,8 @@ gc.collect()
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL True --explainer-model-name densenet --explainee-model-name densenet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/densenet_densenet_stage_a_target.out &
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --explainer-model-name densenet --explainee-model-name densenet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/densenet_densenet_stage_b_target.out &
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL True --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class False &> nohups_logs/journal/eval/resnet_resnet_stage_a_predicted.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/opt_neg/resnet_resnet_stage_b_target_opt_neg.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class False &> nohups_logs/journal/eval/opt_neg/resnet_resnet_stage_b_predicted_opt_neg.out &
     ll base_model/objects_pkl/ | grep .pkl | wc -l
     """
 

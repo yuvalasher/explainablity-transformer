@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Union
 import pytorch_lightning as pl
 from torchvision.models import DenseNet, ResNet
-
 from config import config
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_auc_objects_to_disk,
                                                                       run_perturbation_test_opt)
