@@ -10,7 +10,7 @@ from evaluation.perturbation_tests.seg_cls_perturbation_tests import (save_best_
                                                                       run_perturbation_test_opt)
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
+from main.seg_classification.seg_cls_consts import NEG_AUC_STOP_VALUE, POS_AUC_STOP_VALUE
 from models.modeling_cnn_for_mask_generation import CNNForMaskGeneration
 from utils.vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
@@ -143,7 +143,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           original_image=self.best_auc_image,
                                           epoch_idx=self.current_epoch,
                                           )
-            if self.run_base_model_only or auc < AUC_STOP_VALUE:
+            if self.run_base_model_only or auc < POS_AUC_STOP_VALUE:
                 outputs[0]['auc'] = auc
                 self.trainer.should_stop = True
 
