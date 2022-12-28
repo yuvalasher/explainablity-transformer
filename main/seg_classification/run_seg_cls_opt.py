@@ -73,6 +73,12 @@ if __name__ == '__main__':
                         const=True,
                         default=params_config["verbose"],
                         )
+    parser.add_argument("--optimize-by-pos",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["optimize_by_pos"],
+                        )
 
     parser.add_argument('--n_epochs_to_optimize_stage_b',
                         type=int,
@@ -197,6 +203,7 @@ if __name__ == '__main__':
         patch_size=PATCH_SIZE,
         is_ce_neg=args.is_ce_neg,
         verbose=args.verbose,
+        optimize_by_pos=args.optimize_by_pos,
     )
 
     experiment_path = Path(EXPERIMENTS_FOLDER_PATH, args.evaluation_experiment_folder_name)

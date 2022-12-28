@@ -48,6 +48,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             is_clamp_between_0_to_1: bool = True,
             run_base_model_only: bool = False,
             verbose: bool = False,
+            optimize_by_pos: bool = True,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
                          model_for_mask_generation=model_for_mask_generation,
@@ -73,6 +74,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                          verbose=verbose,
                          )
         self.n_epochs = n_epochs
+        self.optimize_by_pos = optimize_by_pos
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
@@ -85,11 +87,13 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
         self.vit_for_classification_image.eval()
 
     def init_auc(self) -> None:
-        self.best_auc = np.inf
+        self.best_auc = np.inf if self.optimize_by_pos else -np.inf
         self.best_auc_epoch = 0
         self.best_auc_vis = None
         self.auc_by_epoch = []
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
+        self.perturbation_type = "POS" if self.optimize_by_pos else "NEG"
+
 
     def training_step(self, batch, batch_idx):
         self.vit_for_classification_image.eval()
@@ -130,8 +134,9 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
             is_convnet=self.is_explainee_convnet,
             verbose=self.verbose,
             img_size=self.img_size,
+            perturbation_type=self.perturbation_type,
         )
-        if self.best_auc is None or auc < self.best_auc:
+        if self.best_auc is None or (auc < self.best_auc if self.optimize_by_pos else auc > self.best_auc):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
@@ -143,7 +148,7 @@ class OptImageClassificationWithTokenClassificationModel(ImageClassificationWith
                                           original_image=self.best_auc_image,
                                           epoch_idx=self.current_epoch,
                                           )
-            if self.run_base_model_only or auc < POS_AUC_STOP_VALUE:
+            if self.run_base_model_only or (auc < POS_AUC_STOP_VALUE if self.optimize_by_pos else auc > NEG_AUC_STOP_VALUE):
                 outputs[0]['auc'] = auc
                 self.trainer.should_stop = True
 
