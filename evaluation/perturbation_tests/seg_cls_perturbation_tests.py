@@ -188,7 +188,9 @@ def run_perturbation_test_opt(model,
                               is_convnet: bool,
                               verbose: bool,
                               img_size: int,
-                              experiment_path=None):
+                              experiment_path=None,
+                              perturbation_type: str = "POS",
+                              ):
     if experiment_path is None:
         experiment_path = Path(EXPERIMENTS_FOLDER_PATH, vit_config['evaluation']['experiment_folder_name'])
     if not os.path.exists(experiment_path):
@@ -202,6 +204,7 @@ def run_perturbation_test_opt(model,
                                  img_size=img_size,
                                  is_convenet=is_convnet,
                                  verbose=verbose,
+                                 perturbation_type=perturbation_type,
                                  )
     return auc
 
