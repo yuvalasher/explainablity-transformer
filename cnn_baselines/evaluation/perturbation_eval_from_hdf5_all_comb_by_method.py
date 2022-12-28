@@ -243,8 +243,6 @@ if __name__ == "__main__":
                         default=False,
                         )
 
-    torch.multiprocessing.set_start_method('spawn')
-
     args = parser.parse_args()
 
     # print(args)
@@ -265,6 +263,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     #############################################################################
     args.backbone = "resnet101"
     args.neg = True
@@ -282,6 +281,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     ############################################################################
     args.backbone = "resnet101"
     args.neg = False
@@ -299,6 +299,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     #############################################################################
     args.backbone = "resnet101"
     args.neg = True
@@ -316,6 +317,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     #############################################################################
     args.backbone = "densenet"
     args.neg = False
@@ -333,6 +335,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     #############################################################################
     args.backbone = "densenet"
     args.neg = True
@@ -350,6 +353,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     ############################################################################
     args.backbone = "densenet"
     args.neg = False
@@ -367,6 +371,7 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
     #############################################################################
     args.backbone = "densenet"
     args.neg = True
@@ -384,3 +389,4 @@ if __name__ == "__main__":
          is_neg=args.neg,
          verbose=args.verbose,
          )
+    torch.cuda.empty_cache()
