@@ -54,13 +54,19 @@ device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/train_6000/seg_stage_b_resnet_resnet.out &
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --explainer-model-name densenet --explainee-model-name densenet &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/train_6000/seg_stage_b_resnet_resnet.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet.out &
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
     parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
+    parser.add_argument("--optimize-by-pos",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["optimize_by_pos"],
+                        )
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
@@ -190,6 +196,7 @@ if __name__ == '__main__':
         patch_size=PATCH_SIZE,
         is_ce_neg=args.is_ce_neg,
         verbose=args.verbose,
+        optimize_by_pos=args.optimize_by_pos,
     )
 
     model = freeze_multitask_model(

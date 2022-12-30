@@ -15,7 +15,7 @@ from utils.vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
 from matplotlib import pyplot as plt
 from torch import Tensor
-from main.seg_classification.seg_cls_consts import POS_AUC_STOP_VALUE
+from main.seg_classification.seg_cls_consts import POS_AUC_STOP_VALUE, NEG_AUC_STOP_VALUE
 
 pl.seed_everything(config["general"]["seed"])
 
@@ -52,6 +52,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
             verbose: bool = False,
+            optimize_by_pos: bool = True,
     ):
         super().__init__(model_for_classification_image=model_for_classification_image,
                          model_for_mask_generation=model_for_mask_generation,
@@ -93,11 +94,12 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
         self.seg_results = None
 
     def init_auc(self) -> None:
-        self.best_auc = np.inf
+        self.best_auc = np.inf if self.optimize_by_pos else -np.inf
         self.best_auc_epoch = 0
         self.best_auc_vis = None
         self.auc_by_epoch = []
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
+        self.perturbation_type = "POS" if self.optimize_by_pos else "NEG"
 
     def training_step(self, batch, batch_idx):
         if self.model_runtype == 'test':
@@ -145,13 +147,13 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
             verbose=self.verbose,
             img_size=self.img_size,
         )
-        if self.best_auc is None or auc < self.best_auc:
+        if self.best_auc is None or (auc < self.best_auc if self.optimize_by_pos else auc > self.best_auc):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
             self.best_auc_image = outputs[0]["image_resized"]
 
-            if self.run_base_model_only or auc < POS_AUC_STOP_VALUE:
+            if self.run_base_model_only or (auc < POS_AUC_STOP_VALUE if self.optimize_by_pos else auc > NEG_AUC_STOP_VALUE):
                 self.trainer.should_stop = True
 
         if self.current_epoch == self.n_epochs - 1:
