@@ -79,6 +79,7 @@ class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassi
                          )
         self.batch_size = batch_size
         self.n_epochs = n_epochs
+        self.optimize_by_pos = optimize_by_pos
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
