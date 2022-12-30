@@ -60,8 +60,15 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "densenet",
         "explainee": "densenet",
         "experiment_base_path": {
-            "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_3_auc_14.365_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True",
-            "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_4_auc_14.635_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False",
+            "POS-opt": {
+                "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_3_auc_14.365_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True",
+                "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_4_auc_14.635_explanier_densenet__explaniee_densenet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False"
+            },
+            "NEG-opt": {
+                "target": None,
+                "predicted": None,
+            }
+
         },
     },
     "resnet-resnet": {
@@ -74,8 +81,15 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
         "explainer": "resnet",
         "explainee": "resnet",
         "experiment_base_path": {
-            "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_3_auc_15.28_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True",
-            "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_3_auc_14.025_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False",
+            "POS-opt": {
+                "target": "/raid/yuvalas/experiments/target/RESIZE_224_direct_opt_ckpt_3_auc_15.28_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True",
+                "predicted": "/raid/yuvalas/experiments/predicted/RESIZE_224_direct_opt_ckpt_3_auc_14.025_explanier_resnet__explaniee_resnet__sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False"
+            },
+            "NEG-opt":
+                {
+                    "target": None,
+                    "predicted": None
+                }
         },
     },
 }

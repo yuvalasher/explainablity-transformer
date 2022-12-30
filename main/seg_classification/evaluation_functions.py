@@ -265,10 +265,12 @@ def run_evaluations(pkl_path,
                     imagenet_val_images_folder_path,
                     device,
                     is_explainee_convnet: bool,
+                    opt_metric_type: str,
                     ):
     print(f"backbone_name: {backbone_name}")
     print(f"is_base_model: {is_base_model}")
     print(f"pkl_path: {pkl_path}")
+    print(f"opt_metric_type: {opt_metric_type}")
 
     NAME = f'{"Base" if is_base_model else "Opt"} Model + {target_or_predicted_model} - {backbone_name}'
     print(NAME)
@@ -300,7 +302,7 @@ def run_evaluations(pkl_path,
                                }
 
         print(
-            f'Perturbation tests - {perturbation_config["perturbation_type"].name}')
+            f'Perturbation tests - {perturbation_config["perturbation_type"].name};  OPT_METRIC_TYPE: {opt_metric_type}')
 
         auc_perturbation_list, auc_deletion_insertion_list = infer_perturbation_tests(
             images_and_masks=images_and_masks,
@@ -312,9 +314,9 @@ def run_evaluations(pkl_path,
         auc_perturbation, auc_deletion_insertion = np.mean(auc_perturbation_list), np.mean(auc_deletion_insertion_list)
 
         print(
-            f'{"Base" if is_base_model else "Opt"} + {target_or_predicted_model} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
+            f'OPT_METRIC_TYPE: {opt_metric_type}; {"Base" if is_base_model else "Opt"} + {target_or_predicted_model} Model; Perturbation tests {perturbation_config["perturbation_type"].name}, {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} test. pkl_path: {pkl_path}')
         print(
-            f'Mean {perturbation_type} Perturbation AUC: {auc_perturbation}; Mean {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} AUC: {auc_deletion_insertion}')
+            f' OPT_METRIC_TYPE: {opt_metric_type}. Mean {perturbation_type} Perturbation AUC: {auc_perturbation}; Mean {PERTURBATION_DELETION_INSERTION_MAPPING[perturbation_config["perturbation_type"]]} AUC: {auc_deletion_insertion}')
         print('************************************************************************************')
 
 
@@ -323,45 +325,51 @@ if __name__ == '__main__':
     gt_classes_list = get_gt_classes(GT_VALIDATION_PATH_LABELS)
 
     for explainer_explainee_backbones in EXPLAINER_EXPLAINEE_BACKBONE_DETAILS.keys():
-        for target_or_predicted_model in ["predicted", "target"]:
-            HOME_BASE_PATH = \
-                EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["experiment_base_path"][
-                    target_or_predicted_model]
-            OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
-            OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
-            OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
-            explainer_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["explainer"]
-            explainee_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["explainee"]
-            IMG_SIZE = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["img_size"]
+        for target_or_predicted_model in ["target", "predicted"]:
+            for OPT_METRIC_TYPE in [PerturbationType.POS, PerturbationType.NEG]: # optimization type in LTX
+                HOME_BASE_PATH = \
+                    EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["experiment_base_path"][
+                        f"{OPT_METRIC_TYPE}-opt"][
+                        target_or_predicted_model]
+                OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
+                OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
+                OPTIMIZATION_PKL_PATH_OPT = Path(OPTIMIZATION_PKL_PATH, "opt_model", "objects_pkl")
+                explainer_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones][
+                    "explainer"]
+                explainee_model_name = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones][
+                    "explainee"]
+                IMG_SIZE = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["img_size"]
 
-            EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[explainee_model_name], \
-                                                         MODEL_ALIAS_MAPPING[explainer_model_name]
+                EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[explainee_model_name], \
+                                                             MODEL_ALIAS_MAPPING[explainer_model_name]
 
-            IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
-            IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+                IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+                IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-            model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
-                explainee_model_name=EXPLAINEE_MODEL_NAME,
-                explainer_model_name=EXPLAINER_MODEL_NAME,
-                img_size=IMG_SIZE,
-                activation_function="sigmoid",
-            )
-            model_for_classification_image = model_for_classification_image.to(device)
-            if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
-                run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
-                                is_base_model=True,
-                                target_or_predicted_model=target_or_predicted_model,
-                                backbone_name=explainer_explainee_backbones,
-                                imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                device=device,
-                                is_explainee_convnet=IS_EXPLANIEE_CONVNET,
-                                )
-            if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
-                run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
-                                is_base_model=False,
-                                target_or_predicted_model=target_or_predicted_model,
-                                backbone_name=explainer_explainee_backbones,
-                                imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
-                                device=device,
-                                is_explainee_convnet=IS_EXPLANIEE_CONVNET,
-                                )
+                model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+                    explainee_model_name=EXPLAINEE_MODEL_NAME,
+                    explainer_model_name=EXPLAINER_MODEL_NAME,
+                    img_size=IMG_SIZE,
+                    activation_function="sigmoid",
+                )
+                model_for_classification_image = model_for_classification_image.to(device)
+                if len(os.listdir(OPTIMIZATION_PKL_PATH_BASE)) == 50000:
+                    run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_BASE,
+                                    is_base_model=True,
+                                    target_or_predicted_model=target_or_predicted_model,
+                                    backbone_name=explainer_explainee_backbones,
+                                    imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                    device=device,
+                                    is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+                                    opt_metric_type=OPT_METRIC_TYPE.name,
+                                    )
+                if len(os.listdir(OPTIMIZATION_PKL_PATH_OPT)) == 50000:
+                    run_evaluations(pkl_path=OPTIMIZATION_PKL_PATH_OPT,
+                                    is_base_model=False,
+                                    target_or_predicted_model=target_or_predicted_model,
+                                    backbone_name=explainer_explainee_backbones,
+                                    imagenet_val_images_folder_path=IMAGENET_VAL_IMAGES_FOLDER_PATH,
+                                    device=device,
+                                    is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+                                    opt_metric_type=OPT_METRIC_TYPE.name,
+                                    )
