@@ -87,8 +87,8 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
             },
             "NEG-opt":
                 {
-                    "target": None,
-                    "predicted": None
+                    "target": "/raid/yuvalas/experiments/target/direct_opt_ckpt_3_auc_15.28_explanier_resnet__explaniee_resnet__opt_by_pos_False__pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__True_images_idx",
+                    "predicted": "/raid/yuvalas/experiments/predicted/direct_opt_ckpt_3_auc_14.025_explanier_resnet__explaniee_resnet__opt_by_pos_False__pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002_by_target_gt__False_images_idx"
                 }
         },
     },
