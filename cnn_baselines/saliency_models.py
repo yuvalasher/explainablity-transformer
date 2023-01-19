@@ -173,10 +173,12 @@ def lift_cam(model,
         heatmap -= heatmap.min()
         heatmap /= heatmap.max()
         heatmap = heatmap.squeeze().cpu().data.numpy()
-        t = tensor2cv(inputs.squeeze(0))
-        blended_img, score, heatmap_cv, blended_img_mask, img_cv = blend_image_and_heatmap(t, heatmap,
-                                                                                           use_mask=use_mask)
-    return t, blended_img, heatmap_cv, blended_img_mask, inputs.squeeze(0), score, heatmap
+        # t = tensor2cv(inputs.squeeze(0))
+        # blended_img, score, heatmap_cv, blended_img_mask, img_cv = blend_image_and_heatmap(t,
+        #                                                                                    heatmap,
+        #                                                                                    use_mask=use_mask)
+    return heatmap
+    # return t, blended_img, heatmap_cv, blended_img_mask, inputs.squeeze(0), score, heatmap
 
 
 def tensor2cv(inp):
@@ -205,14 +207,14 @@ def generic_torchcam(modelCAM,
     heatmap -= heatmap.min()
     heatmap /= heatmap.max()
     heatmap = heatmap.squeeze().detach().cpu().data.numpy()
+    return heatmap
+    # t = tensor2cv(inputs.squeeze(0))
+    # blended_img, score, heatmap_cv, blended_img_mask, img_cv = blend_image_and_heatmap(img_cv=t,
+    #                                                                                    heatmap=heatmap,
+    #                                                                                    use_mask=use_mask,
+    #                                                                                    )
 
-    t = tensor2cv(inputs.squeeze(0))
-    blended_img, score, heatmap_cv, blended_img_mask, img_cv = blend_image_and_heatmap(img_cv=t,
-                                                                                       heatmap=heatmap,
-                                                                                       use_mask=use_mask,
-                                                                                       )
-    
-    return t, blended_img, heatmap_cv, blended_img_mask, inputs.squeeze(0), score, heatmap
+    # return t, blended_img, heatmap_cv, blended_img_mask, inputs.squeeze(0), score, heatmap
 
 
 def ig_captum(model,

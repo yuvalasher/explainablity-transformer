@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 import torch.nn.functional as F
-import torch
 from PIL import Image
 from torch import nn
 from tqdm import tqdm
@@ -61,7 +60,8 @@ def run_by_class_grad(model,
                                                                                      method=method,
                                                                                      use_mask=use_mask)
 
-    return t1, blended_img, heatmap_cv, blended_img_mask, image_preprocessed, score, heatmap
+    return heatmap
+    # return t1, blended_img, heatmap_cv, blended_img_mask, image_preprocessed, score, heatmap
 
 
 def by_class_map(model, image, label, method: str, use_mask=False):

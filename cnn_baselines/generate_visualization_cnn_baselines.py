@@ -82,7 +82,7 @@ def compute_saliency_and_save(dir: Path,
             index = index.to(device)
 
             if method == 'lift-cam':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = lift_cam(
+                heatmap = lift_cam(
                     model=model,
                     inputs=data,
                     label=index,
@@ -91,7 +91,7 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method == 'score-cam':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
+                heatmap = generic_torchcam(
                     modelCAM=ScoreCAM,
                     backbone_name=backbone_name,
                     inputs=data,
@@ -101,7 +101,7 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method == 'ablation-cam':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
+                heatmap = generic_torchcam(
                     modelCAM=AblationCAM,
                     backbone_name=backbone_name,
                     inputs=data,
@@ -111,7 +111,7 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method == 'ig':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = ig_captum(
+                heatmap = ig_captum(
                     model=model,
                     inputs=data,
                     label=index,
@@ -120,7 +120,7 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method == 'layercam':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
+                heatmap = generic_torchcam(
                     modelCAM=LayerCAM,
                     backbone_name=backbone_name,
                     inputs=data,
@@ -140,22 +140,23 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method in ['gradcam', 'gradcampp']:
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = run_by_class_grad(model=model,
-                                                                                                       image_preprocessed=data.squeeze(
-                                                                                                           0),
-                                                                                                       label=index,
-                                                                                                       backbone_name=backbone_name,
-                                                                                                       device=device,
-                                                                                                       features_layer=FEATURE_LAYER_NUMBER,
-                                                                                                       method=method,
-                                                                                                       use_mask=USE_MASK,
+                heatmap = run_by_class_grad(model=model,
+                                            image_preprocessed=data.squeeze(0),
+                                            label=index,
+                                            backbone_name=backbone_name,
+                                            device=device,
+                                            features_layer=FEATURE_LAYER_NUMBER,
+                                            method=method,
+                                            use_mask=USE_MASK,
+                                            )
                                                                                                        )
             else:
                 raise NotImplementedError
 
             data_cam[-data.shape[0]:] = heatmap
             if verbose:
-                show_image(blended_im, title=f"{method}-{vis_class}")
+                # show_image(blended_im, title=f"{method}-{vis_class}")
+                show_mask(heatmap, title=f"{method}-{vis_class}")
 
 
 if __name__ == '__main__':
