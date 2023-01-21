@@ -1,14 +1,14 @@
 from pathlib import Path
-from utils.consts import PLTE_CHECKPOINTS_PATH
+from utils.consts import PLTX_CHECKPOINTS_PATH
 
-VIT_BASE_224_VIT_BASE_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base",
+VIT_BASE_224_VIT_BASE_224_PREDICTED_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "vit_base",
                                                      "pLTE_vit_base_224_predicted_best_auc__epoch=27_val_epoch_auc=0.ckpt")
-VIT_BASE_224_VIT_BASE_224_TARGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_base",
+VIT_BASE_224_VIT_BASE_224_TARGET_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "vit_base",
                                                   "pLTE_vit_base_224_target_best_auc__epoch=55_val_epoch_auc=0.ckpt")
 
-VIT_SMALL_224_VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
+VIT_SMALL_224_VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "vit_small",
                                                        "pLTE_vit_small_224_predicted_best_auc__epoch=3_val_epoch_auc=0.ckpt")
-VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTE_CHECKPOINTS_PATH, "vit_small",
+VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "vit_small",
                                                     "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 
 RESNET_RESNET_TARGET_CKPT_PATH = Path(

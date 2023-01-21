@@ -18,7 +18,7 @@ RESULTS_PICKLES_FOLDER_PATH = EXPERIMENTS_FOLDER_PATH
 EVALUATION_FOLDER_PATH: Path = Path(ROOT_DIR, 'evaluation').resolve()
 GT_VALIDATION_PATH_LABELS = Path(ROOT_DIR, "gt_data_imagenet", "val ground truth.txt")
 IMAGENET_VAL_GT_CSV_FILE_PATH = Path(ROOT_DIR, "gt_data_imagenet", "val_ground_truth_2012.csv")
-PLTE_CHECKPOINTS_PATH = Path(ROOT_DIR, 'checkpoints').resolve()
+PLTX_CHECKPOINTS_PATH = Path(ROOT_DIR, 'checkpoints').resolve()
 
 MODEL_OPTIONS = ["vit_base_224", "vit_small_224", "resnet", "densenet"]
 
