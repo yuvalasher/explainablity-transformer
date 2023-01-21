@@ -59,10 +59,9 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
         hidden_size = tokens_output.shape[2]
 
         tokens_output_reshaped = tokens_output.reshape(-1, hidden_size)
-        if vit_config["is_mlp_on_segmentation"]:
-            tokens_output_reshaped = self.patch_pooler(tokens_output_reshaped)
-            tokens_output_reshaped = self.activation(tokens_output_reshaped)
-            # tokens_output_reshaped = self.dropout(tokens_output_reshaped)
+        tokens_output_reshaped = self.patch_pooler(tokens_output_reshaped)
+        tokens_output_reshaped = self.activation(tokens_output_reshaped)
+        # tokens_output_reshaped = self.dropout(tokens_output_reshaped)
         logits = self.patch_classifier(tokens_output_reshaped)
         mask = logits.view(batch_size, -1, 1)  # logits - [batch_size, tokens_count]
 
@@ -72,15 +71,11 @@ class ViTForMaskGeneration(ViTPreTrainedModel):
             mask = torch.sigmoid(mask)
         if vit_config["activation_function"] == 'softmax':
             mask = torch.softmax(mask, dim=1)
-        if vit_config["normalize_by_max_patch"]:
-            mask = mask / mask.max(dim=1, keepdim=True)[0]
 
         mask = mask.view(batch_size, 1, int(vit_config["img_size"] / vit_config["patch_size"]),
                          int(vit_config["img_size"] / vit_config["patch_size"]))
-        if vit_config["add_epsilon_to_patches_scores"]:
-            mask = mask + EPSILON
-            mask = torch.clamp(mask, max=1)
 
-        interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=16, mode='bilinear')
+        interpolated_mask = torch.nn.functional.interpolate(mask, scale_factor=vit_config["patch_size"],
+                                                            mode='bilinear')
 
         return interpolated_mask, mask

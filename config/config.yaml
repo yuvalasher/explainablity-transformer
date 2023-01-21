@@ -1,55 +1,42 @@
 general:
   gpu_index: 0
   seed: 42
-  images_folder_test_DGX: ILSVRC2012_test_sampled
-  images_folder_test_ES_DGX: ILSVRC2012_test_earlystopping
-  images_folder_name_DGX: ILSVRC2012_val_Updated_DGX
-  images_folder_name: ILSVRC2012_val - Updated
-  images_gt_filename: ILSVRC2012_validation_ground_truth.txt
   wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
   wandb_entity: yuvalasher
 vit:
   train_images_path: train_data
   val_images_path: val_data
-  gpus: 1
   run_base_model: True
   activation_function: sigmoid # choose from here: [sigmoid, relu, softmax, None]
-  segmentation_transformer_n_first_layers_to_freeze: 0
-  add_epsilon_to_patches_scores: False
   is_sampled_train_data_uniformly: True
   is_sampled_val_data_uniformly: True
-  normalize_by_max_patch: False
-  is_mlp_on_segmentation: True
   is_clamp_between_0_to_1: True
-  train_model_by_target_gt_class: False
-  model_name: google/vit-base-patch16-224
-#  model_name: WinKawaks/vit-small-patch16-224
+  train_model_by_target_gt_class: True
+  optimize_by_pos: True
+  explainer_model_name: resnet
+#  explainer_model_name: google/vit-base-patch16-224
+#  explainer_model_name: WinKawaks/vit-small-patch16-224
+#  explainee_model_name: google/vit-base-patch16-224
+  explainee_model_name: resnet # densenet
   is_competitive_method_transforms: False
   img_size: 224
   patch_size: 16
-  n_heads: 12
-  freezing_classification_transformer: True
+  explainer_model_n_first_layers_to_freeze: 0
+  is_freezing_explaniee_model: True
   freeze_classification_head: False
-  num_labels: 1000
-  save_every: 5
   batch_size: 32
   default_root_dir: /raid/yuvalas/checkpoints
   plot_path: /home/yuvalas/explainability/research/plots/token_classification/
-  experiments_path: /home/yuvalas/explainability/research/experiments
+  experiments_path: /raid/yuvalas/experiments/experiments
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
-  n_batches_to_visualize: 3
-  n_epochs: 52
+  n_batches_to_visualize: 1
+  n_epochs: 500
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
-  print_every: 1
-  discard_ratio: 0.6
-  log: False
   verbose: False
-  plot_visualizations: False
-  objective: temp_softmax
   seg_cls:
-    train_n_label_sample: 1
+    train_n_label_sample: 6
     val_n_label_sample: 1
     loss:
       normalize: False
@@ -59,6 +46,5 @@ vit:
       is_ce_neg: False
       use_logits_only: False
   evaluation:
-    original_image_name: 224x224.JPEG
     batch_size: 1
     experiment_folder_name: seg_cls

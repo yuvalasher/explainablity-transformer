@@ -6,57 +6,80 @@ import torch
 from tqdm import tqdm
 from config import config
 from evaluation.perturbation_tests.seg_cls_perturbation_tests import (
-    save_best_auc_objects_to_disk, run_perturbation_test_opt
+    run_perturbation_test_opt
 )
-from feature_extractor import ViTFeatureExtractor
 from main.seg_classification.image_classification_with_token_classification_model import \
     ImageClassificationWithTokenClassificationModel
-from main.seg_classification.output_dataclasses.lossloss import LossLoss
 from utils.metrices import batch_pix_accuracy, batch_intersection_union, get_ap_scores, get_f1_scores
-from vit_utils import visu
+from utils.vit_utils import visu
 from models.modeling_vit_patch_classification import ViTForMaskGeneration
-from transformers import ViTForImageClassification
 from matplotlib import pyplot as plt
 from torch import Tensor
-from main.seg_classification.seg_cls_consts import AUC_STOP_VALUE
+from main.seg_classification.seg_cls_consts import POS_AUC_STOP_VALUE, NEG_AUC_STOP_VALUE
 
 pl.seed_everything(config["general"]["seed"])
-vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 
-class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClassificationWithTokenClassificationModel):
+class OptImageClassificationWithTokenClassificationModelSegmentation(ImageClassificationWithTokenClassificationModel):
     def __init__(
             self,
-            vit_for_classification_image: ViTForImageClassification,
-            vit_for_patch_classification: ViTForMaskGeneration,
+            model_for_classification_image,
+            model_for_mask_generation: ViTForMaskGeneration,
             warmup_steps: int,
             total_training_steps: int,
-            feature_extractor: ViTFeatureExtractor,
             plot_path,
             best_auc_objects_path: str,
             best_auc_plot_path: str,
             experiment_path: str,
             checkpoint_epoch_idx: int,
+            is_explainer_convnet: bool,
+            is_explainee_convnet: bool,
+            lr: float,
+            n_epochs: int,
+            activation_function: str,
+            train_model_by_target_gt_class: bool,
+            use_logits_only: bool,
+            batch_size: int,
+            img_size: int,
+            patch_size: int,
+            mask_loss: str,
+            mask_loss_mul: int,
+            prediction_loss_mul: int,
+            is_ce_neg: bool = False,
+            n_batches_to_visualize: int = 2,
+            start_epoch_to_evaluate: int = 1,
             run_base_model_only: bool = False,
             is_clamp_between_0_to_1: bool = True,
             model_runtype: str = 'N/A',
-            criterion: LossLoss = LossLoss(),
-            n_classes: int = 1000,
-            batch_size: int = 8,
-
+            verbose: bool = False,
+            optimize_by_pos: bool = True,
     ):
-        super().__init__(vit_for_classification_image=vit_for_classification_image,
-                         vit_for_patch_classification=vit_for_patch_classification,
+        super().__init__(model_for_classification_image=model_for_classification_image,
+                         model_for_mask_generation=model_for_mask_generation,
                          warmup_steps=warmup_steps,
                          total_training_steps=total_training_steps,
-                         feature_extractor=feature_extractor,
                          plot_path=plot_path,
                          is_clamp_between_0_to_1=is_clamp_between_0_to_1,
-                         criterion=criterion,
-                         n_classes=n_classes,
-                         batch_size=batch_size,
-                         experiment_path=experiment_path)
+                         lr=lr,
+                         start_epoch_to_evaluate=start_epoch_to_evaluate,
+                         n_batches_to_visualize=n_batches_to_visualize,
+                         activation_function=activation_function,
+                         train_model_by_target_gt_class=train_model_by_target_gt_class,
+                         img_size=img_size,
+                         patch_size=patch_size,
+                         mask_loss=mask_loss,
+                         mask_loss_mul=mask_loss_mul,
+                         prediction_loss_mul=prediction_loss_mul,
+                         is_ce_neg=is_ce_neg,
+                         use_logits_only=use_logits_only,
+                         experiment_path=experiment_path,
+                         is_explainer_convnet=is_explainer_convnet,
+                         is_explainee_convnet=is_explainee_convnet,
+                         verbose=verbose,
+                         )
+        self.batch_size = batch_size
+        self.n_epochs = n_epochs
+        self.optimize_by_pos = optimize_by_pos
         self.best_auc_objects_path = best_auc_objects_path
         self.best_auc_plot_path = best_auc_plot_path
         self.best_auc = None
@@ -72,11 +95,12 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         self.seg_results = None
 
     def init_auc(self) -> None:
-        self.best_auc = np.inf
+        self.best_auc = np.inf if self.optimize_by_pos else -np.inf
         self.best_auc_epoch = 0
         self.best_auc_vis = None
         self.auc_by_epoch = []
         self.image_idx = len(os.listdir(self.best_auc_objects_path))
+        self.perturbation_type = "POS" if self.optimize_by_pos else "NEG"
 
     def training_step(self, batch, batch_idx):
         if self.model_runtype == 'test':
@@ -93,7 +117,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
 
         vit_cls_output = self.vit_for_classification_image(inputs)
         output = self.forward(inputs, image_resized=image_resized)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
+        images_mask = output.interpolated_mask
 
         return {
             "loss": output.lossloss_output.loss,
@@ -103,7 +127,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "original_image": original_image,
             "image_mask": images_mask,
-            "target_class": torch.argmax(vit_cls_output.logits, dim=1),
+            "target_class": torch.argmax(vit_cls_output.logits if not self.is_explainee_convnet else vit_cls_output,
+                                         dim=1),
             # in segmentation we don't have target_class, so the perturbation test will be by the predicted argmax output of ViT
             "image_resized": image_resized,
             "patches_mask": output.tokens_mask,
@@ -119,23 +144,20 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             outputs=outputs,
             stage="train",
             epoch_idx=self.current_epoch,
+            is_convnet=self.is_explainee_convnet,
+            verbose=self.verbose,
+            img_size=self.img_size,
         )
-        if self.best_auc is None or auc < self.best_auc:
+        if self.best_auc is None or (auc < self.best_auc if self.optimize_by_pos else auc > self.best_auc):
             self.best_auc = auc
             self.best_auc_epoch = self.current_epoch
             self.best_auc_vis = outputs[0]["image_mask"]
             self.best_auc_image = outputs[0]["image_resized"]
 
-            # save_best_auc_objects_to_disk(path=Path(f"{self.best_auc_objects_path}", f"{str(self.image_idx)}.pkl"),
-            #                               auc=auc,
-            #                               vis=self.best_auc_vis,
-            #                               original_image=self.best_auc_image,
-            #                               epoch_idx=self.current_epoch,
-            #                               )
-            if self.run_base_model_only or auc < AUC_STOP_VALUE:
+            if self.run_base_model_only or (auc < POS_AUC_STOP_VALUE if self.optimize_by_pos else auc > NEG_AUC_STOP_VALUE):
                 self.trainer.should_stop = True
 
-        if self.current_epoch == vit_config['n_epochs'] - 1:
+        if self.current_epoch == self.n_epochs - 1:
             self.trainer.should_stop = True
 
     def test_step(self, batch, batch_idx):
@@ -143,13 +165,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         self.target = target
         self.image_resized = image_resized
         output = self.forward(inputs, image_resized)
-        images_mask = self.mask_patches_to_image_scores(output.tokens_mask)
-        # plt.imshow(images_mask.squeeze(0).squeeze(0).cpu().detach())
-        # plt.title('TEST')
-        # plt.show()
-        # plt.imshow(image_resized.squeeze(0).cpu().detach().permute(1, 2, 0))
-        # plt.title('TEST')
-        # plt.show()
+        images_mask = output.interpolated_mask
 
         outputs = {'images_mask': images_mask,
                    'target': target,
@@ -226,9 +242,6 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         batch_label += labeled
         batch_inter += inter
         batch_union += union
-        # print("output", output.shape)
-        # print("ap labels", labels.shape)
-        # ap = np.nan_to_num(get_ap_scores(output, labels))
         ap = np.nan_to_num(get_ap_scores(output_AP, labels))
         f1 = np.nan_to_num(get_f1_scores(output[0, 1].data.cpu(), labels[0]))
         batch_ap += ap
@@ -237,40 +250,7 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
         return batch_correct, batch_label, batch_inter, batch_union, batch_ap, batch_f1, pred, target
 
     def eval_results_per_bacth(self, Res, image, labels, q=-1):
-        # vit_output: SequenceClassifierOutput = self.vit_for_classification_image(self.normalize_image(image))
-        # gt_idx = vit_output.logits.argmax(dim=1)
-        # q_arr = np.arange(0, 1, 0.05)
-        # th_torch = torch.zeros_like(gt_idx)
-        # for idx in range(self.batch_size):
-        #     Res_flat = torch.flatten(Res[idx]).sort().values
-        #     for q in q_arr:
-        #
-        #         th = torch.quantile(Res_flat, q=q)
-        #         th_mask = Res[idx] > th
-        #         new_mask = Res[idx] * th_mask
-        #         # new_mask = Res[idx].clamp(min=th)
-        #         # plt.imshow(new_mask.squeeze().data.cpu().numpy())
-        #         # plt.title(f'th = {th} and q= {q}')
-        #         # plt.show()
-        #         masked_image = image[idx] * new_mask
-        #         masked_image_norm = (masked_image - masked_image.min()) / (masked_image.max() - masked_image.min())
-        #         # plt.imshow(masked_image_norm.permute(1, 2, 0).cpu().detach())
-        #         # plt.title(f'image with mask = {q}')
-        #         # plt.show()
-        #
-        #         masked_image = masked_image.unsqueeze(0)
-        #         ####### CHECK WHAT IS GT _ AND IF NORMALIZE CHANGED THE INPUT!
-        #         masked_image_inputs = self.normalize_image(masked_image)
-        #         vit_masked_output: SequenceClassifierOutput = self.vit_for_classification_image(masked_image_inputs)
-        #         pred_class = torch.softmax(vit_masked_output.logits, dim=1).argmax().item()
-        #         if pred_class != gt_idx[idx]:
-        #             th_torch[idx] = th
-        #             # TODO - check taking the prev th (before breaking the class).
-        #             break
-
         Res = (Res - Res.min()) / (Res.max() - Res.min())
-
-        # ret = th_torch
         if q == -1:
             ret = Res.mean()
         else:
@@ -320,6 +300,8 @@ class OptImageClassificationWithTokenClassificationModel_Segmentation(ImageClass
             original_image=image,
             transformer_attribution=mask,
             file_name=Path(self.best_auc_plot_path, f"{str(self.image_idx)}__AUC_{round(auc, 0)}").resolve(),
+            img_size=self.img_size,
+            patch_size=self.patch_size,
         )
 
 

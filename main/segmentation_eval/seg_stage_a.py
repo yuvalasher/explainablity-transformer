@@ -1,137 +1,176 @@
+import argparse
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+from distutils.util import strtobool
+
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+
+from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
+    load_explainer_explaniee_models_and_feature_extractor
 from icecream import ic
-from transformers import ViTForImageClassification
-from feature_extractor import ViTFeatureExtractor
-from main.seg_classification.vit_backbone_to_details import VIT_BACKBONE_DETAILS
-from main.segmentation_eval.segmentation_utils import print_segmentation_results
-from models.modeling_vit_patch_classification import ViTForMaskGeneration
+from main.segmentation_eval.segmentation_utils import print_segmentation_results, init_get_normalize_and_transform
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
-    OptImageClassificationWithTokenClassificationModel_Segmentation
-
+    OptImageClassificationWithTokenClassificationModelSegmentation
 import torch
-import torchvision.transforms as transforms
 from pytorch_lightning import seed_everything
 from torch.utils.data import DataLoader
-from PIL import Image
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from config import config
 from utils.iou import IoU
-
 from main.segmentation_eval.imagenet import Imagenet_Segmentation
-from vit_loader.load_vit import load_vit_pretrained
-from vit_utils import get_warmup_steps_and_total_training_steps, \
-    get_loss_multipliers, freeze_multitask_model, get_checkpoint_idx
-
-from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH
-
+from utils.vit_utils import get_warmup_steps_and_total_training_steps, \
+    get_loss_multipliers, freeze_multitask_model, get_params_from_config, suppress_warnings, get_backbone_details
+from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH, MODEL_ALIAS_MAPPING, MODEL_OPTIONS
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
-import warnings
-import logging
 
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger('checkpoint').setLevel(0)
-logging.getLogger('lightning').setLevel(0)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
+suppress_warnings()
+seed_everything(config["general"]["seed"])
 
-
-def init_get_normalize_and_trns():
-    normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    test_img_trans = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        normalize,
-    ])
-    test_img_trans_only_resize = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
-    test_lbl_trans = transforms.Compose([
-        transforms.Resize((224, 224), Image.NEAREST),
-    ])
-
-    return test_img_trans, test_img_trans_only_resize, test_lbl_trans
-
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+gc.collect()
+cuda = torch.cuda.is_available()
+device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
-    cuda = torch.cuda.is_available()
-    device = torch.device("cuda" if cuda else "cpu")
-    batch_size = 32
-    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_trns()
-    ds = Imagenet_Segmentation(IMAGENET_SEG_PATH,
-                               batch_size=batch_size,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize, target_transform=test_lbl_trans)
+    params_config = get_params_from_config(config_vit=config["vit"])
+    parser = argparse.ArgumentParser(description='Run segmentation of pLTX model')
+    parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
 
-    vit_config = config["vit"]
-    loss_config = vit_config["seg_cls"]["loss"]
-    vit_config["train_model_by_target_gt_class"] = False
-    vit_config["enable_checkpointing"] = False
-    seed_everything(config["general"]["seed"])
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
-    gc.collect()
-    loss_multipliers = get_loss_multipliers(loss_config=loss_config)
-    ic(vit_config["model_name"])
-    target_or_predicted_model = "predicted"
-    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = VIT_BACKBONE_DETAILS[vit_config["model_name"]]["ckpt_path"][
-                                                         target_or_predicted_model], \
-                                                     VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                         "img_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                         "patch_size"], VIT_BACKBONE_DETAILS[vit_config["model_name"]][
-                                                         "mask_loss"]
+    parser.add_argument("--verbose",
+                        type=lambda x: bool(strtobool(x)),
+                        nargs='?',
+                        const=True,
+                        default=params_config["verbose"])
+    parser.add_argument('--n-epochs', type=int, default=params_config["n_epochs"])
+    parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
+    parser.add_argument('--batch-size',
+                        type=int,
+                        default=32)
+    parser.add_argument('--is-freezing-explaniee-model',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_freezing_explaniee_model"])
+    parser.add_argument('--explainer-model-n-first-layers-to-freeze',
+                        type=int,
+                        default=params_config["explainer_model_n_first_layers_to_freeze"])
+    parser.add_argument('--is-clamp-between-0-to-1',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_clamp_between_0_to_1"])
+    parser.add_argument('--is-competitive-method-transforms',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["is_competitive_method_transforms"])
+    parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
+    parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
+    parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
+    parser.add_argument('--train-n-label-sample', type=str, default=params_config["train_n_label_sample"])
+    parser.add_argument('--lr', type=float, default=params_config["lr"])
+    parser.add_argument('--start-epoch-to-evaluate', type=int, default=params_config["start_epoch_to_evaluate"])
+    parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
+    parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
+    parser.add_argument('--activation-function', type=str, default=params_config["activation_function"])
+    parser.add_argument('--use-logits-only',
+                        type=lambda x: bool(strtobool(x)),
+                        nargs="?",
+                        const=True,
+                        default=params_config["use_logits_only"])
+    parser.add_argument('--evaluation-experiment-folder-name',
+                        type=str,
+                        default=params_config["evaluation_experiment_folder_name"])
+
+    args = parser.parse_args()
+
+    EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[args.explainee_model_name], \
+                                                 MODEL_ALIAS_MAPPING[args.explainer_model_name]
+
+    IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+    IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
+
+
+    CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
+        explainer_model_name=args.explainer_model_name,
+        explainee_model_name=args.explainee_model_name,
+        target_or_predicted_model="predicted",
+    )
+    loss_multipliers = get_loss_multipliers(normalize=False,
+                                            mask_loss_mul=MASK_LOSS_MUL,
+                                            prediction_loss_mul=args.prediction_loss_mul,
+                                            )
+
     ic(CKPT_PATH)
-    vit_config["img_size"] = IMG_SIZE
-    vit_config["patch_size"] = PATCH_SIZE
-    loss_config["mask_loss_mul"] = MASK_LOSS_MUL
-    ic(loss_config["mask_loss_mul"])
-    CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
-    RUN_BASE_MODEL = vit_config[
-        'run_base_model']  # TODO If True, Running only forward of the image to create visualization of the base model
+    ic(MASK_LOSS_MUL)
+    ic(args.prediction_loss_mul)
 
-    feature_extractor = ViTFeatureExtractor.from_pretrained(vit_config["model_name"])
-    if vit_config["model_name"] in ["google/vit-base-patch16-224"]:
-        vit_for_classification_image, vit_for_patch_classification = load_vit_pretrained(
-            model_name=vit_config["model_name"])
-    else:
-        vit_for_classification_image = ViTForImageClassification.from_pretrained(vit_config["model_name"])
-        vit_for_patch_classification = ViTForMaskGeneration.from_pretrained(vit_config["model_name"])
+    test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform()
+    ds = Imagenet_Segmentation(path=IMAGENET_SEG_PATH,
+                               batch_size=args.batch_size,
+                               transform=test_img_trans,
+                               transform_resize=test_img_trans_only_resize,
+                               target_transform=test_lbl_trans,
+                               )
 
-    warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
-        n_epochs=vit_config["n_epochs"],
-        train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
-        batch_size=vit_config["batch_size"],
+    model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
+        explainee_model_name=EXPLAINEE_MODEL_NAME,
+        explainer_model_name=EXPLAINER_MODEL_NAME,
+        activation_function=args.activation_function,
+        img_size=IMG_SIZE,
     )
 
-    metric = IoU(2, ignore_index=-1)
+    warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
+        n_epochs=args.n_epochs,
+        train_samples_length=len(list(Path(IMAGENET_VAL_IMAGES_FOLDER_PATH).iterdir())),
+        batch_size=args.batch_size,
+    )
 
-    model = OptImageClassificationWithTokenClassificationModel_Segmentation(
-        vit_for_classification_image=vit_for_classification_image,
-        vit_for_patch_classification=vit_for_patch_classification,
-        feature_extractor=feature_extractor,
+    metric = IoU(num_classes=2, ignore_index=-1)
+
+    model = OptImageClassificationWithTokenClassificationModelSegmentation(
+        model_for_classification_image=model_for_classification_image,
+        model_for_mask_generation=model_for_mask_generation,
         plot_path='',
         warmup_steps=warmup_steps,
         total_training_steps=total_training_steps,
-        batch_size=batch_size,
         best_auc_objects_path='',
         checkpoint_epoch_idx=CHECKPOINT_EPOCH_IDX,
         best_auc_plot_path='',
-        run_base_model_only=RUN_BASE_MODEL,
+        run_base_model_only=True,
         model_runtype='test',
-        experiment_path='exp_name'
-    )
-    model = freeze_multitask_model(
-        model=model,
-        freezing_classification_transformer=vit_config["freezing_classification_transformer"],
-        segmentation_transformer_n_first_layers_to_freeze=vit_config[
-            "segmentation_transformer_n_first_layers_to_freeze"]
+        experiment_path='exp_name',
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+        is_explainee_convnet=IS_EXPLANIEE_CONVNET,
+        lr=args.lr,
+        batch_size=args.batch_size,
+        n_epochs=args.n_epochs,
+        start_epoch_to_evaluate=args.start_epoch_to_evaluate,
+        n_batches_to_visualize=args.n_batches_to_visualize,
+        mask_loss=args.mask_loss,
+        mask_loss_mul=MASK_LOSS_MUL,
+        prediction_loss_mul=args.prediction_loss_mul,
+        activation_function=args.activation_function,
+        train_model_by_target_gt_class=False,
+        use_logits_only=args.use_logits_only,
+        img_size=IMG_SIZE,
+        patch_size=PATCH_SIZE,
+        is_ce_neg=args.is_ce_neg,
+        verbose=args.verbose,
     )
 
-    dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=1, drop_last=False)
+    model = freeze_multitask_model(
+        model=model,
+        is_freezing_explaniee_model=args.is_freezing_explaniee_model,
+        explainer_model_n_first_layers_to_freeze=args.explainer_model_n_first_layers_to_freeze,
+        is_explainer_convnet=IS_EXPLAINER_CONVNET,
+    )
+
+    dl = DataLoader(ds, batch_size=args.batch_size, shuffle=False, num_workers=1, drop_last=False)
     data_module = ImageSegOptDataModuleSegmentation(train_data_loader=dl)
     trainer = pl.Trainer(
         logger=[],
@@ -140,11 +179,11 @@ if __name__ == '__main__':
         devices=1,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=100,
-        max_epochs=vit_config["n_epochs"],
+        max_epochs=args.n_epochs,
         resume_from_checkpoint=CKPT_PATH,
         enable_progress_bar=True,
         enable_checkpointing=False,
-        default_root_dir=vit_config["default_root_dir"],
+        default_root_dir=args.default_root_dir,
         weights_summary=None
     )
 

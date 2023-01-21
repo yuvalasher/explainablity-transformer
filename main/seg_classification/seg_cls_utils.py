@@ -10,7 +10,6 @@ from config import config
 from main.seg_classification.seg_cls_consts import OBT_OBJECTS_PLOT_FOLDER_NAME, OBT_OBJECTS_FOLDER_NAME
 
 vit_config = config["vit"]
-loss_config = vit_config["seg_cls"]["loss"]
 
 bce_with_logits_loss = nn.BCEWithLogitsLoss(reduction="mean")
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
@@ -20,12 +19,16 @@ def l1_loss(tokens_mask) -> Tensor:
     return torch.abs(tokens_mask).mean()
 
 
-def prediction_loss(output, target, target_class):
-    if vit_config["train_model_by_target_gt_class"]:
+def prediction_loss(output,
+                    target,
+                    target_class,
+                    train_model_by_target_gt_class: bool,
+                    use_logits_only: bool):
+    if train_model_by_target_gt_class:
         target_class_to_compare = target_class
     else:
         target_class_to_compare = torch.argmax(target, dim=1)
-    if loss_config["use_logits_only"]:
+    if use_logits_only:
         return -torch.gather(output, 1, target_class_to_compare.unsqueeze(1)).squeeze(1).mean()
     return ce_loss(output, target_class_to_compare)  # maximize the pred to original model
 
