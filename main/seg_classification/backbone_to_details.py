@@ -11,17 +11,11 @@ VIT_SMALL_224_VIT_SMALL_224_PREDICTED_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "v
 VIT_SMALL_224_VIT_SMALL_224_TRAGET_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "vit_small",
                                                     "pLTE_vit_small_224_target_best_auc__epoch=11_val_epoch_auc=0.ckpt")
 
-RESNET_RESNET_TARGET_CKPT_PATH = Path(
-    "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__True/epoch=2_val/epoch_auc=15.280.ckpt")
-RESNET_RESNET_PREDICTED_CKPT_PATH_EPOCH_2 = Path(
-    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_resnet__explaniee_resnet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__False/epoch=2_val/epoch_auc=14.025.ckpt"
-)
+RESNET_RESNET_TARGET_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "resnet_resnet", "pLTX_resnet_resnet_target_best_auc__epoch=2_val_epoch_auc=0.ckpt")
+RESNET_RESNET_PREDICTED_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "resnet_resnet", "pLTX_resnet_resnet_predicted_best_auc__epoch=2_val_epoch_auc=0.ckpt")
+DENSENET_DENSENET_TARGET_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "densenet_densenet", "pLTX_densenet_densenet_target_best_auc__epoch=2_val_epoch_auc=0.ckpt")
+DENSENET_DENSENET_PREDICTED_CKPT_PATH = Path(PLTX_CHECKPOINTS_PATH, "densenet_densenet", "pLTX_densenet_densenet_predicted_best_auc__epoch=3_val_epoch_auc=0.ckpt")
 
-DENSENET_DENSENET_TARGET_CKPT_PATH = Path(
-    "/raid/yuvalas/checkpoints/target/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__True/epoch=2_val/epoch_auc=14.365.ckpt")
-DENSENET_DENSENET_PREDICTED_CKPT_PATH_EPOCH_3 = Path(
-    "/raid/yuvalas/checkpoints/predicted/ARGPARSE_explanier_densenet__explaniee_densenet__train_uni_True_val_unif_True_activation_sigmoid_pred_1_mask_l_bce_50__train_n_samples_6000_lr_0.002__bs_32_by_target_gt__False/epoch=3_val/epoch_auc=14.635.ckpt"
-)
 
 EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     "vit_base_224-vit_base_224": {
@@ -52,7 +46,7 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     },
     "densenet-densenet": {
         "ckpt_path": {"target": DENSENET_DENSENET_TARGET_CKPT_PATH,
-                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH_EPOCH_3,
+                      "predicted": DENSENET_DENSENET_PREDICTED_CKPT_PATH,
                       },
         "img_size": 224,
         "patch_size": None,
@@ -73,7 +67,7 @@ EXPLAINER_EXPLAINEE_BACKBONE_DETAILS = {  # key: explainer_name-explainee_name
     },
     "resnet-resnet": {
         "ckpt_path": {"target": RESNET_RESNET_TARGET_CKPT_PATH,
-                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH_EPOCH_2,
+                      "predicted": RESNET_RESNET_PREDICTED_CKPT_PATH,
                       },
         "img_size": 224,
         "patch_size": None,
