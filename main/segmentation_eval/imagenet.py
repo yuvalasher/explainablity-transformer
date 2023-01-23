@@ -11,7 +11,7 @@ __all__ = ['ImagenetResults']
 from torchvision import transforms
 
 
-class Imagenet_Segmentation(data.Dataset):
+class ImagenetSegmentation(data.Dataset):
     CLASSES = 2
 
     def __init__(self,

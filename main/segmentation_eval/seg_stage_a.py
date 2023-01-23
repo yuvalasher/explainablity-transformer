@@ -4,10 +4,12 @@ from distutils.util import strtobool
 
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+from typing import Union
 
 from main.seg_classification.model_types_loading import CONVNET_MODELS_BY_NAME, \
     load_explainer_explaniee_models_and_feature_extractor
 from icecream import ic
+from main.segmentation_eval.segmentation_dataset import get_segmentation_dataset
 from main.segmentation_eval.segmentation_utils import print_segmentation_results, init_get_normalize_and_transform
 from pathlib import Path
 from main.segmentation_eval.segmentation_model_opt import \
@@ -18,10 +20,11 @@ from torch.utils.data import DataLoader
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from config import config
 from utils.iou import IoU
-from main.segmentation_eval.imagenet import Imagenet_Segmentation
+from main.segmentation_eval.imagenet import ImagenetSegmentation
 from utils.vit_utils import get_warmup_steps_and_total_training_steps, \
     get_loss_multipliers, freeze_multitask_model, get_params_from_config, suppress_warnings, get_backbone_details
-from utils.consts import IMAGENET_SEG_PATH, IMAGENET_VAL_IMAGES_FOLDER_PATH, MODEL_ALIAS_MAPPING, MODEL_OPTIONS
+from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, MODEL_ALIAS_MAPPING, MODEL_OPTIONS, \
+    SEGMENTATION_DATASET_OPTIONS
 import pytorch_lightning as pl
 import gc
 from PIL import ImageFile
@@ -39,6 +42,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run segmentation of pLTX model')
     parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
     parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
+    parser.add_argument('--dataset-type', type=str, default="imagenet", choices=SEGMENTATION_DATASET_OPTIONS)
 
     parser.add_argument("--verbose",
                         type=lambda x: bool(strtobool(x)),
@@ -94,7 +98,6 @@ if __name__ == '__main__':
     IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
     IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
 
-
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC = get_backbone_details(
         explainer_model_name=args.explainer_model_name,
         explainee_model_name=args.explainee_model_name,
@@ -108,14 +111,9 @@ if __name__ == '__main__':
     ic(CKPT_PATH)
     ic(MASK_LOSS_MUL)
     ic(args.prediction_loss_mul)
+    ic(args.dataset_type)
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform()
-    ds = Imagenet_Segmentation(path=IMAGENET_SEG_PATH,
-                               batch_size=args.batch_size,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize,
-                               target_transform=test_lbl_trans,
-                               )
 
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
         explainee_model_name=EXPLAINEE_MODEL_NAME,
@@ -170,6 +168,12 @@ if __name__ == '__main__':
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
     )
 
+    ds = get_segmentation_dataset(dataset_type=args.dataset_type,
+                                  batch_size=args.batch_size,
+                                  test_img_trans=test_img_trans,
+                                  test_img_trans_only_resize=test_img_trans_only_resize,
+                                  test_lbl_trans=test_lbl_trans,
+                                  )
     dl = DataLoader(ds, batch_size=args.batch_size, shuffle=False, num_workers=1, drop_last=False)
     data_module = ImageSegOptDataModuleSegmentation(train_data_loader=dl)
     trainer = pl.Trainer(
