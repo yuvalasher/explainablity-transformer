@@ -92,7 +92,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
                 image_resized,
                 target_class=None,
                 ) -> ImageClassificationWithTokenClassificationModelOutput:
-        vit_cls_output = self.vit_for_classification_image(inputs)
+        vit_cls_output = self.vit_for_classification_image(inputs,output_hidden_states=True)
         vit_cls_output_logits = vit_cls_output.logits if not self.is_explainee_convnet else vit_cls_output
 
         interpolated_mask, tokens_mask = self.vit_for_patch_classification(inputs)

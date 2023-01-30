@@ -2,7 +2,7 @@ general:
   gpu_index: 0
   seed: 42
   wandb_project: run_seg_cls_4 #run_seg_cls_l1_vs_bce
-  wandb_entity: yuvalasher
+  wandb_entity: amit_eshel
 vit:
   train_images_path: train_data
   val_images_path: val_data
