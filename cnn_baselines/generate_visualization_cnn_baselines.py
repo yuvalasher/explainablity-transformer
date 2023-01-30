@@ -17,16 +17,24 @@ from cnn_baselines.grad_methods_utils import run_by_class_grad
 from cnn_baselines.saliency_models import GradModel, ReLU, lift_cam, ig_captum, generic_torchcam
 from utils import show_image
 from utils.consts import IMAGENET_VAL_IMAGES_FOLDER_PATH, CNN_BASELINES_RESULTS_PATH
-from cnn_baselines.torchgc.pytorch_grad_cam.fullgrad_cam import FullGrad
+from cnn_baselines.fullgrad_method.fullgrad import FullGrad
 from cnn_baselines.torchgc.pytorch_grad_cam.layer_cam import LayerCAM
 from cnn_baselines.torchgc.pytorch_grad_cam.score_cam import ScoreCAM
 from cnn_baselines.torchgc.pytorch_grad_cam.ablation_cam import AblationCAM
 import h5py
 import numpy as np
 from icecream import ic
-
+import gc
 device = torch.device('cuda')
 USE_MASK = True
+
+
+def show_mask(mask, title: str = None):
+    plt.imshow(mask[0].cpu().detach())
+    if title is not None:
+        plt.title(title);
+    plt.axis('off');
+    plt.show();
 
 
 def compute_saliency_and_save(dir: Path,
@@ -56,6 +64,8 @@ def compute_saliency_and_save(dir: Path,
                                        compression="gzip")
 
         for batch_idx, (data, target, resized_image) in enumerate(tqdm(dataloader)):
+            torch.cuda.empty_cache()
+            gc.collect()
             if first:
                 first = False
                 data_cam.resize(data_cam.shape[0] + data.shape[0] - 1, axis=0)
@@ -130,14 +140,8 @@ def compute_saliency_and_save(dir: Path,
                 )
 
             elif method == 'fullgrad':
-                t, blended_im, heatmap_cv, blended_img_mask, image, score, heatmap = generic_torchcam(
-                    modelCAM=FullGrad,
-                    backbone_name=backbone_name,
-                    inputs=data,
-                    label=index,
-                    device=device,
-                    use_mask=USE_MASK,
-                )
+                heatmap = FullGrad(model).saliency(data)  # [bs, 1, 224, 224]
+                heatmap = heatmap.cpu().detach()
 
             elif method in ['gradcam', 'gradcampp']:
                 heatmap = run_by_class_grad(model=model,
@@ -149,7 +153,6 @@ def compute_saliency_and_save(dir: Path,
                                             method=method,
                                             use_mask=USE_MASK,
                                             )
-                                                                                                       )
             else:
                 raise NotImplementedError
 
@@ -189,11 +192,13 @@ if __name__ == '__main__':
                         )
 
     args = parser.parse_args()
+    args.batch_size = 8 if args.method == "fullgrad" else args.batch_size
 
     ic(args.method)
     ic(args.backbone_name)
     ic(args.vis_by_target_gt_class)
     ic(args.verbose)
+    ic(args.batch_size)
 
     vis_class = "target" if args.vis_by_target_gt_class else "predicted"
 

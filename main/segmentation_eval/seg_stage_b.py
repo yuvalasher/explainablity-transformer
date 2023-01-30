@@ -15,8 +15,9 @@ from numpy import *
 from tqdm import tqdm
 from main.seg_classification.image_token_data_module_opt_segmentation import ImageSegOptDataModuleSegmentation
 from config import config
+from main.segmentation_eval.segmentation_dataset import get_segmentation_dataset
 from utils.iou import IoU
-from main.segmentation_eval.imagenet import Imagenet_Segmentation, Imagenet_Segmentation_Loop
+from main.segmentation_eval.imagenet import ImagenetSegmentation, Imagenet_Segmentation_Loop
 from main.segmentation_eval.segmentation_model_opt import \
     OptImageClassificationWithTokenClassificationModelSegmentation
 from utils.vit_utils import (get_warmup_steps_and_total_training_steps,
@@ -29,9 +30,9 @@ from utils.vit_utils import (get_warmup_steps_and_total_training_steps,
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
     EXPERIMENTS_FOLDER_PATH,
-    IMAGENET_SEG_PATH,
     MODEL_ALIAS_MAPPING,
     MODEL_OPTIONS,
+    SEGMENTATION_DATASET_OPTIONS,
 )
 from main.segmentation_eval.segmentation_utils import (print_segmentation_results,
                                                        init_get_normalize_and_transform,
@@ -54,13 +55,20 @@ device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet &> nohups_logs/journal/eval/train_6000/seg_stage_b_resnet_resnet_opt_by_neg.out &
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_neg.out &
+    # VOC
+    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos True --explainer-model-name densenet --explainee-model-name densenet --dataset-type voc &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_pos_voc.out &
+    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet --dataset-type voc &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_neg_voc.out &
+    
+    # COCO
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos True --explainer-model-name densenet --explainee-model-name densenet --dataset-type coco &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_pos_coco.out &
+    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet --dataset-type coco &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_neg_coco.out &
+    
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
-    parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
-    parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainer-model-name', type=str, default="densenet", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="densenet", choices=MODEL_OPTIONS)
+    parser.add_argument('--dataset-type', type=str, default="imagenet", choices=SEGMENTATION_DATASET_OPTIONS)
     parser.add_argument("--optimize-by-pos",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
@@ -142,14 +150,15 @@ if __name__ == '__main__':
     ic(args.explainer_model_n_first_layers_to_freeze)
     ic(args.n_epochs_to_optimize_stage_b)
     ic(args.use_logits_only)
+    ic(args.dataset_type)
 
     test_img_trans, test_img_trans_only_resize, test_lbl_trans = init_get_normalize_and_transform()
-    ds = Imagenet_Segmentation(path=IMAGENET_SEG_PATH,
-                               batch_size=args.batch_size,
-                               transform=test_img_trans,
-                               transform_resize=test_img_trans_only_resize,
-                               target_transform=test_lbl_trans,
-                               )
+    ds = get_segmentation_dataset(dataset_type=args.dataset_type,
+                                  batch_size=args.batch_size,
+                                  test_img_trans=test_img_trans,
+                                  test_img_trans_only_resize=test_img_trans_only_resize,
+                                  test_lbl_trans=test_lbl_trans,
+                                  )
 
     BASE_AUC_OBJECTS_PATH = Path(EXPERIMENTS_FOLDER_PATH, args.evaluation_experiment_folder_name)
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
