@@ -45,15 +45,14 @@ gc.collect()
 
 if __name__ == '__main__':
     """
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class True &> nohups_logs/journal/eval/opt_neg/resnet_resnet_stage_b_target_opt_neg.out &
-    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos False --explainer-model-name resnet --explainee-model-name resnet --train-model-by-target-gt-class False &> nohups_logs/journal/eval/opt_neg/resnet_resnet_stage_b_predicted_opt_neg.out &
-    ll base_model/objects_pkl/ | grep .pkl | wc -l
+    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos True --explainer-model-name vit_base_224 --explainee-model-name vit_base_224 --train-model-by-target-gt-class True &> nohups_logs/journal/eval/vit_base_vit_base_stage_b_target_opt_pos.out &
+    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/seg_classification/run_seg_cls_opt.py --RUN-BASE-MODEL False --optimize-by-pos True --explainer-model-name vit_base_224 --explainee-model-name vit_base_224 --train-model-by-target-gt-class False &> nohups_logs/journal/eval/vit_base_vit_base_stage_b_predicted_opt_pos.out &
     """
 
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Fine-tune LTX model')
-    parser.add_argument('--explainer-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
-    parser.add_argument('--explainee-model-name', type=str, default="resnet", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument("--train-model-by-target-gt-class",
                         type=lambda x: bool(strtobool(x)),
                         nargs='?',
