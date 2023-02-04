@@ -55,14 +55,14 @@ device = torch.device("cuda" if cuda else "cpu")
 
 if __name__ == '__main__':
     """
+    # IMAGENET
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name vit_small_224 --explainee-model-name vit_small_224 --dataset-type imagenet &> nohups_logs/journal/eval/seg_stage_b_vit_small_vit_small_opt_by_neg_imagenet.out &
+    
     # VOC
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos True --explainer-model-name densenet --explainee-model-name densenet --dataset-type voc &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_pos_voc.out &
-    CUDA_VISIBLE_DEVICES=0 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet --dataset-type voc &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_neg_voc.out &
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name vit_base_224 --explainee-model-name vit_base_224 --dataset-type voc &> nohups_logs/journal/eval/seg_stage_b_vit_base_vit_base_opt_by_neg_voc.out &
     
     # COCO
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos True --explainer-model-name densenet --explainee-model-name densenet --dataset-type coco &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_pos_coco.out &
-    CUDA_VISIBLE_DEVICES=1 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name densenet --explainee-model-name densenet --dataset-type coco &> nohups_logs/journal/eval/train_6000/seg_stage_b_densenet_densenet_opt_by_neg_coco.out &
-    
+    CUDA_VISIBLE_DEVICES=3 PYTHONPATH=./:$PYTHONPATH nohup python main/segmentation_eval/seg_stage_b.py --optimize-by-pos False --explainer-model-name vit_base_224 --explainee-model-name vit_base_224 --dataset-type coco &> nohups_logs/journal/eval/seg_stage_b_vit_base_vit_base_opt_by_neg_coco.out &
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
