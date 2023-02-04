@@ -66,8 +66,8 @@ if __name__ == '__main__':
     """
     params_config = get_params_from_config(config_vit=config["vit"])
     parser = argparse.ArgumentParser(description='Run segmentation of LTX model')
-    parser.add_argument('--explainer-model-name', type=str, default="densenet", choices=MODEL_OPTIONS)
-    parser.add_argument('--explainee-model-name', type=str, default="densenet", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainer-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
+    parser.add_argument('--explainee-model-name', type=str, default="vit_base_224", choices=MODEL_OPTIONS)
     parser.add_argument('--dataset-type', type=str, default="imagenet", choices=SEGMENTATION_DATASET_OPTIONS)
     parser.add_argument("--optimize-by-pos",
                         type=lambda x: bool(strtobool(x)),
