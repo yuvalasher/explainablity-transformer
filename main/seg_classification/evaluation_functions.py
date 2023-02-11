@@ -373,3 +373,5 @@ if __name__ == '__main__':
                                     is_explainee_convnet=IS_EXPLANIEE_CONVNET,
                                     opt_metric_type=OPT_METRIC_TYPE.name,
                                     )
+                else:
+                    print(f"Only {len(os.listdir(OPTIMIZATION_PKL_PATH_OPT))} / {50000} pickles in folder!")
