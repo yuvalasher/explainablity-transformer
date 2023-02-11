@@ -329,7 +329,7 @@ if __name__ == '__main__':
             for OPT_METRIC_TYPE in [PerturbationType.POS, PerturbationType.NEG]: # optimization type in LTX
                 HOME_BASE_PATH = \
                     EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["experiment_base_path"][
-                        f"{OPT_METRIC_TYPE}-opt"][
+                        f"{OPT_METRIC_TYPE.name}-opt"][
                         target_or_predicted_model]
                 OPTIMIZATION_PKL_PATH = Path(HOME_BASE_PATH)
                 OPTIMIZATION_PKL_PATH_BASE = Path(OPTIMIZATION_PKL_PATH, "base_model", "objects_pkl")
