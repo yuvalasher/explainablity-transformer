@@ -42,6 +42,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             mask_loss: str,
             mask_loss_mul: int,
             prediction_loss_mul: int,
+            prediction_neg_loss_mul: int,
             is_ce_neg: bool = False,
             n_batches_to_visualize: int = 2,
             start_epoch_to_evaluate: int = 1,
@@ -54,6 +55,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         self.criterion = LossLoss(mask_loss=mask_loss,
                                   mask_loss_mul=mask_loss_mul,
                                   prediction_loss_mul=prediction_loss_mul,
+                                  prediction_neg_loss_mul=prediction_neg_loss_mul
                                   )
         self.n_warmup_steps = warmup_steps
         self.n_training_steps = total_training_steps
@@ -125,7 +127,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
             vit_masked_output_logits = vit_masked_neg_output.logits if not self.is_explainee_convnet else vit_masked_neg_output
 
-        vit_masked_neg_output_logits = None if not self.is_ce_neg else vit_masked_neg_output
+        vit_masked_neg_output_logits = None if not self.is_ce_neg else vit_masked_output_logits
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits,
@@ -162,7 +164,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         return {
             "loss": output.lossloss_output.loss,
             "pred_loss": output.lossloss_output.pred_loss,
+            "pred_neg_loss": output.lossloss_output.pred_neg_loss,
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
+            "pred_neg_loss_mul": output.lossloss_output.prediction_neg_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
@@ -183,7 +187,9 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
         return {
             "loss": output.lossloss_output.loss,
             "pred_loss": output.lossloss_output.pred_loss,
+            "pred_neg_loss": output.lossloss_output.pred_neg_loss,
             "pred_loss_mul": output.lossloss_output.prediction_loss_multiplied,
+            "pred_neg_loss_mul": output.lossloss_output.prediction_neg_loss_multiplied,
             "mask_loss": output.lossloss_output.mask_loss,
             "mask_loss_mul": output.lossloss_output.mask_loss_multiplied,
             "resized_and_normalized_image": resized_and_normalized_image,
@@ -196,14 +202,18 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def training_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
         pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
+        pred_neg_loss = torch.mean(torch.stack([output["pred_neg_loss"] for output in outputs]))
         mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
         pred_loss_mul = torch.mean(torch.stack([output["pred_loss_mul"] for output in outputs]))
+        pred_neg_loss_mul = torch.mean(torch.stack([output["pred_neg_loss_mul"] for output in outputs]))
         mask_loss_mul = torch.mean(torch.stack([output["mask_loss_mul"] for output in outputs]))
 
         self.log("train/loss", loss, prog_bar=True, logger=True)
         self.log("train/prediction_loss", pred_loss, prog_bar=True, logger=True)
+        self.log("train/prediction_neg_loss", pred_neg_loss, prog_bar=True, logger=True)
         self.log("train/mask_loss", mask_loss, prog_bar=True, logger=True)
         self.log("train/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
+        self.log("train/prediction_neg_loss_mul", pred_neg_loss_mul, prog_bar=True, logger=True)
         self.log("train/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
         self._visualize_outputs(
             outputs, stage="train", n_batches=self.n_batches_to_visualize, epoch_idx=self.current_epoch
@@ -212,14 +222,18 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
     def validation_epoch_end(self, outputs):
         loss = torch.mean(torch.stack([output["loss"] for output in outputs]))
         pred_loss = torch.mean(torch.stack([output["pred_loss"] for output in outputs]))
+        pred_neg_loss = torch.mean(torch.stack([output["pred_neg_loss"] for output in outputs]))
         mask_loss = torch.mean(torch.stack([output["mask_loss"] for output in outputs]))
         pred_loss_mul = torch.mean(torch.stack([output["pred_loss_mul"] for output in outputs]))
+        pred_neg_loss_mul = torch.mean(torch.stack([output["pred_neg_loss_mul"] for output in outputs]))
         mask_loss_mul = torch.mean(torch.stack([output["mask_loss_mul"] for output in outputs]))
 
         self.log("val/loss", loss, prog_bar=True, logger=True)
         self.log("val/prediction_loss", pred_loss, prog_bar=True, logger=True)
+        self.log("val/prediction_neg_loss", pred_neg_loss, prog_bar=True, logger=True)
         self.log("val/mask_loss", mask_loss, prog_bar=True, logger=True)
         self.log("val/prediction_loss_mul", pred_loss_mul, prog_bar=True, logger=True)
+        self.log("val/prediction_neg_loss_mul", pred_neg_loss_mul, prog_bar=True, logger=True)
         self.log("val/mask_loss_mul", mask_loss_mul, prog_bar=True, logger=True)
 
         self._visualize_outputs(
