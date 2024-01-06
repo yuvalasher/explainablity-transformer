@@ -6,18 +6,24 @@ from main.seg_classification.seg_cls_utils import encourage_token_mask_to_prior_
 from utils.vit_utils import get_loss_multipliers
 import numpy as np
 
+
 @dataclass
 class LossLoss:
     mask_loss: str
     prediction_loss_mul: int
     mask_loss_mul: int
+    prediction_neg_loss_mul: int
 
     def __post_init__(self):
         loss_multipliers = get_loss_multipliers(normalize=False,
                                                 mask_loss_mul=self.mask_loss_mul,
-                                                prediction_loss_mul=self.prediction_loss_mul)
+                                                prediction_loss_mul=self.prediction_loss_mul,
+                                                prediction_neg_loss_mul=self.prediction_neg_loss_mul
+                                                )
         self.prediction_loss_mul = loss_multipliers["prediction_loss_mul"]
+        self.prediction_neg_loss_mul = loss_multipliers["prediction_neg_loss_mul"]
         self.mask_loss_mul = loss_multipliers["mask_loss_mul"]
+
         print(f"loss multipliers: {self.mask_loss_mul}; {self.prediction_loss_mul}")
 
     def __call__(self, output: Tensor,
@@ -45,23 +51,27 @@ class LossLoss:
                                         target_class=target_class,
                                         train_model_by_target_gt_class=train_model_by_target_gt_class,
                                         use_logits_only=use_logits_only)
-        pred_loss = pred_pos_loss
+        pred_neg_loss = torch.tensor(0).float()
         if is_ce_neg:
             pred_neg_loss = -1 * prediction_loss(output=neg_output,
                                                  target=target,
                                                  target_class=target_class,
                                                  train_model_by_target_gt_class=train_model_by_target_gt_class,
                                                  use_logits_only=use_logits_only)
-            pred_loss = (pred_pos_loss + pred_neg_loss) / 2
+            # pred_loss = (pred_pos_loss + pred_neg_loss) / 2
 
-        prediction_loss_multiplied = self.prediction_loss_mul * pred_loss
+        prediction_loss_multiplied = self.prediction_loss_mul * pred_pos_loss
+        prediction_neg_loss_multiplied = self.prediction_neg_loss_mul * pred_neg_loss
         mask_loss_multiplied = self.mask_loss_mul * mask_loss
-        loss = prediction_loss_multiplied + mask_loss_multiplied
+
+        loss = prediction_loss_multiplied + mask_loss_multiplied + prediction_neg_loss_multiplied
         return LossLossOutput(
             loss=loss,
             prediction_loss_multiplied=prediction_loss_multiplied,
+            prediction_neg_loss_multiplied=prediction_neg_loss_multiplied,
             mask_loss_multiplied=mask_loss_multiplied,
-            pred_loss=pred_loss,
+            pred_loss=pred_pos_loss,
+            pred_neg_loss=pred_neg_loss,
             mask_loss=mask_loss,
         )
 
