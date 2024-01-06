@@ -10,6 +10,7 @@ from torch import Tensor
 import numpy as np
 from config import config
 from main.seg_classification.cnns.cnn_utils import CONVENT_NORMALIZATION_MEAN, CONVNET_NORMALIZATION_STD
+from icecream import ic
 
 vit_config = config['vit']
 EXPERIMENTS_FOLDER_PATH = vit_config["experiments_path"]
@@ -247,6 +248,7 @@ def run_perturbation_test(model,
                                      )
         results_df = update_results_df(results_df=results_df, vis_type=vis_type, auc=auc)
         print(results_df)
+        ic(results_df)
         results_df.to_csv(output_csv_path, index=False)
         print(f"Saved results at: {output_csv_path}")
     return auc
