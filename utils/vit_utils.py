@@ -1,3 +1,4 @@
+from icecream import ic
 import numpy as np
 import torch
 from torch import nn
@@ -171,24 +172,28 @@ def get_warmup_steps_and_total_training_steps(
 
 def normalize_losses(mask_loss_mul: float,
                      prediction_loss_mul: float,
-                     ) -> Tuple[float, float]:
-    s = mask_loss_mul + prediction_loss_mul
+                     prediction_neg_loss_mul: float,
+                     ) -> Tuple[float, float, float]:
+    s = mask_loss_mul + prediction_loss_mul + prediction_neg_loss_mul
     mask_loss_mul_norm = mask_loss_mul / s
     pred_loss_mul_norm = prediction_loss_mul / s
-    return mask_loss_mul_norm, pred_loss_mul_norm
+    pred_neg_loss_mul_norm = prediction_neg_loss_mul / s
+    return mask_loss_mul_norm, pred_loss_mul_norm, pred_neg_loss_mul_norm
 
 
 def get_loss_multipliers(normalize: bool,
                          mask_loss_mul: int,
                          prediction_loss_mul: int,
+                         prediction_neg_loss_mul: int,
+
                          ) -> Dict[str, int]:
     if normalize:
-        mask_loss_mul, prediction_loss_mul = normalize_losses(mask_loss_mul=mask_loss_mul,
-                                                              prediction_loss_mul=prediction_loss_mul)
-    else:
-        prediction_loss_mul = prediction_loss_mul
-        mask_loss_mul = mask_loss_mul
-    return dict(prediction_loss_mul=prediction_loss_mul, mask_loss_mul=mask_loss_mul)
+        mask_loss_mul, prediction_loss_mul, prediction_neg_loss_mul = normalize_losses(mask_loss_mul=mask_loss_mul,
+                                                                                       prediction_loss_mul=prediction_loss_mul,
+                                                                                       prediction_neg_loss_mul=prediction_neg_loss_mul)
+    return dict(prediction_loss_mul=prediction_loss_mul,
+                prediction_neg_loss_mul=prediction_neg_loss_mul,
+                mask_loss_mul=mask_loss_mul)
 
 
 def get_checkpoint_idx(ckpt_path: str) -> int:
@@ -220,6 +225,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
     mask_loss = loss_config["mask_loss"]
     mask_loss_mul = loss_config["mask_loss_mul"]
     prediction_loss_mul = loss_config["prediction_loss_mul"]
+    prediction_neg_loss_mul = loss_config["prediction_neg_loss_mul"]
     lr = config_vit["lr"]
     start_epoch_to_evaluate = config_vit["start_epoch_to_evaluate"]
     n_batches_to_visualize = config_vit["n_batches_to_visualize"]
@@ -252,6 +258,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
                 mask_loss=mask_loss,
                 mask_loss_mul=mask_loss_mul,
                 prediction_loss_mul=prediction_loss_mul,
+                prediction_neg_loss_mul=prediction_neg_loss_mul,
                 lr=lr,
                 start_epoch_to_evaluate=start_epoch_to_evaluate,
                 n_batches_to_visualize=n_batches_to_visualize,
@@ -285,9 +292,9 @@ def get_backbone_details(explainer_model_name: str, explainee_model_name: str, t
 
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = \
         EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["ckpt_path"][target_or_predicted_model], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], \
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
     return CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC
