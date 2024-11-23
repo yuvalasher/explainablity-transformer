@@ -51,6 +51,8 @@ class LossLoss:
                                         target_class=target_class,
                                         train_model_by_target_gt_class=train_model_by_target_gt_class,
                                         use_logits_only=use_logits_only)
+
+        # Only initialize if 'is_ce_neg' is False.
         pred_neg_loss = torch.tensor(0).float()
         if is_ce_neg:
             pred_neg_loss = -1 * prediction_loss(output=neg_output,
