@@ -35,7 +35,7 @@ vit:
   lr: 2.0e-3
   verbose: False
   seg_cls:
-    train_n_label_sample: 1
+    train_n_label_sample: 6
     val_n_label_sample: 1
     loss:
       normalize: False
