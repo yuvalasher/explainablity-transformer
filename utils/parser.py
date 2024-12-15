@@ -42,7 +42,7 @@ def get_parser(params_config):
     parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
-    # parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
+    #parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
 
     # Data arguments
     parser.add_argument('--train-n-label-sample', type=int, default=params_config["train_n_label_sample"])
@@ -60,3 +60,25 @@ def get_parser(params_config):
         ("is-competitive-method-transforms", "is_competitive_method_transforms"),
         ("use-logits-only", "use_logits_only"),
     ]
+
+    for arg_name, config_key in bool_args:
+        parser.add_argument(
+            f"--{arg_name}",
+            type=lambda x: bool(strtobool(x)),
+            nargs='?',
+            const=True,
+            default=params_config[config_key]
+        )
+
+    # Other arguments
+    parser.add_argument('--explainer-model-n-first-layers-to-freeze', type=int,
+                        default=params_config["explainer_model_n_first_layers_to_freeze"])
+    parser.add_argument('--plot-path', type=str, default=params_config["plot_path"])
+    parser.add_argument('--default-root-dir', type=str, default=params_config["default_root_dir"])
+    parser.add_argument('--start-epoch-to-evaluate', type=int, default=params_config["start_epoch_to_evaluate"])
+    parser.add_argument('--n-batches-to-visualize', type=int, default=params_config["n_batches_to_visualize"])
+    parser.add_argument('--is-ce-neg', type=str, default=params_config["is_ce_neg"])
+    parser.add_argument('--evaluation-experiment-folder-name', type=str,
+                        default=params_config["evaluation_experiment_folder_name"])
+
+    return parser
