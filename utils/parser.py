@@ -42,7 +42,7 @@ def get_parser(params_config):
     parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
-    parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
+    # parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
 
     # Data arguments
     parser.add_argument('--train-n-label-sample', type=int, default=params_config["train_n_label_sample"])
