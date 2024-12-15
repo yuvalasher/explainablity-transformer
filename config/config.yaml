@@ -23,14 +23,14 @@ vit:
   explainer_model_n_first_layers_to_freeze: 0
   is_freezing_explaniee_model: True
   freeze_classification_head: False
-  batch_size: 8
+  batch_size: 32
   default_root_dir: /RG/rg-barkan/amitesh/explainablity-transformer-cv/results/checkpoints
   plot_path: /RG/rg-barkan/amitesh/explainablity-transformer-cv/results/plots/
   experiments_path: scance
   enable_checkpointing: False
   start_epoch_to_evaluate: 1
   n_batches_to_visualize: 1
-  n_epochs: 500
+  n_epochs: 25
   n_epochs_to_optimize_stage_b: 25
   lr: 2.0e-3
   verbose: False

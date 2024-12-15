@@ -52,19 +52,19 @@ class LossLoss:
                                         train_model_by_target_gt_class=train_model_by_target_gt_class,
                                         use_logits_only=use_logits_only)
         pred_neg_loss = torch.tensor(0).float()
-        if is_ce_neg:
-            pred_neg_loss = -1 * prediction_loss(output=neg_output,
-                                                 target=target,
-                                                 target_class=target_class,
-                                                 train_model_by_target_gt_class=train_model_by_target_gt_class,
-                                                 use_logits_only=use_logits_only)
-            # pred_loss = (pred_pos_loss + pred_neg_loss) / 2
+        # if is_ce_neg:
+        #     pred_neg_loss = -1 * prediction_loss(output=neg_output,
+        #                                          target=target,
+        #                                          target_class=target_class,
+        #                                          train_model_by_target_gt_class=train_model_by_target_gt_class,
+        #                                          use_logits_only=use_logits_only)
+        #     # pred_loss = (pred_pos_loss + pred_neg_loss) / 2
 
         prediction_loss_multiplied = self.prediction_loss_mul * pred_pos_loss
-        prediction_neg_loss_multiplied = self.prediction_neg_loss_mul * pred_neg_loss
+        # prediction_neg_loss_multiplied = self.prediction_neg_loss_mul * pred_neg_loss
         mask_loss_multiplied = self.mask_loss_mul * mask_loss
-
-        loss = prediction_loss_multiplied + mask_loss_multiplied + prediction_neg_loss_multiplied
+        prediction_neg_loss_multiplied = torch.tensor(0).float()
+        loss = prediction_loss_multiplied + mask_loss_multiplied  # + prediction_neg_loss_multiplied
         return LossLossOutput(
             loss=loss,
             prediction_loss_multiplied=prediction_loss_multiplied,
