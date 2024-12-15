@@ -1,27 +1,46 @@
-import argparse
+import sys
 import os
 
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-from distutils.util import strtobool
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ["WANDB__SERVICE_WAIT"] = "1000"
+os.chdir('/home/amitesh/Projects/explainablity-transformer-cv')
+sys.path.append('/home/amitesh/Projects/explainablity-transformer-cv')
+
+from icecream import ic
+
+# Print Python interpreter information
+ic(f"Python Interpreter: {sys.executable}")
+ic(f"Python Version: {sys.version}")
+
+# Print current working directory
+ic(f"Current Working Directory: {os.getcwd()}")
+
+
+ic('start!')
+import gc
+from pathlib import Path
+
+# Third-party imports
+ic('Import Third-party')
+import torch
 import wandb
+import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-from main.seg_classification.model_types_loading import load_explainer_explaniee_models_and_feature_extractor, \
-    CONVNET_MODELS_BY_NAME
-from main.seg_classification.seg_cls_utils import save_config_to_root_dir
-from config import config
-from icecream import ic
+from PIL import ImageFile
+
+
+# Local imports
+ic('Import Local imports')
+from config.config_reader import config
 from utils import remove_old_results_dfs
-from pathlib import Path
-from main.seg_classification.image_classification_with_token_classification_model import (
-    ImageClassificationWithTokenClassificationModel,
-)
-from main.seg_classification.image_token_data_module import ImageSegDataModule
-import pytorch_lightning as pl
 from utils.consts import (
     IMAGENET_VAL_IMAGES_FOLDER_PATH,
-    EXPERIMENTS_FOLDER_PATH, MODEL_OPTIONS, MODEL_ALIAS_MAPPING,
+    EXPERIMENTS_FOLDER_PATH,
+    MODEL_OPTIONS,
+    MODEL_ALIAS_MAPPING,
 )
 from utils.vit_utils import (
     get_warmup_steps_and_total_training_steps,
@@ -30,17 +49,27 @@ from utils.vit_utils import (
     get_loss_multipliers,
     get_params_from_config,
 )
-from pytorch_lightning import seed_everything
-import torch
-import gc
-from PIL import ImageFile
+from main.seg_classification.model_types_loading import (
+    load_explainer_explaniee_models_and_feature_extractor,
+    CONVNET_MODELS_BY_NAME,
+)
+from main.seg_classification.seg_cls_utils import save_config_to_root_dir
+from main.seg_classification.image_classification_with_token_classification_model import (
+    ImageClassificationWithTokenClassificationModel,
+)
+from main.seg_classification.image_token_data_module import ImageSegDataModule
 
+# Set up CUDA and seed
+ic('Set up CUDA and seed')
 if torch.cuda.is_available():
     print(torch.cuda.current_device())
     torch.cuda.empty_cache()
 seed_everything(config["general"]["seed"])
 
+# Configure PIL to load truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# Collect garbage
 gc.collect()
 
 if __name__ == '__main__':
