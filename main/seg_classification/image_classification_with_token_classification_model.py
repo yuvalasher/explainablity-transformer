@@ -125,7 +125,7 @@ class ImageClassificationWithTokenClassificationModel(pl.LightningModule):
             vit_masked_neg_output = self.vit_for_classification_image(masked_neg_image_inputs)
             vit_masked_output_logits = vit_masked_neg_output.logits if not self.is_explainee_convnet else vit_masked_neg_output
 
-        vit_masked_neg_output_logits = None if not self.is_ce_neg else vit_masked_neg_output
+        vit_masked_neg_output_logits = None if not self.is_ce_neg else vit_masked_output_logits
 
         lossloss_output = self.criterion(
             output=vit_masked_output_logits,
