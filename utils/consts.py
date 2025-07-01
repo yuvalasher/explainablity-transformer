@@ -7,6 +7,8 @@ ROOT_DIR: Path = Path(__file__).parent.parent
 DATA_PATH: Path = Path(ROOT_DIR, 'data')
 
 IMAGENET_VAL_IMAGES_FOLDER_PATH = "/home/amitesh/Projects/explainablity-transformer-cv/vit_data"
+SAMPLE_SIZE = 1
+N_IMAGES_PER_LABEL = 1
 SEGMENTATION_DATASET_PARENT_FOLDER = "/home/amitesh/Projects/explainablity-transformer-cv/datasets"
 IMAGENET_SEG_PATH = Path(SEGMENTATION_DATASET_PARENT_FOLDER, "gtsegs_ijcv.mat")
 COCO_SEG_PATH = Path(SEGMENTATION_DATASET_PARENT_FOLDER, "coco")
@@ -15,7 +17,7 @@ VOC_PATH = Path(SEGMENTATION_DATASET_PARENT_FOLDER, "voc")
 PLOTS_PATH: Path = Path(ROOT_DIR, 'research', 'plots')
 IMAGES_FOLDER_PATH = IMAGENET_VAL_IMAGES_FOLDER_PATH
 PICKLES_FOLDER_PATH: Path = Path(ROOT_DIR, 'pickles').resolve()
-EXPERIMENTS_FOLDER_PATH: str = "/home/amitesh/work/explainablity-transformer-cv/results/experiments"
+EXPERIMENTS_FOLDER_PATH: str = "/home/amitesh/work/explainablity-transformer-cv/results_new/experiments"
 CNN_BASELINES_RESULTS_PATH = '/home/amitesh/work/explainablity-transformer-cv/baselines_results/'
 RESULTS_PICKLES_FOLDER_PATH = EXPERIMENTS_FOLDER_PATH
 EVALUATION_FOLDER_PATH: Path = Path(ROOT_DIR, 'evaluation').resolve()
