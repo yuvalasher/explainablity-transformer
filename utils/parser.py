@@ -2,6 +2,7 @@ import argparse
 from distutils.util import strtobool
 from utils.consts import MODEL_OPTIONS
 
+
 def get_parser(params_config):
     """
     Create and configure an argument parser for the pLTX model training script.
@@ -42,8 +43,7 @@ def get_parser(params_config):
     parser.add_argument('--mask-loss', type=str, default=params_config["mask_loss"])
     parser.add_argument('--mask-loss-mul', type=int, default=params_config["mask_loss_mul"])
     parser.add_argument('--prediction-loss-mul', type=int, default=params_config["prediction_loss_mul"])
-    #parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
-
+    # parser.add_argument('--prediction-neg-loss-mul', type=int, default=params_config["prediction_neg_loss_mul"])
     # Data arguments
     parser.add_argument('--train-n-label-sample', type=int, default=params_config["train_n_label_sample"])
     parser.add_argument('--val-n-label-sample', type=int, default=params_config["val_n_label_sample"])
@@ -59,6 +59,7 @@ def get_parser(params_config):
         ("is-clamp-between-0-to-1", "is_clamp_between_0_to_1"),
         ("is-competitive-method-transforms", "is_competitive_method_transforms"),
         ("use-logits-only", "use_logits_only"),
+        ("use-inpaint-model", "use_inpaint_model"),
     ]
 
     for arg_name, config_key in bool_args:

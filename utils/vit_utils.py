@@ -14,6 +14,8 @@ from utils.consts import IMAGES_FOLDER_PATH
 from utils.transformation import image_transformations, wolf_image_transformations
 from utils.utils_functions import get_image_from_path
 
+import pickle
+
 cuda = torch.cuda.is_available()
 ce_loss = nn.CrossEntropyLoss(reduction="mean")
 
@@ -35,6 +37,7 @@ def show_cam_on_image(img, mask):
 def plot_vis_on_image(original_image,
                       mask,
                       file_name: str,
+                      save_dict_path: str = "visualization_data_new.pkl",
                       ):
     """
     :param original_image.shape: [3, 224, 224]
@@ -50,7 +53,33 @@ def plot_vis_on_image(original_image,
     vis = np.uint8(255 * vis)
     vis = cv2.cvtColor(np.array(vis), cv2.COLOR_RGB2BGR)
     # plt.axis('off')
+    plt.imshow(vis)
     plt.imsave(fname=Path(f"{file_name}.png"), dpi=300, arr=vis, format="png")
+
+
+    # # Save to a shared pkl dictionary
+    # data_to_save = {
+    #     'original_image': original_image.cpu().numpy(),
+    #     'mask': mask,
+    #     'vis': vis,
+    #     'image_transformer_attribution': image_transformer_attribution
+    # }
+    # save_dict_path = Path(save_dict_path)
+    # # Ensure parent directory exists
+    # save_dict_path.parent.mkdir(parents=True, exist_ok=True)
+    # if save_dict_path.exists():
+    #     try:
+    #         with open(save_dict_path, 'rb') as f:
+    #             all_data = pickle.load(f)
+    #     except (pickle.UnpicklingError, EOFError):
+    #         print(f"Warning: Corrupted pickle file at {save_dict_path}. Overwriting.")
+    #         all_data = {}
+    # else:
+    #     all_data = {}
+    # all_data[file_name] = data_to_save
+    # print(f"Visualization data saved to: {save_dict_path.resolve()}")
+    # with open(save_dict_path, 'wb') as f:
+    #     pickle.dump(all_data, f)
 
 
 def visu(original_image, transformer_attribution, file_name: str, img_size: int, patch_size: int):
@@ -266,6 +295,7 @@ def get_params_from_config(config_vit: Dict) -> Dict:
                 evaluation_experiment_folder_name=evaluation_experiment_folder_name,
                 train_n_label_sample=train_n_label_sample,
                 val_n_label_sample=val_n_label_sample,
+                use_inpaint_model=config_vit["use_inpaint_model"],
                 )
 
 
@@ -285,9 +315,9 @@ def get_backbone_details(explainer_model_name: str, explainee_model_name: str, t
 
     CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL = \
         EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["ckpt_path"][target_or_predicted_model], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
-        EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["img_size"], \
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["patch_size"], \
+            EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[EXPLAINER_EXPLAINEE_NAME]["mask_loss"]
     CHECKPOINT_EPOCH_IDX = get_checkpoint_idx(ckpt_path=CKPT_PATH)
     BASE_CKPT_MODEL_AUC = get_ckpt_model_auc(ckpt_path=CKPT_PATH)
     return CKPT_PATH, IMG_SIZE, PATCH_SIZE, MASK_LOSS_MUL, CHECKPOINT_EPOCH_IDX, BASE_CKPT_MODEL_AUC

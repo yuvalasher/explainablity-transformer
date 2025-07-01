@@ -326,7 +326,7 @@ if __name__ == '__main__':
 
     for explainer_explainee_backbones in EXPLAINER_EXPLAINEE_BACKBONE_DETAILS.keys():
         for target_or_predicted_model in ["target", "predicted"]:
-            for OPT_METRIC_TYPE in [PerturbationType.POS, PerturbationType.NEG]: # optimization type in LTX
+            for OPT_METRIC_TYPE in [PerturbationType.POS, PerturbationType.NEG]:  # optimization type in LTX
                 HOME_BASE_PATH = \
                     EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["experiment_base_path"][
                         f"{OPT_METRIC_TYPE.name}-opt"][
@@ -341,7 +341,7 @@ if __name__ == '__main__':
                 IMG_SIZE = EXPLAINER_EXPLAINEE_BACKBONE_DETAILS[explainer_explainee_backbones]["img_size"]
 
                 EXPLAINEE_MODEL_NAME, EXPLAINER_MODEL_NAME = MODEL_ALIAS_MAPPING[explainee_model_name], \
-                                                             MODEL_ALIAS_MAPPING[explainer_model_name]
+                    MODEL_ALIAS_MAPPING[explainer_model_name]
 
                 IS_EXPLANIEE_CONVNET = True if EXPLAINEE_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False
                 IS_EXPLAINER_CONVNET = True if EXPLAINER_MODEL_NAME in CONVNET_MODELS_BY_NAME.keys() else False

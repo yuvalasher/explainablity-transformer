@@ -1,6 +1,7 @@
 import sys
 import os
 
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ["WANDB__SERVICE_WAIT"] = "1000"
@@ -97,8 +98,8 @@ if __name__ == '__main__':
 
     # Usage
     log_configuration(args, EXPLAINER_MODEL_NAME, EXPLAINEE_MODEL_NAME, IMAGENET_VAL_IMAGES_FOLDER_PATH)
-    # exp_name = f'ARGPARSE_explanier_{EXPLAINER_MODEL_NAME.replace("/", "_")}__explaniee_{EXPLAINEE_MODEL_NAME.replace("/", "_")}__train_uni_{args.is_sampled_train_data_uniformly}_val_unif_{args.is_sampled_val_data_uniformly}_activation_{args.activation_function}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{args.mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}__bs_{args.batch_size}_by_target_gt__{args.train_model_by_target_gt_class}'
-    exp_name = 'test'
+    exp_name = f'ARGPARSE_explanier_{EXPLAINER_MODEL_NAME.replace("/", "_")}__explaniee_{EXPLAINEE_MODEL_NAME.replace("/", "_")}__train_uni_{args.is_sampled_train_data_uniformly}_val_unif_{args.is_sampled_val_data_uniformly}_activation_{args.activation_function}_pred_{loss_multipliers["prediction_loss_mul"]}_mask_l_{args.mask_loss}_{loss_multipliers["mask_loss_mul"]}__train_n_samples_{args.train_n_label_sample * 1000}_lr_{args.lr}__bs_{args.batch_size}_by_target_gt__{args.train_model_by_target_gt_class}'
+
     model_for_classification_image, model_for_mask_generation, feature_extractor = load_explainer_explaniee_models_and_feature_extractor(
         explainee_model_name=EXPLAINEE_MODEL_NAME,
         explainer_model_name=EXPLAINER_MODEL_NAME,
@@ -116,7 +117,9 @@ if __name__ == '__main__':
         is_sampled_val_data_uniformly=args.is_sampled_val_data_uniformly,
         is_competitive_method_transforms=args.is_competitive_method_transforms,
         train_n_label_sample=args.train_n_label_sample,
-        val_n_label_sample=args.val_n_label_sample
+        val_n_label_sample=args.val_n_label_sample,
+        direct_load=True,
+        val_split=0.5,
     )
 
     warmup_steps, total_training_steps = get_warmup_steps_and_total_training_steps(
@@ -163,7 +166,11 @@ if __name__ == '__main__':
         explainer_model_n_first_layers_to_freeze=args.explainer_model_n_first_layers_to_freeze,
         is_explainer_convnet=IS_EXPLAINER_CONVNET,
     )
-    print(exp_name)
+    print('-' * 50)
+    print(f"Experiment name: {exp_name}")
+    print('Save results to:', experiment_perturbation_results_path)
+    print(f"Plot path: {plot_path}")
+    print('-' * 50)
     print_number_of_trainable_and_not_trainable_params(model)
 
     checkpoints_default_root_dir = str(

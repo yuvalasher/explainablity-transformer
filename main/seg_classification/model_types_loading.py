@@ -29,6 +29,7 @@ def load_vit_type_models(model_name: str, is_explanier_model: bool) -> Union[
     else:
         if model_name in MODEL_ALIAS_MAPPING["vit_base_224"]:
             model_for_mask_generation = load_vit_pretrained_for_explaniee(model_name=model_name)
+
         elif model_name in MODEL_ALIAS_MAPPING[
             "vit_small_224"]:  # the saved weights were opposite for the explanier-explainee for vit_small_224
             return ViTForImageClassification.from_pretrained(model_name)
@@ -51,7 +52,7 @@ def load_convnet_type_models(model_name: str,
     return model_for_mask_generation
 
 
-def load_model_by_name(model_name: str, is_explanier_model: bool, activation_function: str, img_size: int):
+def load_model_by_name(model_name: str, is_explanier_model: bool, activation_function: str, img_size: int) :
     if model_name in CONVNET_MODELS_BY_NAME.keys():
         model = load_convnet_type_models(model_name=model_name,
                                          is_explanier_model=is_explanier_model,
@@ -88,7 +89,7 @@ def load_explainer_explaniee_models_and_feature_extractor(explainee_model_name: 
     model_for_mask_generation = load_model_by_name(model_name=explainer_model_name,
                                                    is_explanier_model=True,
                                                    activation_function=activation_function,
-                                                   img_size=img_size,
+                                                   img_size=img_size
                                                    )
     feature_extractor = load_feature_extractor(explainee_model_name=explainee_model_name,
                                                explainer_model_name=explainer_model_name)

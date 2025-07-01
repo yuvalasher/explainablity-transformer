@@ -18,6 +18,8 @@ class ImageSegDataModule(pl.LightningDataModule):
             train_n_label_sample: int,
             val_n_label_sample: int,
             feature_extractor: ViTFeatureExtractor = None,
+            direct_load: bool = False,
+            val_split: float = 0.2,
     ):
         super().__init__()
         self.batch_size = batch_size
@@ -30,6 +32,10 @@ class ImageSegDataModule(pl.LightningDataModule):
         self.train_n_label_sample = train_n_label_sample
         self.val_n_label_sample = val_n_label_sample
         self.feature_extractor = feature_extractor
+        self.direct_load = direct_load
+        self.val_split = val_split
+        self.train_dataset = None
+        self.val_dataset = None
 
     def setup(self, stage=None):
         dataset = ImageSegDataset(
@@ -39,25 +45,42 @@ class ImageSegDataModule(pl.LightningDataModule):
             is_sampled_val_data_uniformly=self.is_sampled_val_data_uniformly,
             train_n_label_sample=self.train_n_label_sample,
             val_n_label_sample=self.val_n_label_sample,
+            direct_load=self.direct_load,
+            val_split=self.val_split,
         )
-        self.train_dataset = ImagesDataset(images_path=self.train_images_path,
-                                           images_name=dataset.train_set,
-                                           targets=dataset.train_gt_classes,
-                                           is_explaniee_convnet=self.is_explaniee_convnet,
-                                           is_competitive_method_transforms=self.is_competitive_method_transforms,
-                                           feature_extractor=self.feature_extractor,
-                                           )
+        
+        self.train_dataset = ImagesDataset(
+            images_path=self.train_images_path,
+            images_name=dataset.train_set,
+            targets=dataset.train_gt_classes,
+            is_explaniee_convnet=self.is_explaniee_convnet,
+            is_competitive_method_transforms=self.is_competitive_method_transforms,
+            feature_extractor=self.feature_extractor,
+        )
 
-        self.val_dataset = ImagesDataset(images_path=self.val_images_path,
-                                         images_name=dataset.val_set,
-                                         targets=dataset.val_gt_classes,
-                                         is_explaniee_convnet=self.is_explaniee_convnet,
-                                         is_competitive_method_transforms=self.is_competitive_method_transforms,
-                                         feature_extractor=self.feature_extractor,
-                                         )
+
+        self.val_dataset = ImagesDataset(
+            images_path=self.val_images_path,
+            images_name=dataset.val_set,
+            targets=dataset.val_gt_classes,
+            is_explaniee_convnet=self.is_explaniee_convnet,
+            is_competitive_method_transforms=self.is_competitive_method_transforms,
+            feature_extractor=self.feature_extractor,
+        )
+        #print len of train_dataset and val_dataset
+        print(f"Train dataset length: {len(self.train_dataset)}")
+        print(f"Validation dataset length: {len(self.val_dataset)}")
 
     def train_dataloader(self):
-        return DataLoader(dataset=self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            dataset=self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True
+        )
 
     def val_dataloader(self):
-        return DataLoader(dataset=self.val_dataset, batch_size=self.batch_size, shuffle=False),
+        return DataLoader(
+            dataset=self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False
+        )
